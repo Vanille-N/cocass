@@ -4,3 +4,5 @@ assets/*
 depend
 mcc
 ctab.output
+.gdb_history
+*.out
