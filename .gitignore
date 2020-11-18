@@ -1,0 +1,6 @@
+assets/*
+*.cmi
+*.cmo
+depend
+mcc
+ctab.output
