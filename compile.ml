@@ -1,5 +1,12 @@
 open Cparse
 open Genlab
+open Printf
 
 let compile out decl_list =
-  Printf.fprintf out "TODO\n"
+  fprintf out ".global main
+.text
+main:
+    mov $60, %%rax
+    mov $42, %%rdi
+    syscall
+"
