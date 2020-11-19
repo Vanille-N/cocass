@@ -46,6 +46,42 @@ and inline_expr expr =
         | EIF _ -> false
         | ESEQ _ -> false
 
+let rec print_code_indent offset out code =
+    match snd code with
+        | CBLOCK (decl_lst, code_lst) -> (
+            fprintf out "%sblock decl [\n" (indent offset);
+            print_ast_indent (offset + 1) out decl_lst;
+            fprintf out "%s] body {\n" (indent offset);
+            List.iter (print_code_indent (offset + 1) out) code_lst;
+            fprintf out "%s}\n" (indent offset);
+        )
+        | CEXPR expr -> (
+            fprintf out "%sexpr (\n" (indent offset);
+            print_expr_indent (offset + 1) out expr;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | CIF (cond, code_true, code_false) -> (
+            fprintf out "%scond (\n" (indent offset);
+            print_expr_indent (offset + 1) out cond;
+            fprintf out "%s) do true {\n" (indent offset);
+            print_code_indent (offset + 1) out code_true;
+            fprintf out "%s} do false {\n" (indent offset);
+            print_code_indent (offset + 1) out code_false;
+            fprintf out "%s}\n" (indent offset);
+        )
+        | CWHILE (cond, code) -> (
+            fprintf out "%scond (\n" (indent offset);
+            print_expr_indent (offset + 1) out cond;
+            fprintf out "%s) loop true {\n" (indent offset);
+            print_code_indent (offset + 1) out code;
+            fprintf out "%s}\n" (indent offset);
+        )
+        | CRETURN None -> fprintf out "%sret void\n" (indent offset)
+        | CRETURN (Some ret) -> (
+            fprintf out "%sret val (\n" (indent offset);
+            print_expr_indent (offset + 1) out ret;
+            fprintf out "%s)\n" (indent offset);
+        )
     List.iter (function
         | CDECL(_, name) -> fprintf out "decl name <%s>\n" name
         | CFUN(_, name, decs, code) -> (
