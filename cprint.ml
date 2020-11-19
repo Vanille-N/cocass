@@ -82,13 +82,16 @@ let rec print_code_indent offset out code =
             print_expr_indent (offset + 1) out ret;
             fprintf out "%s)\n" (indent offset);
         )
+and print_ast_indent offset out dec_lst =
     List.iter (function
-        | CDECL(_, name) -> fprintf out "decl name <%s>\n" name
-        | CFUN(_, name, decs, code) -> (
-            fprintf out "func name <%s> args [\n" (Pigment.red name);
-            print_declarations out decs;
-            fprintf out "] body {\n";
-            print_code out code;
-            fprintf out "}\n"
+        | CDECL (_, name) -> fprintf out "%svar name <%s>\n" (indent offset) (Pigment.green name)
+        | CFUN (_, name, decs, code) -> (
+            fprintf out "%sfunc name <%s> args [\n" (indent offset) (Pigment.red name);
+            print_ast_indent (offset + 1) out decs;
+            fprintf out "%s] body {\n" (indent offset);
+            print_code_indent (offset + 1) out code;
+            fprintf out "%s}\n" (indent offset)
+        )
+    ) dec_lst
         )
     ) dec_list
