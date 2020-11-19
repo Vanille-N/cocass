@@ -123,39 +123,39 @@ and print_expr_indent offset next out expr =
             print_expr_indent (offset ^ curr_empty) false out value;
         )
         | CALL (fname, expr_lst) -> (
-            fprintf out "%scall fn <%s>\n" (indent offset) (Pigment.red fname);
-            List.iter (print_expr_indent (offset + 1) out) expr_lst;
+            fprintf out "%scall fn <%s>\n" (offset ^ curr_full) (Pigment.red fname);
+            print_block print_expr_indent (offset ^ blank) out expr_lst;
         )
         | OP1 (op, expr) -> (
-            fprintf out "%scall op <%s>\n" (indent offset) (Pigment.red (mon_op_repr op));
-            print_expr_indent (offset + 1) out expr;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (mon_op_repr op));
+            print_expr_indent (offset ^ curr_empty) false out expr;
         )
         | OP2 (op, lhs, rhs) -> (
-            fprintf out "%scall op <%s>\n" (indent offset) (Pigment.red (bin_op_repr op));
-            print_expr_indent (offset + 1) out lhs;
-            print_expr_indent (offset + 1) out rhs;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (bin_op_repr op));
+            print_expr_indent (offset ^ curr_empty) true out lhs;
+            print_expr_indent (offset ^ curr_empty) false out rhs;
         )
         | CMP (op, lhs, rhs) -> (
-            fprintf out "%scall op <%s>\n" (indent offset) (Pigment.red (cmp_op_repr op));
-            print_expr_indent (offset + 1) out lhs;
-            print_expr_indent (offset + 1) out rhs;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (cmp_op_repr op));
+            print_expr_indent (offset ^ curr_empty) true out lhs;
+            print_expr_indent (offset ^ curr_empty) false out rhs;
         )
         | EIF (cond, expr_true, expr_false) -> (
-            fprintf out "%scond\n" (indent offset);
-            print_expr_indent (offset + 1) out cond;
-            fprintf out "%s  val true\n" (indent offset);
-            print_expr_indent (offset + 2) out expr_true;
-            fprintf out "%s  val false\n" (indent offset);
-            print_expr_indent (offset + 2) out expr_false;
+            fprintf out "%sternary\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) true out cond;
+            fprintf out "%sval true\n" (offset ^ curr_empty ^ bifurc);
+            print_expr_indent (offset ^ curr_empty ^ cont) false out expr_true;
+            fprintf out "%sval false\n" (offset ^ curr_empty ^ termin);
+            print_expr_indent (offset ^ curr_empty ^ blank) false out expr_false;
         )
         | ESEQ exprs -> (
-            fprintf out "%sseq\n" (indent offset);
-            List.iter (print_expr_indent (offset + 1) out) exprs;
+            fprintf out "%sseq\n" offset;
+            print_block print_expr_indent (offset ^ blank) out exprs;
         )
 
-let print_declarations = print_ast_indent 0
+let print_declarations = print_ast_indent "" false
 
 let print_locator out nom fl fc ll lc =
     fprintf out "in file <%s> from %d:%d to %d:%d" nom fl fc ll lc
 
-let print_ast = print_ast_indent 0
+let print_ast = print_ast_indent "" false
