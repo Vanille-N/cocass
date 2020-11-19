@@ -93,5 +93,56 @@ and print_ast_indent offset out dec_lst =
             fprintf out "%s}\n" (indent offset)
         )
     ) dec_lst
+and print_expr_indent offset out expr =
+    match snd expr with
+        | VAR name -> fprintf out "%sread <%s>\n" (indent offset) (Pigment.green name)
+        | CST value -> fprintf out "%sconst int <%s>\n" (indent offset) (Pigment.blue (string_of_int value))
+        | STRING str -> fprintf out "%sconst str <\"%s\">\n" (indent offset) (Pigment.blue (String.escaped str))
+        | SET_VAR (name, expr) -> (
+            fprintf out "%sassign <%s> val (\n" (indent offset) (Pigment.green name);
+            print_expr_indent (offset + 1) out expr;
+            fprintf out "%s)\n" (indent offset);
         )
-    ) dec_list
+        | SET_ARRAY (name, index, value) -> (
+            fprintf out "%sassign <%s> index [\n" (indent offset) (Pigment.green name);
+            print_expr_indent (offset + 1) out index;
+            fprintf out "%s] val (\n" (indent offset);
+            print_expr_indent (offset + 1) out value;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | CALL (fname, expr_lst) -> (
+            fprintf out "%scall fn <%s> args (\n" (indent offset) (Pigment.red fname);
+            List.iter (print_expr_indent (offset + 1) out) expr_lst;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | OP1 (op, expr) -> (
+            fprintf out "%scall op <%s> args (\n" (indent offset) (Pigment.red (mon_op_repr op));
+            print_expr_indent (offset + 1) out expr;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | OP2 (op, lhs, rhs) -> (
+            fprintf out "%scall op <%s> args (\n" (indent offset) (Pigment.red (bin_op_repr op));
+            print_expr_indent (offset + 1) out lhs;
+            print_expr_indent (offset + 1) out rhs;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | CMP (op, lhs, rhs) -> (
+            fprintf out "%scall op <%s> args (\n" (indent offset) (Pigment.red (cmp_op_repr op));
+            print_expr_indent (offset + 1) out lhs;
+            print_expr_indent (offset + 1) out rhs;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | EIF (cond, expr_true, expr_false) -> (
+            fprintf out "%scond (\n" (indent offset);
+            print_expr_indent (offset + 1) out cond;
+            fprintf out "%s) val true (\n" (indent offset);
+            print_expr_indent (offset + 1) out expr_true;
+            fprintf out "%s) val false (\n" (indent offset);
+            print_expr_indent (offset + 1) out expr_false;
+            fprintf out "%s)\n" (indent offset);
+        )
+        | ESEQ exprs -> (
+            fprintf out "%sseq {\n" (indent offset);
+            List.iter (print_expr_indent (offset + 1) out) exprs;
+            fprintf out "%s}\n" (indent offset);
+        )
