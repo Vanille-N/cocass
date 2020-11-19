@@ -2,9 +2,10 @@ open Cparse
 open Format
 
 let indent offset = String.make (offset*2) ' '
-let bifurc = "├─ "
-let termin = "└─ "
-let post = "   "
+let bifurc = "  ├── "
+let termin = "  └── "
+let cont =   "  │   "
+let blank =  "      "
 
 let mon_op_repr = function
     | M_MINUS -> "NEG"
@@ -49,25 +50,36 @@ and inline_expr expr =
         | EIF _ -> false
         | ESEQ _ -> false
 
-let rec print_code_indent offset out code =
+let rec print_block printer offset out lst =
+    match lst with
+        | [] -> ()
+        | [e] -> printer offset false out e
+        | e::rest -> (
+            printer offset true out e;
+            print_block printer offset out rest
+        )
+
+let rec print_code_indent offset next out code =
+    let curr_full = if next then bifurc else termin in
+    let curr_empty = if next then cont else blank in
     match snd code with
         | CBLOCK (decl_lst, code_lst) -> (
-            fprintf out "%sblock\n" (indent offset);
-            print_ast_indent (offset + 1) out decl_lst;
-            fprintf out "%s  body\n" (indent offset);
-            List.iter (print_code_indent (offset + 2) out) code_lst;
+            fprintf out "%sblock\n" (offset ^ curr_full);
+            print_ast_indent (offset ^ curr_empty) true out decl_lst;
+            fprintf out "%sbody\n" (offset ^ curr_empty ^ termin);
+            print_block print_code_indent (offset ^ curr_empty ^ blank) out code_lst;
         )
         | CEXPR expr -> (
-            fprintf out "%sexpr\n" (indent offset);
-            print_expr_indent (offset + 1) out expr;
+            fprintf out "%sexpr\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) false out expr;
         )
         | CIF (cond, code_true, code_false) -> (
-            fprintf out "%scond\n" (indent offset);
-            print_expr_indent (offset + 1) out cond;
-            fprintf out "%s  case true\n" (indent offset);
-            print_code_indent (offset + 2) out code_true;
-            fprintf out "%s  case false\n" (indent offset);
-            print_code_indent (offset + 2) out code_false;
+            fprintf out "%scond\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) true out cond;
+            fprintf out "%scase true\n" (offset ^ curr_empty ^ bifurc);
+            print_code_indent (offset ^ curr_empty ^ cont) false out code_true;
+            fprintf out "%scase false\n" (offset ^ curr_empty ^ termin);
+            print_code_indent (offset ^ curr_empty ^ blank) false out code_false;
         )
         | CWHILE (cond, code) -> (
             fprintf out "%scond\n" (indent offset);
