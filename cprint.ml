@@ -1,14 +1,28 @@
 open Cparse
 open Format
 
-let print_declarations out dec_list =
-  Format.fprintf out "Todo\n"
+let indent offset = String.make (offset*2) ' '
 
-let print_code out code =
-    fprintf out "TODO\n"
+let mon_op_repr = function
+    | M_MINUS -> "NEG"
+    | M_NOT -> "NOT"
+    | M_POST_INC -> "POST-INC"
+    | M_POST_DEC -> "POST-DEC"
+    | M_PRE_INC -> "PRE-INC"
+    | M_PRE_DEC -> "PRE-DEC"
 
-let print_locator out nom fl fc ll lc =
-  fprintf out "in file <%s> from %d:%d to %d:%d" nom fl fc ll lc
+let bin_op_repr = function
+    | S_MUL -> "MUL"
+    | S_DIV -> "DIV"
+    | S_ADD -> "ADD"
+    | S_SUB -> "SUB"
+    | S_INDEX -> "IDX"
+    | S_MOD -> "MOD"
+
+let cmp_op_repr = function
+    | C_LT -> "LT"
+    | C_LE -> "LE"
+    | C_EQ -> "EQ"
 
 let print_ast out dec_list =
     List.iter (function
