@@ -146,3 +146,10 @@ and print_expr_indent offset out expr =
             List.iter (print_expr_indent (offset + 1) out) exprs;
             fprintf out "%s}\n" (indent offset);
         )
+
+let print_declarations = print_ast_indent 0
+
+let print_locator out nom fl fc ll lc =
+    fprintf out "in file <%s> from %d:%d to %d:%d" nom fl fc ll lc
+
+let print_ast = print_ast_indent 0
