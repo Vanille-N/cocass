@@ -1,4 +1,8 @@
 assets/*
+!assets/*.c
+!assets/*.py
+
+
 *.cmi
 *.cmo
 depend

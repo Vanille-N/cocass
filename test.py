@@ -45,3 +45,34 @@ def check(fbase):
             if expect_err != err:
                 print("        \x1b[33mWrong stderr: \x1b[32m[{}] \x1b[31m[{}]\x1b[0m".format(expect_err, err))
 
+
+def fulltest(cc, fbase, more=[]):
+    print("Running {}:".format(fbase))
+    if compile(cc, fbase, more):
+        check(fbase)
+        return True
+    return False
+
+def main():
+    if len(sys.argv) >= 2:
+        cc = sys.argv[1]
+        if cc == "gcc":
+            more = lambda fbase: ["-o", "assets/{}".format(fbase)]
+        elif cc == "clang":
+            more = lambda fbase: ["-o", "assets/{}".format(fbase)]
+        elif cc == "mcc":
+            cc = "./mcc"
+            more = lambda x: []
+        else:
+            more = lambda x: []
+    else:
+        cc = "./mcc"
+        more = lambda x: []
+    if len(sys.argv) >= 3:
+        bases = sys.argv[2:]
+    else:
+        bases = assets
+    for fbase in bases:
+        fulltest(cc, fbase, more=more(fbase))
+
+main()
