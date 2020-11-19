@@ -28,13 +28,14 @@
 .PHONY: all projet.tar.gz
 
 # Compilation parameters:
-CAMLOBJS=error.cmo cparse.cmo cprint.cmo \
+CAMLOBJS=error.cmo pigment.cmo cparse.cmo cprint.cmo \
 	ctab.cmo clex.cmo verbose.cmo genlab.cmo compile.cmo \
 	main.cmo
 CAMLSRC=$(addsuffix .ml,$(basename $(CAMLOBJS)))
 PJ=ProjetMiniC
 FILES=clex.mll cparse.ml cparse.mli ctab.mly \
 	  compile.ml compile.mli \
+	  pigment.ml pigment.mli \
 	  cprint.ml cprint.mli \
 	  error.ml verbose.ml genlab.ml main.ml Makefile
 

@@ -1,6 +1,6 @@
 open Cparse
 open Genlab
-open Format
+open Printf
 
 let compile out decl_list =
   fprintf out ".global main
