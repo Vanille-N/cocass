@@ -82,41 +82,45 @@ let rec print_code_indent offset next out code =
             print_code_indent (offset ^ curr_empty ^ blank) false out code_false;
         )
         | CWHILE (cond, code) -> (
-            fprintf out "%scond\n" (indent offset);
-            print_expr_indent (offset + 1) out cond;
-            fprintf out "%s  loop true\n" (indent offset);
-            print_code_indent (offset + 2) out code;
+            fprintf out "%swhile\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) true out cond;
+            fprintf out "%srepeat\n" (offset ^ curr_empty ^ termin);
+            print_code_indent (offset ^ curr_empty ^ blank) false out code;
         )
-        | CRETURN None -> fprintf out "%sret void\n" (indent offset)
+        | CRETURN None -> fprintf out "%sret void\n" (offset ^ curr_full)
         | CRETURN (Some ret) -> (
-            fprintf out "%sret\n" (indent offset);
-            print_expr_indent (offset + 1) out ret;
+            fprintf out "%sret\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) false out ret;
         )
-and print_ast_indent offset out dec_lst =
+and print_ast_indent offset next out dec_lst =
+    let curr_full = if next then bifurc else termin in
+    let curr_empty = if next then cont else blank in
     List.iter (function
-        | CDECL (_, name) -> fprintf out "%svar <%s>\n" (indent offset) (Pigment.green name)
+        | CDECL (_, name) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (Pigment.green name)
         | CFUN (_, name, decs, code) -> (
-            fprintf out "%sfunc <%s>\n" (indent offset) (Pigment.red name);
-            print_ast_indent (offset + 1) out decs;
-            fprintf out "%s  body\n" (indent offset);
-            print_code_indent (offset + 2) out code;
+            fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (Pigment.red name);
+            print_ast_indent (offset ^ curr_empty) true out decs;
+            fprintf out "%sbody\n" (offset ^ blank ^ curr_full);
+            print_code_indent (offset ^ blank ^ curr_empty) false out code;
         )
     ) dec_lst
-and print_expr_indent offset out expr =
+and print_expr_indent offset next out expr =
+    let curr_full = if next then bifurc else termin in
+    let curr_empty = if next then cont else blank in
     match snd expr with
-        | VAR name -> fprintf out "%svar <%s>\n" (indent offset) (Pigment.green name)
-        | CST value -> fprintf out "%sconst <%s>\n" (indent offset) (Pigment.blue (string_of_int value))
-        | STRING str -> fprintf out "%sconst <\"%s\">\n" (indent offset) (Pigment.blue (String.escaped str))
+        | VAR name -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (Pigment.green name)
+        | CST value -> fprintf out "%sconst <%s>\n" (offset ^ curr_full) (Pigment.blue (string_of_int value))
+        | STRING str -> fprintf out "%sconst <\"%s\">\n" (offset ^ curr_full) (Pigment.blue (String.escaped str))
         | SET_VAR (name, expr) -> (
-            fprintf out "%sassign <%s>\n" (indent offset) (Pigment.green name);
-            print_expr_indent (offset + 1) out expr;
+            fprintf out "%sassign <%s>\n" (offset ^ curr_full) (Pigment.green name);
+            print_expr_indent (offset ^ curr_empty) false out expr;
         )
         | SET_ARRAY (name, index, value) -> (
-            fprintf out "%sindex <%s>\n" (indent offset) (Pigment.green name);
-            fprintf out "%s  idx\n" (indent offset);
-            print_expr_indent (offset + 2) out index;
-            fprintf out "%s  val\n" (indent offset);
-            print_expr_indent (offset + 2) out value;
+            fprintf out "%sindex <%s>\n" (offset ^ curr_full) (Pigment.green name);
+            fprintf out "%sidx\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) true out index;
+            fprintf out "%sval\n" (offset ^ curr_full);
+            print_expr_indent (offset ^ curr_empty) false out value;
         )
         | CALL (fname, expr_lst) -> (
             fprintf out "%scall fn <%s>\n" (indent offset) (Pigment.red fname);
