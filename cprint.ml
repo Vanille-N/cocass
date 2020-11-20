@@ -1,5 +1,6 @@
 open Cparse
 open Format
+module Pg = Pigment
 
 let indent offset = String.make (offset*2) ' '
 let bifurc = "  ├── "
@@ -64,41 +65,41 @@ let rec print_code_indent offset next out code =
     let curr_empty = if next then cont else blank in
     match snd code with
         | CBLOCK (decl_lst, code_lst) -> (
-            fprintf out "%sblock\n" (offset ^ curr_full);
-            print_ast_indent (offset ^ curr_empty) true out decl_lst;
-            fprintf out "%sbody\n" (offset ^ curr_empty ^ termin);
-            print_block print_code_indent (offset ^ curr_empty ^ blank) out code_lst;
+            fprintf out "%sblock\n" (offset ^ curr_full ^ Pg.reset);
+            print_ast_indent (offset ^ curr_empty ^ Pg.reset) true out decl_lst;
+            fprintf out "%sbody\n" (offset ^ curr_empty ^ Pg.reset ^ termin);
+            print_block print_code_indent (offset ^ curr_empty ^ Pg.reset ^ blank) out code_lst;
         )
         | CEXPR expr -> (
-            fprintf out "%sexpr\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) false out expr;
+            fprintf out "%sexpr\n" (offset ^ curr_full ^ Pg.reset);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out expr;
         )
         | CIF (cond, code_true, code_false) -> (
-            fprintf out "%scond\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) true out cond;
-            fprintf out "%scase true\n" (offset ^ curr_empty ^ bifurc);
-            print_code_indent (offset ^ curr_empty ^ cont) false out code_true;
-            fprintf out "%scase false\n" (offset ^ curr_empty ^ termin);
+            fprintf out "%scond\n" (offset ^ curr_full ^ Pg.yellow);
+            print_expr_indent (offset ^ Pg.reset ^ curr_empty ^ Pg.yellow) true out cond;
+            fprintf out "%scase true\n" (offset ^ curr_empty ^ Pg.yellow ^ bifurc ^ Pg.reset);
+            print_code_indent (offset ^ curr_empty ^ Pg.yellow ^ cont ^ Pg.reset) false out code_true;
+            fprintf out "%scase false\n" (offset ^ curr_empty ^ Pg.yellow ^ termin ^ Pg.reset);
             print_code_indent (offset ^ curr_empty ^ blank) false out code_false;
         )
         | CWHILE (cond, code) -> (
-            fprintf out "%swhile\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) true out cond;
-            fprintf out "%srepeat\n" (offset ^ curr_empty ^ termin);
+            fprintf out "%swhile\n" (offset ^ curr_full ^ Pg.purple);
+            print_expr_indent (offset ^ Pg.reset ^ curr_empty ^ Pg.purple) true out cond;
+            fprintf out "%srepeat\n" (offset ^ curr_empty ^ Pg.purple ^ termin ^ Pg.reset);
             print_code_indent (offset ^ curr_empty ^ blank) false out code;
         )
-        | CRETURN None -> fprintf out "%sret void\n" (offset ^ curr_full)
+        | CRETURN None -> fprintf out "%sreturn void\n" (offset ^ curr_full ^ Pg.reset)
         | CRETURN (Some ret) -> (
-            fprintf out "%sret\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) false out ret;
+            fprintf out "%sreturn\n" (offset ^ curr_full ^ Pg.reset);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out ret;
         )
 and print_ast_indent offset next out dec_lst =
     let curr_full = if next then bifurc else termin in
     let curr_empty = if next then cont else blank in
     List.iter (function
-        | CDECL (_, name) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (Pigment.green name)
+        | CDECL (_, name) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (Pg.wrap_green name)
         | CFUN (_, name, decs, code) -> (
-            fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (Pigment.red name);
+            fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (Pg.wrap_red name);
             print_ast_indent (offset ^ curr_empty) true out decs;
             fprintf out "%sbody\n" (offset ^ blank ^ curr_full);
             print_code_indent (offset ^ blank ^ curr_empty) false out code;
@@ -108,45 +109,45 @@ and print_expr_indent offset next out expr =
     let curr_full = if next then bifurc else termin in
     let curr_empty = if next then cont else blank in
     match snd expr with
-        | VAR name -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (Pigment.green name)
-        | CST value -> fprintf out "%sconst <%s>\n" (offset ^ curr_full) (Pigment.blue (string_of_int value))
-        | STRING str -> fprintf out "%sconst <\"%s\">\n" (offset ^ curr_full) (Pigment.blue (String.escaped str))
+        | VAR name -> fprintf out "%svar <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_green name)
+        | CST value -> fprintf out "%sconst <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_blue (string_of_int value))
+        | STRING str -> fprintf out "%sconst <\"%s\">\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_blue (String.escaped str))
         | SET_VAR (name, expr) -> (
-            fprintf out "%sassign <%s>\n" (offset ^ curr_full) (Pigment.green name);
-            print_expr_indent (offset ^ curr_empty) false out expr;
+            fprintf out "%sassign <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_green name);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out expr;
         )
         | SET_ARRAY (name, index, value) -> (
-            fprintf out "%sindex <%s>\n" (offset ^ curr_full) (Pigment.green name);
-            fprintf out "%sidx\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) true out index;
-            fprintf out "%sval\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) false out value;
+            fprintf out "%sassign <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_green name);
+            fprintf out "%sindex\n" (offset ^ curr_empty ^ Pg.reset ^ bifurc);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset ^ cont) false out index;
+            fprintf out "%svalue\n" (offset ^ curr_empty ^ Pg.reset ^ termin);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset ^ blank) false out value;
         )
         | CALL (fname, expr_lst) -> (
-            fprintf out "%scall fn <%s>\n" (offset ^ curr_full) (Pigment.red fname);
-            print_block print_expr_indent (offset ^ blank) out expr_lst;
+            fprintf out "%scall fn <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_red fname);
+            print_block print_expr_indent (offset ^ blank ^ Pg.reset) out expr_lst;
         )
         | OP1 (op, expr) -> (
-            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (mon_op_repr op));
-            print_expr_indent (offset ^ curr_empty) false out expr;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_red (mon_op_repr op));
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out expr;
         )
         | OP2 (op, lhs, rhs) -> (
-            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (bin_op_repr op));
-            print_expr_indent (offset ^ curr_empty) true out lhs;
-            print_expr_indent (offset ^ curr_empty) false out rhs;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_red (bin_op_repr op));
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) true out lhs;
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out rhs;
         )
         | CMP (op, lhs, rhs) -> (
-            fprintf out "%scall op <%s>\n" (offset ^ curr_full) (Pigment.red (cmp_op_repr op));
-            print_expr_indent (offset ^ curr_empty) true out lhs;
-            print_expr_indent (offset ^ curr_empty) false out rhs;
+            fprintf out "%scall op <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_red (cmp_op_repr op));
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) true out lhs;
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset) false out rhs;
         )
         | EIF (cond, expr_true, expr_false) -> (
-            fprintf out "%sternary\n" (offset ^ curr_full);
-            print_expr_indent (offset ^ curr_empty) true out cond;
-            fprintf out "%sval true\n" (offset ^ curr_empty ^ bifurc);
-            print_expr_indent (offset ^ curr_empty ^ cont) false out expr_true;
-            fprintf out "%sval false\n" (offset ^ curr_empty ^ termin);
-            print_expr_indent (offset ^ curr_empty ^ blank) false out expr_false;
+            fprintf out "%sternary\n" (offset ^ curr_full ^ Pg.yellow);
+            print_expr_indent (offset ^ curr_empty ^ Pg.yellow) true out cond;
+            fprintf out "%sval true\n" (offset ^ curr_empty ^ Pg.yellow ^ bifurc ^ Pg.reset);
+            print_expr_indent (offset ^ curr_empty ^ Pg.yellow ^ cont ^ Pg.reset) false out expr_true;
+            fprintf out "%sval false\n" (offset ^ curr_empty ^ Pg.yellow ^ termin ^ Pg.reset);
+            print_expr_indent (offset ^ curr_empty ^ blank ^ Pg.reset) false out expr_false;
         )
         | ESEQ exprs -> (
             fprintf out "%sseq\n" offset;
