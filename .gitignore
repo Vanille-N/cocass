@@ -10,3 +10,5 @@ mcc
 ctab.output
 .gdb_history
 *.out
+clex.ml
+ctab.ml
