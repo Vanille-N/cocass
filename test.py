@@ -3,7 +3,7 @@
 from subprocess import run
 import sys
 
-assets = ["fact", "ordre"]
+assets = ["fact", "ordre", "ret", "add", "argcount"]
 
 class Module:
     def __init__(self, path, **kwargs):

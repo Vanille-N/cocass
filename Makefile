@@ -1,23 +1,6 @@
-#  Copyright (c) 2005 by Laboratoire Spécification et Vérification (LSV),
-#  CNRS UMR 8643 & ENS Cachan.
-#  Written by Jean Goubault-Larrecq.  Derived from the csur project.
-#
-#  Permission is granted to anyone to use this software for any
-#  purpose on any computer system, and to redistribute it freely,
-#  subject to the following restrictions:
-#
-#  1. Neither the author nor its employer is responsible for the consequences
-#     of use of this software, no matter how awful, even if they arise
-#     from defects in it.
-#
-#  2. The origin of this software must not be misrepresented, either
-#     by explicit claim or by omission.
-#
-#  3. Altered versions must be plainly marked as such, and must not
-#     be misrepresented as being the original software.
-#
-#  4. This software is restricted to non-commercial use only.  Commercial
-#     use is subject to a specific license, obtainable from LSV.
+#  Copyright (c) 2020 by Laboratoire Spécification et Vérification (LSV),
+#  CNRS UMR 8643 & ENS Paris-Saclay.
+#  Written by Amélie Ledein
 
 %.cmo: %.ml
 	ocamlc -g -c $<
@@ -25,40 +8,42 @@
 %.cmi: %.mli
 	ocamlc -g -c $<
 
-.PHONY: all projet.tar.gz
+.PHONY: all ProjetCOCass.tar.gz
 
 # Compilation parameters:
-CAMLOBJS=error.cmo pigment.cmo cparse.cmo cprint.cmo \
-	ctab.cmo clex.cmo verbose.cmo genlab.cmo compile.cmo \
+CAMLOBJS=error.cmo cAST.cmo pigment.cmo cprint.cmo \
+	cparse.cmo clex.cmo verbose.cmo genlab.cmo compile.cmo \
 	main.cmo
 CAMLSRC=$(addsuffix .ml,$(basename $(CAMLOBJS)))
-PJ=ProjetMiniC
-FILES=clex.mll cparse.ml cparse.mli ctab.mly \
-	  compile.ml compile.mli \
+PJ=ProjetCOCass
+FILES=clex.mll cAST.ml cAST.mli cparse.mly \
 	  pigment.ml pigment.mli \
+	  compile.ml compile.mli \
 	  cprint.ml cprint.mli \
 	  error.ml verbose.ml genlab.ml main.ml Makefile
 
 all: mcc
 
-projet: projet.tar.gz
+projet: ProjetCOCass.tar.gz
 
 mcc: $(CAMLOBJS)
 	ocamlc -g -o mcc unix.cma $(CAMLOBJS)
 
 clean:
 	rm -f mcc *.cmi *.cmo
-	rm -f ctab.ml ctab.mli clex.ml
-	rm -rf projet.tar.gz $(PJ)
+	rm -f cparse.ml cparse.mli clex.ml
+	rm -f cparse.output
+	rm -f depend
+	rm -rf ProjetCOCass.tar.gz $(PJ)
 	rm -rf Test/
 
 test: projet.tar.gz
 	-mkdir Test
 	-rm -rf Test/*
-	cp projet.tar.gz Test/
-	(cd Test/; tar -xvzf projet.tar.gz; cd ProjetMiniC/; cp ~/Papers/compile.ml .; make; cp mcc ~/bin)
+	cp ProjetCOCass.tar.gz Test/
+	(cd Test/; tar -xvzf ProjetCOCass.tar.gz; cd ProjetCOCass/; cp ~/Papers/compile.ml .; make; cp mcc ~/bin)
 
-projet.tar.gz:
+ProjetCOCass.tar.gz:
 	rm -rf $(PJ) && mkdir $(PJ)
 	cp $(FILES) $(PJ)
 	-mkdir $(PJ)/Exemples
@@ -78,8 +63,8 @@ p2_links:
 	@for f in Exemples/*.c ; do \
 	  test -f $(P2)/$$f || (echo Linking $$f... ; ln $(P1)/$$f $(P2)/$$f) ; done
 
-ctab.ml: ctab.mly
-	ocamlyacc -v ctab.mly
+cparse.ml: cparse.mly
+	ocamlyacc -v cparse.mly
 
 clex.ml: clex.mll
 	ocamllex clex.mll
@@ -87,7 +72,7 @@ clex.ml: clex.mll
 compile.cmi: compile.mli
 compile.cmo: compile.ml compile.cmi
 
-depend: Makefile $(wildcard *.ml) $(wildcard *.mli) ctab.ml clex.ml
+depend: Makefile $(wildcard *.ml) $(wildcard *.mli) cparse.ml clex.ml
 	ocamldep *.mli *.ml > depend
 
 -include depend
