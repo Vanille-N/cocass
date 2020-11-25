@@ -85,4 +85,4 @@ type token =
   | ASM
 
 val translation_unit :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> (Cparse.var_declaration list)
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> (CAST.var_declaration list)

@@ -21,7 +21,7 @@
  *
  *	4. This software is restricted to non-commercial use only.  Commercial
  *		use is subject to a specific license, obtainable from LSV.
- * 
+ *
 *)
 
 (* Analyse lexicale d'un sous-ensemble (tres) reduit de C.
@@ -29,7 +29,7 @@
 
 open Cparse
 open Error
-open Ctab
+open CAST
 
 let string_buf = Buffer.create 256
 
@@ -129,7 +129,7 @@ rule ctoken = parse
   | letter (letter | digit)* { count (Lexing.lexeme lexbuf);
 		let yytext = Lexing.lexeme lexbuf in
 		    IDENTIFIER yytext
-                    } 
+                    }
   | '0' ['x' 'X'] hex+ { count (Lexing.lexeme lexbuf);
 			CONSTANT (parse_hex (Lexing.lexeme lexbuf) 0) }
   | '0' ['x' 'X'] hex+ ['u' 'U'] { count (Lexing.lexeme lexbuf);
@@ -193,8 +193,8 @@ rule ctoken = parse
 			CONSTANT 11 (* vertical tab, ^K *) }
   | '\'' '\\' _ '\'' { count (Lexing.lexeme lexbuf);
 			CONSTANT (int_of_char (Lexing.lexeme_char lexbuf 2)) }
-  | "\"" 
-      { 
+  | "\""
+      {
         count (Lexing.lexeme lexbuf); Buffer.reset string_buf;
         string lexbuf;
 	STRING_LITERAL (Buffer.contents string_buf)
