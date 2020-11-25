@@ -52,3 +52,37 @@ main:
         | CWHILE (cond, code) -> failwith "TODO while"
         | CRETURN None -> fprintf out "    mov $0, %%rax\n"
         | CRETURN (Some ret) -> gen_expr (depth, frame) ret
+    and enter_stackframe n =
+        fprintf out "    push %%rbp\n";
+        fprintf out "    mov %%rsp, %%rbp\n";
+        fprintf out "    sub $%d, %%rsp\n" (8*(n+1));
+    and leave_stackframe n =
+        fprintf out "    add $%d, %%rsp\n" (8*(n+1));
+        fprintf out "    pop %%rbp\n";
+        fprintf out "    ret\n"
+    and read_args decs = []
+    and make_scope depth decls =
+        let n = List.length decls in
+        let pos = List.init n (fun i -> sprintf "-%d(%%rbp)" (8*(i+1+depth))) in
+        let names = List.map extract_decl_name decls in
+        let vars = zip names pos in
+        List.iter (fun (name, pos) -> printf " %s is at %s\n" name pos) vars;
+        vars
+    and calc_stackframe_depth depth code = match snd code with
+        | CBLOCK (decl_lst, code_lst) -> (
+            let n = List.length decl_lst in
+            let depth_block = ref 0 in
+            let frame_block = ref [] in
+            List.iteri (fun i block ->
+                let d = calc_stackframe_depth (depth + n) block in
+                depth_block := max !depth_block d;
+            ) code_lst;
+            !depth_block
+        )
+        | CIF (_, code_true, code_false) -> (
+            let depth_t = calc_stackframe_depth depth code_true in
+            let depth_f = calc_stackframe_depth depth code_false in
+            max depth_t depth_f
+        )
+        | CWHILE (cond, code) -> failwith "TODO stackframe while"
+        | _ -> depth
