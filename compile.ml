@@ -86,3 +86,47 @@ main:
         )
         | CWHILE (cond, code) -> failwith "TODO stackframe while"
         | _ -> depth
+    and gen_decl = function
+        | CDECL (_, name) -> ()
+        | CFUN (_, name, decs, code) -> (
+            fprintf out "fn_%s:\n" name;
+            let args = read_args decs in
+            let n = calc_stackframe_depth 0 code in
+            enter_stackframe n;
+            gen_code (0, args) code;
+            leave_stackframe n;
+        )
+    and gen_expr (depth, frame) expr = match snd expr with
+        | VAR name -> fprintf out "    mov %s, %%rax\n" (List.assoc name frame)
+        | CST value -> fprintf out "    mov $%d, %%rax\n" value
+        | STRING str -> failwith "TODO string"
+        | SET_VAR (name, expr) -> (
+            gen_expr (depth, frame) expr;
+            printf "looking for %s\n" name;
+            fprintf out "    mov %%rax, %s\n" (List.assoc name frame)
+        )
+        | SET_ARRAY (name, index, value) -> failwith "TODO set array"
+        | CALL (fname, expr_lst) -> failwith "TODO call"
+        | OP1 (op, expr) -> (
+            gen_expr (depth, frame) expr;
+            match op with
+                | M_MINUS -> failwith "TODO minus"
+                | M_NOT -> failwith "TODO not"
+                | M_POST_INC -> failwith "TODO post inc"
+                | M_POST_DEC -> failwith "TODO post dec"
+                | M_PRE_INC -> failwith "TODO pre inc"
+                | M_PRE_DEC -> failwith "TODO pre dec"
+        )
+        | OP2 (op, lhs, rhs) -> failwith "TODO op2"
+        | CMP (op, lhs, rhs) -> failwith "TODO cmp"
+        | EIF (cond, expr_true, expr_false) -> failwith "TODO eif"
+        | ESEQ exprs -> List.iter (gen_expr (depth, frame)) exprs
+    in
+    List.iter gen_decl decl_list
+
+
+let compile out decl_list =
+    if verify_scope decl_list then (
+        global_decl out decl_list;
+        generate_asm out decl_list;
+    )
