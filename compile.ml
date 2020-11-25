@@ -31,14 +31,6 @@ let verify_scope decl_list =
 let global_decl out decl_list = ()
 
 let generate_asm out decl_list =
-    fprintf out ".global main
-.text
-main:
-    call fn_main
-    mov %%rax, %%rdi # return value
-    mov $60, %%rax # syscall for return
-    syscall
-";
     let extract_decl_name = function
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
@@ -50,14 +42,21 @@ main:
         | CEXPR expr -> gen_expr (depth, frame) expr
         | CIF (expr, do_true, do_false) -> failwith "TODO if"
         | CWHILE (cond, code) -> failwith "TODO while"
-        | CRETURN None -> fprintf out "    mov $0, %%rax\n"
-        | CRETURN (Some ret) -> gen_expr (depth, frame) ret
+        | CRETURN None -> (
+            fprintf out "    mov $0, %%rax\n";
+            fprintf out "    jmp .leave\n";
+        )
+        | CRETURN (Some ret) -> (
+            gen_expr (depth, frame) ret;
+            fprintf out "    jmp .leave\n";
+        )
     and enter_stackframe n =
-        fprintf out "    push %%rbp\n";
+        fprintf out "    push %%rbp        # enter stackframe\n";
         fprintf out "    mov %%rsp, %%rbp\n";
         fprintf out "    sub $%d, %%rsp\n" (8*(n+1));
     and leave_stackframe n =
-        fprintf out "    add $%d, %%rsp\n" (8*(n+1));
+        fprintf out "  .leave:\n";
+        fprintf out "    add $%d, %%rsp    # leave stackframe\n" (8*(n+1));
         fprintf out "    pop %%rbp\n";
         fprintf out "    ret\n"
     and read_args decs = []
@@ -86,24 +85,24 @@ main:
         )
         | CWHILE (cond, code) -> failwith "TODO stackframe while"
         | _ -> depth
-    and gen_decl = function
+    and gen_decl global = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
             fprintf out "fn_%s:\n" name;
             let args = read_args decs in
             let n = calc_stackframe_depth 0 code in
             enter_stackframe n;
-            gen_code (0, args) code;
+            gen_code (0, args @ global) code;
             leave_stackframe n;
         )
     and gen_expr (depth, frame) expr = match snd expr with
-        | VAR name -> fprintf out "    mov %s, %%rax\n" (List.assoc name frame)
-        | CST value -> fprintf out "    mov $%d, %%rax\n" value
+        | VAR name -> fprintf out "    mov %s, %%rax     # read from %s\n" (List.assoc name frame) name
+        | CST value -> fprintf out "    mov $%d, %%rax     # load value %d\n" value value
         | STRING str -> failwith "TODO string"
         | SET_VAR (name, expr) -> (
             gen_expr (depth, frame) expr;
             printf "looking for %s\n" name;
-            fprintf out "    mov %%rax, %s\n" (List.assoc name frame)
+            fprintf out "    mov %%rax, %s    # write to %s\n" (List.assoc name frame) name
         )
         | SET_ARRAY (name, index, value) -> failwith "TODO set array"
         | CALL (fname, expr_lst) -> failwith "TODO call"
@@ -122,7 +121,26 @@ main:
         | EIF (cond, expr_true, expr_false) -> failwith "TODO eif"
         | ESEQ exprs -> List.iter (gen_expr (depth, frame)) exprs
     in
-    List.iter gen_decl decl_list
+    let rec get_global_vars = function
+        | [] -> []
+        | (CFUN _) :: tl -> get_global_vars tl
+        | (CDECL (_, name)) :: tl -> (
+            fprintf out "glob_%s: .long 0\n" name;
+            (name, ("glob_" ^ name ^ "(%rip)")) :: (get_global_vars tl)
+        )
+    in
+    fprintf out "    .data\n";
+    fprintf out "    .align 8\n";
+    let global = get_global_vars decl_list in
+    fprintf out "\n";
+    fprintf out "    .global main\n";
+    fprintf out "    .text\n";
+    fprintf out "main:\n";
+    fprintf out "    call fn_main\n";
+    fprintf out "    mov %%rax, %%rdi    # return value\n";
+    fprintf out "    mov $60, %%rax      # syscall for return\n";
+    fprintf out "    syscall\n";
+    List.iter (gen_decl global) decl_list
 
 
 let compile out decl_list =
