@@ -86,9 +86,9 @@ let generate_asm out decl_list =
         | CWHILE (cond, code) -> failwith "TODO stackframe while"
         | _ -> depth
     and store depth reg =
-        printf "write to: %d\n" depth
-    and retrieve depth dest reg =
-        printf "read from: %d\n" depth
+        fprintf out "    mov %s, -%d(%%rbp)\n" reg ((depth+1)*8)
+    and retrieve depth reg =
+        fprintf out "    mov -%d(%%rbp), %s\n" ((depth+1)*8) reg
     and gen_decl global = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
@@ -138,7 +138,21 @@ let generate_asm out decl_list =
                     fprintf out "    dec %%rax\n";
                 )
         )
-        | OP2 (op, lhs, rhs) -> failwith "TODO op2"
+        | OP2 (op, lhs, rhs) -> (
+            match op with
+                | S_MUL -> (
+                    gen_expr (depth, frame) lhs;
+                    store depth "%rax";
+                    gen_expr (depth+1, frame) rhs;
+                    retrieve depth "%rcx";
+                    fprintf out "    mul %%rcx\n";
+                )
+                | S_DIV -> failwith "TODO div"
+                | S_MOD -> failwith "TODO mod"
+                | S_ADD -> failwith "TODO add"
+                | S_SUB -> failwith "TODO sub"
+                | S_INDEX -> failwith "TODO index"
+        )
         | CMP (op, lhs, rhs) -> failwith "TODO cmp"
         | EIF (cond, expr_true, expr_false) -> failwith "TODO eif"
         | ESEQ exprs -> List.iter (gen_expr (depth, frame)) exprs
