@@ -85,6 +85,10 @@ let generate_asm out decl_list =
         )
         | CWHILE (cond, code) -> failwith "TODO stackframe while"
         | _ -> depth
+    and store depth =
+        printf "write to: %d\n" depth
+    and retrieve depth dest =
+        printf "read from: %d\n" depth
     and gen_decl global = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
@@ -109,8 +113,8 @@ let generate_asm out decl_list =
         | OP1 (op, expr) -> (
             gen_expr (depth, frame) expr;
             match op with
-                | M_MINUS -> failwith "TODO minus"
-                | M_NOT -> failwith "TODO not"
+                | M_MINUS -> fprintf out "    neg %%rax\n"
+                | M_NOT -> fprintf out "    not %%rax\n"
                 | M_POST_INC -> failwith "TODO post inc"
                 | M_POST_DEC -> failwith "TODO post dec"
                 | M_PRE_INC -> failwith "TODO pre inc"
@@ -137,7 +141,7 @@ let generate_asm out decl_list =
     fprintf out "    .text\n";
     fprintf out "main:\n";
     fprintf out "    call fn_main\n";
-    fprintf out "    mov %%rax, %%rdi    # return value\n";
+    fprintf out "    mov %%rax, %%rdi     # return value\n";
     fprintf out "    mov $60, %%rax      # syscall for return\n";
     fprintf out "    syscall\n";
     List.iter (gen_decl global) decl_list
