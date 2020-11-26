@@ -85,9 +85,9 @@ let generate_asm out decl_list =
         )
         | CWHILE (cond, code) -> failwith "TODO stackframe while"
         | _ -> depth
-    and store depth =
+    and store depth reg =
         printf "write to: %d\n" depth
-    and retrieve depth dest =
+    and retrieve depth dest reg =
         printf "read from: %d\n" depth
     and gen_decl global = function
         | CDECL (_, name) -> ()
@@ -100,25 +100,43 @@ let generate_asm out decl_list =
             leave_stackframe n;
         )
     and gen_expr (depth, frame) expr = match snd expr with
-        | VAR name -> fprintf out "    mov %s, %%rax     # read from %s\n" (List.assoc name frame) name
+        | VAR name -> (
+            let loc = List.assoc name frame in
+            fprintf out "    lea %s, %%rbx    # access %s\n" loc name;
+            fprintf out "    mov (%%rbx), %%rax    # read from %s\n" name;
+        )
         | CST value -> fprintf out "    mov $%d, %%rax     # load value %d\n" value value
         | STRING str -> failwith "TODO string"
         | SET_VAR (name, expr) -> (
             gen_expr (depth, frame) expr;
-            printf "looking for %s\n" name;
-            fprintf out "    mov %%rax, %s    # write to %s\n" (List.assoc name frame) name
+            let loc = List.assoc name frame in
+            fprintf out "    lea %s, %%rbx    # acccess %s\n" loc name;
+            fprintf out "    mov %%rax, (%%rbx)    # write to %s\n" name;
         )
         | SET_ARRAY (name, index, value) -> failwith "TODO set array"
         | CALL (fname, expr_lst) -> failwith "TODO call"
         | OP1 (op, expr) -> (
-            gen_expr (depth, frame) expr;
             match op with
                 | M_MINUS -> fprintf out "    neg %%rax\n"
                 | M_NOT -> fprintf out "    not %%rax\n"
-                | M_POST_INC -> failwith "TODO post inc"
-                | M_POST_DEC -> failwith "TODO post dec"
-                | M_PRE_INC -> failwith "TODO pre inc"
-                | M_PRE_DEC -> failwith "TODO pre dec"
+                | M_POST_INC -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    incq (%%rbx)\n";
+                )
+                | M_POST_DEC -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    decq (%%rbx)\n";
+                )
+                | M_PRE_INC -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    incq (%%rbx)\n";
+                    fprintf out "    inc %%rax\n";
+                )
+                | M_PRE_DEC -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    decq (%%rbx)\n";
+                    fprintf out "    dec %%rax\n";
+                )
         )
         | OP2 (op, lhs, rhs) -> failwith "TODO op2"
         | CMP (op, lhs, rhs) -> failwith "TODO cmp"
