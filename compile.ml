@@ -149,7 +149,13 @@ let generate_asm out decl_list =
                 )
                 | S_DIV -> failwith "TODO div"
                 | S_MOD -> failwith "TODO mod"
-                | S_ADD -> failwith "TODO add"
+                | S_ADD -> (
+                    gen_expr (depth, frame) lhs;
+                    store depth "%rax";
+                    gen_expr (depth+1, frame) rhs;
+                    retrieve depth "%rcx";
+                    fprintf out "    add %%rcx, %%rax\n";
+                )
                 | S_SUB -> failwith "TODO sub"
                 | S_INDEX -> failwith "TODO index"
         )
