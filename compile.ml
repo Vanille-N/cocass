@@ -45,7 +45,7 @@ let generate_asm out decl_list =
     in
     let rec gen_code (depth, frame) code = match snd code with
         | CBLOCK (decl_lst, code_lst) -> (
-            List.iter (gen_code (depth + List.length decl_lst, (make_scope depth decl_lst) @ frame)) code_lst
+            List.iter (gen_code (depth + List.length decl_lst, (make_scope depth decl_lst) :: frame)) code_lst
         )
         | CEXPR expr -> gen_expr (depth, frame) expr
         | CIF (expr, do_true, do_false) -> failwith "TODO if"
@@ -102,12 +102,12 @@ let generate_asm out decl_list =
             let args = read_args decs in
             let n = calc_stackframe_depth 0 code in
             enter_stackframe n;
-            gen_code (0, args @ global) code;
+            gen_code (0, args :: [global]) code;
             leave_stackframe n;
         )
     and gen_expr (depth, frame) expr = match snd expr with
         | VAR name -> (
-            let loc = List.assoc name frame in
+            let loc = assoc name frame in
             fprintf out "    lea %s, %%rbx    # access %s\n" loc name;
             fprintf out "    mov (%%rbx), %%rax    # read from %s\n" name;
         )
@@ -115,7 +115,7 @@ let generate_asm out decl_list =
         | STRING str -> failwith "TODO string"
         | SET_VAR (name, expr) -> (
             gen_expr (depth, frame) expr;
-            let loc = List.assoc name frame in
+            let loc = assoc name frame in
             fprintf out "    lea %s, %%rbx    # acccess %s\n" loc name;
             fprintf out "    mov %%rax, (%%rbx)    # write to %s\n" name;
         )
