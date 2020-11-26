@@ -156,7 +156,14 @@ let generate_asm out decl_list =
                     retrieve depth "%rcx";
                     fprintf out "    add %%rcx, %%rax\n";
                 )
-                | S_SUB -> failwith "TODO sub"
+                | S_SUB -> (
+                    gen_expr (depth, frame) lhs;
+                    store depth "%rax";
+                    gen_expr (depth+1, frame) rhs;
+                    retrieve depth "%rcx";
+                    fprintf out "    neg %%rax\n";
+                    fprintf out "    add %%rcx, %%rax\n";
+                )
                 | S_INDEX -> failwith "TODO index"
         )
         | CMP (op, lhs, rhs) -> failwith "TODO cmp"
