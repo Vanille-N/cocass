@@ -53,10 +53,8 @@ let generate_asm out decl_list =
     and enter_stackframe n =
         fprintf out "    push %%rbp        # enter stackframe\n";
         fprintf out "    mov %%rsp, %%rbp\n";
-        fprintf out "    sub $%d, %%rsp\n" (8*(n+1));
     and leave_stackframe n =
-        fprintf out "  .leave:\n";
-        fprintf out "    add $%d, %%rsp    # leave stackframe\n" (8*(n+1));
+        fprintf out "  .leave:             # leave stackframe\n";
         fprintf out "    pop %%rbp\n";
         fprintf out "    ret\n"
     and read_args decs = []
@@ -147,8 +145,16 @@ let generate_asm out decl_list =
                     retrieve depth "%rcx";
                     fprintf out "    mul %%rcx\n";
                 )
-                | S_DIV -> failwith "TODO div"
                 | S_MOD -> failwith "TODO mod"
+                | S_DIV -> (
+                    gen_expr (depth, frame) lhs;
+                    store depth "%rax";
+                    gen_expr (depth+1, frame) rhs;
+                    fprintf out "    mov $0, %%rdx\n";
+                    fprintf out "    mov %%rax, %%rcx\n";
+                    retrieve depth "%rax";
+                    fprintf out "    idiv %%rcx\n"
+                )
                 | S_ADD -> (
                     gen_expr (depth, frame) lhs;
                     store depth "%rax";
