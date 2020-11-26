@@ -12,6 +12,14 @@ let rec zip a b = match (a, b) with
     | (hdl::tll, hdr::tlr) -> (hdl,hdr) :: (zip tll tlr)
     | _ -> failwith "cannot zip different lengths"
 
+let assoc x ll =
+    let rec aux = function
+        | [] -> raise Not_found
+        | []::ll -> aux ll
+        | ((h,y)::l)::ll when x = h -> y
+        | (_::l)::ll -> aux (l::ll)
+    in aux ll
+
 let verify_scope decl_list =
     let rec verify_expr declared expr = match snd expr with
         | VAR name -> List.mem name declared
