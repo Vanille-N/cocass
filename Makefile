@@ -36,6 +36,8 @@ clean:
 	rm -f depend
 	rm -rf ProjetCOCass.tar.gz $(PJ)
 	rm -rf Test/
+	rm -rf assets/*.s
+	find assets ! -name '*.*' -type f -exec rm {} +
 
 test: projet.tar.gz
 	-mkdir Test
