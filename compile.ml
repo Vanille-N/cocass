@@ -123,8 +123,14 @@ let generate_asm out decl_list =
         | CALL (fname, expr_lst) -> failwith "TODO call"
         | OP1 (op, expr) -> (
             match op with
-                | M_MINUS -> fprintf out "    neg %%rax\n"
-                | M_NOT -> fprintf out "    not %%rax\n"
+                | M_MINUS -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    neg %%rax\n";
+                )
+                | M_NOT -> (
+                    gen_expr (depth, frame) expr;
+                    fprintf out "    not %%rax\n";
+                )
                 | M_POST_INC -> (
                     gen_expr (depth, frame) expr;
                     fprintf out "    incq (%%rbx)\n";
