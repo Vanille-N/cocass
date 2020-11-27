@@ -161,7 +161,8 @@ let generate_asm out decl_list =
                     fprintf out "    mov $0, %%rdx\n";
                     fprintf out "    mov %%rax, %%rcx\n";
                     retrieve depth "%rax";
-                    fprintf out "    idiv %%rcx\n"
+                    fprintf out "    cqto\n";
+                    fprintf out "    idiv %%rcx\n";
                 )
                 | S_ADD -> (
                     gen_expr (depth, frame) lhs;
