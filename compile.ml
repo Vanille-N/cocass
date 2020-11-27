@@ -159,12 +159,20 @@ let generate_asm out decl_list =
                     retrieve depth "%rcx";
                     fprintf out "    mul %%rcx\n";
                 )
-                | S_MOD -> failwith "TODO mod"
+                | S_MOD -> (
+                    gen_expr (depth, frame) lhs;
+                    store depth "%rax";
+                    gen_expr (depth+1, frame) rhs;
+                    fprintf out "    mov %%rax, %%rcx\n";
+                    retrieve depth "%rax";
+                    fprintf out "    cqto\n";
+                    fprintf out "    idiv %%rcx\n";
+                    fprintf out "    mov %%rdx, %%rax\n";
+                )
                 | S_DIV -> (
                     gen_expr (depth, frame) lhs;
                     store depth "%rax";
                     gen_expr (depth+1, frame) rhs;
-                    fprintf out "    mov $0, %%rdx\n";
                     fprintf out "    mov %%rax, %%rcx\n";
                     retrieve depth "%rax";
                     fprintf out "    cqto\n";
