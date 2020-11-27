@@ -1,3 +1,7 @@
+int offset;
 int main(int argc, char** argv) {
-    return argc - 1;
+    int count;
+    offset = -1;
+    count = argc;
+    return count + offset;
 }
