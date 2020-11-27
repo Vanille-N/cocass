@@ -8,9 +8,13 @@ let rec all f = function
     | hd::tl -> (f hd) && (all f tl)
 
 let rec zip a b = match (a, b) with
-    | ([], []) -> []
     | (hdl::tll, hdr::tlr) -> (hdl,hdr) :: (zip tll tlr)
-    | _ -> failwith "cannot zip different lengths"
+    | _ -> []
+
+let rec truncate n lst =
+    if lst = [] then []
+    else if n = 0 then []
+    else (List.hd lst) :: (truncate (n-1) (List.tl lst))
 
 let assoc x ll =
     let rec aux = function
