@@ -45,6 +45,7 @@ let global_decl out decl_list = ()
 
 let generate_asm out decl_list =
     let prog = make_prog () in
+    let str_count = ref 0 in
     let extract_decl_name = function
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
@@ -119,7 +120,13 @@ let generate_asm out decl_list =
             decl_asm prog (MOV (Deref BX, Reg AX)) (sprintf "read from %s" name);
         )
         | CST value -> decl_asm prog (MOV (Const value, Reg AX)) (sprintf "load value %d" value);
-        | STRING str -> failwith "TODO string"
+        | STRING str -> (
+            let name = sprintf "__str_%d" !str_count in
+            incr str_count;
+            decl_str prog name str;
+            decl_asm prog (LEA (Glob name, Reg BX)) (sprintf "access %s" name);
+            decl_asm prog (MOV (Reg BX, Reg AX)) (sprintf "read from %s" name);
+        )
         | SET_VAR (name, expr) -> (
             gen_expr (depth, frame, label) expr;
             let loc = assoc name frame in
@@ -151,6 +158,7 @@ let generate_asm out decl_list =
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
             decl_asm prog (SUB (Const ((depth+nb_args)*8), Reg SP)) "";
+            decl_asm prog (MOV (Const nb_stacked, Reg AX)) "varargs";
             decl_asm prog (CALL fname) "";
             decl_asm prog (ADD (Const ((depth+nb_args)*8), Reg SP)) "";
         )

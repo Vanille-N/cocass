@@ -75,11 +75,12 @@ let address = function
 let generate_idata out name =
     fprintf out "%s: .long 0\n" name
 
-let generate_sdata out name = ()
+let generate_sdata out (name, value) =
+    fprintf out "%s: .asciz \"%s\"\n" name (String.escaped value)
 
-let generate_text out instr =
-    let info = if snd instr = "" then "" else "    # " ^ (snd instr) in
-    match fst instr with
+let generate_text out (instr, info) =
+    let info = if info = "" then "" else "    # " ^ info in
+    match instr with
         | RET -> fprintf out "    ret%s\n\n" info
         | CQTO -> fprintf out "    cqto%s\n" info
         | SYS -> fprintf out "    syscall%s\n" info
