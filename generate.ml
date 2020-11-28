@@ -8,6 +8,7 @@ type location =
     | Reg of register
     | Deref of register
     | Const of int
+    | Index of register * register * int
 
 type instruction =
     | RET
@@ -30,6 +31,10 @@ type instruction =
     | PUSH of location
     | POP of location
     | NOP
+    | CMP of location * location
+    | JLE of string * string
+    | JLT of string * string
+    | JEQ of string * string
 
 type program = {
     mutable idata: string list;
@@ -71,6 +76,11 @@ let address = function
     | Reg r -> sprintf "%%r%s" (regname r)
     | Deref r -> sprintf "(%%r%s)" (regname r)
     | Const c -> sprintf "$%d" c
+    | Index (addr, idx, step) -> sprintf "(%%r%s,%%r%s,%d)" (regname addr) (regname idx) step
+
+let lpad n s =
+    let pad = String.make (max 0 (n - String.length s)) ' ' in
+    pad ^ s
 
 let generate_idata out name =
     fprintf out "%s: .long 0\n" name
@@ -80,6 +90,7 @@ let generate_sdata out (name, value) =
 
 let generate_text out (instr, info) =
     let info = if info = "" then "" else "    # " ^ info in
+    let address x = lpad 12 (address x) in
     match instr with
         | RET -> fprintf out "    ret%s\n\n" info
         | CQTO -> fprintf out "    cqto%s\n" info
@@ -101,6 +112,10 @@ let generate_text out (instr, info) =
         | PUSH loc -> fprintf out "    push %s%s\n" (address loc) info
         | POP loc -> fprintf out "    pop %s%s\n" (address loc) info
         | NOP -> fprintf out "%s\n" (if info = "" then "    nop" else info)
+        | CMP (a, b) -> fprintf out "    cmp %s, %s%s\n" (address a) (address b) info
+        | JLE (fname, tagname) -> fprintf out "    jle %s.%s%s\n" fname tagname info
+        | JLT (fname, tagname) -> fprintf out "    jl %s.%s%s\n" fname tagname info
+        | JEQ (fname, tagname) -> fprintf out "    je %s.%s%s\n" fname tagname info
 
 let generate (out:out_channel) prog =
     fprintf out "    .data\n";

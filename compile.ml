@@ -44,6 +44,7 @@ let verify_scope decl_list =
 let global_decl out decl_list = ()
 
 let generate_asm out decl_list =
+    let label_cnt = ref 0 in
     let prog = make_prog () in
     let str_count = ref 0 in
     let extract_decl_name = function
@@ -62,18 +63,18 @@ let generate_asm out decl_list =
             | CWHILE (cond, code) -> failwith "TODO while"
             | CRETURN None -> (
                 decl_asm prog (MOV (Const 0, Reg AX)) "";
-                decl_asm prog (JMP (label, "leave")) "";
+                decl_asm prog (JMP (label, "return")) "";
             )
             | CRETURN (Some ret) -> (
                 gen_expr (depth, frame, label) ret;
-                decl_asm prog (JMP (label, "leave")) "";
+                decl_asm prog (JMP (label, "return")) "";
             )
     and enter_stackframe () =
         decl_asm prog (PUSH (Reg BP)) "enter stackframe";
         decl_asm prog (MOV (Reg SP, Reg BP)) "";
     and leave_stackframe fname =
         decl_asm prog (MOV (Const 0, Reg AX)) "";
-        decl_asm prog (TAG (fname, "leave")) "leave stackframe";
+        decl_asm prog (TAG (fname, "return")) "leave stackframe";
         decl_asm prog (POP (Reg BP)) "";
         if fname = "main" then (
             decl_asm prog (MOV (Reg AX, Reg DI)) "return value";
@@ -103,21 +104,26 @@ let generate_asm out decl_list =
         decl_asm prog (MOV (Reg reg, Stack (-depth*8))) ""
     and retrieve depth reg =
         decl_asm prog (MOV (Stack (-depth*8), Reg reg)) ""
-    and gen_decl global = function
+    and gen_decl frame = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
+            label_cnt := 0;
             decl_asm prog (FUN name) "";
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
-            gen_code (nb_args+1, args :: [global], name) code;
+            gen_code (nb_args+1, args :: frame, name) code;
             leave_stackframe name;
         )
     and gen_expr (depth, frame, label) expr = match snd expr with
         | VAR name -> (
             let loc = assoc name frame in
-            decl_asm prog (LEA (loc, Reg BX)) (sprintf "access %s" name);
-            decl_asm prog (MOV (Deref BX, Reg AX)) (sprintf "read from %s" name);
+            match loc with
+                | Const k -> decl_asm prog (MOV (loc, Reg AX)) (sprintf "constant value %s = %d" name k);
+                | loc -> (
+                    decl_asm prog (LEA (loc, Reg BX)) (sprintf "access %s" name);
+                    decl_asm prog (MOV (Deref BX, Reg AX)) (sprintf "read from %s" name);
+                )
         )
         | CST value -> decl_asm prog (MOV (Const value, Reg AX)) (sprintf "load value %d" value);
         | STRING str -> (
@@ -133,7 +139,17 @@ let generate_asm out decl_list =
             decl_asm prog (LEA (loc, Reg BX)) (sprintf "access %s" name);
             decl_asm prog (MOV (Reg AX, Deref BX)) (sprintf "write to %s" name);
         )
-        | SET_ARRAY (name, index, value) -> failwith "TODO set array"
+        | SET_ARRAY (arr, idx, value) -> (
+            let loc = assoc arr frame in
+            gen_expr (depth, frame, label) idx;
+            store depth AX;
+            gen_expr (depth+1, frame, label) value;
+            retrieve (depth) CX;
+            decl_asm prog NOP "now load array base";
+            decl_asm prog (MOV (loc, Reg DX)) "";
+            decl_asm prog (LEA (Index (DX, CX, 8), Reg BX)) "";
+            decl_asm prog (MOV (Reg AX, Deref BX)) "";
+        )
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;
@@ -221,9 +237,49 @@ let generate_asm out decl_list =
                     decl_asm prog (NEG (Reg AX)) "";
                     decl_asm prog (ADD (Reg CX, Reg AX)) "";
                 )
-                | S_INDEX -> failwith "TODO index"
+                | S_INDEX -> (
+                    gen_expr (depth, frame, label) lhs;
+                    store depth AX;
+                    gen_expr (depth+1, frame, label) rhs;
+                    retrieve depth CX;
+                    decl_asm prog (LEA (Index (CX, AX, 8), Reg BX)) "";
+                    decl_asm prog (MOV (Deref BX, Reg AX)) "";
+                )
         )
-        | CMP (op, lhs, rhs) -> failwith "TODO cmp"
+        | CMP (op, lhs, rhs) -> (
+            gen_expr (depth, frame, label) lhs;
+            store depth AX;
+            gen_expr (depth+1, frame, label) rhs;
+            retrieve depth CX;
+            decl_asm prog (CMP (Reg AX, Reg CX)) "";
+            let tagbase = sprintf "%d_cmp_" !label_cnt in
+            incr label_cnt;
+            match op with
+                | C_LT -> (
+                    decl_asm prog (JLT (label, tagbase ^ "lt")) "";
+                    decl_asm prog (MOV (Const 0, Reg AX)) "";
+                    decl_asm prog (JMP (label, tagbase ^ "done")) "";
+                    decl_asm prog (TAG (label, tagbase ^ "lt")) "";
+                    decl_asm prog (MOV (Const 1, Reg AX)) "";
+                    decl_asm prog (TAG (label, tagbase ^ "done")) "";
+                )
+                | C_LE -> (
+                    decl_asm prog (JLE (label, tagbase ^ "le")) "";
+                    decl_asm prog (MOV (Const 0, Reg AX)) "";
+                    decl_asm prog (JMP (label, tagbase ^ "done")) "";
+                    decl_asm prog (TAG (label, tagbase ^ "le")) "";
+                    decl_asm prog (MOV (Const 1, Reg AX)) "";
+                    decl_asm prog (TAG (label, tagbase ^ "done")) "";
+                )
+                | C_EQ -> (
+                    decl_asm prog (JEQ (label, tagbase ^ "eq")) "";
+                    decl_asm prog (MOV (Const 0, Reg AX)) "";
+                    decl_asm prog (JMP (label, tagbase ^ "done")) "";
+                    decl_asm prog (TAG (label, tagbase ^ "eq")) "";
+                    decl_asm prog (MOV (Const 1, Reg AX)) "";
+                    decl_asm prog (TAG (label, tagbase ^ "done")) "";
+                )
+        )
         | EIF (cond, expr_true, expr_false) -> failwith "TODO eif"
         | ESEQ exprs -> List.iter (gen_expr (depth, frame, label)) exprs
     in
@@ -235,8 +291,12 @@ let generate_asm out decl_list =
             (name, (Glob name)) :: (get_global_vars tl)
         )
     in
+    let universal = [
+        ("stdin", Glob "stdin"); ("stdout", Glob "stdout"); ("stderr", Glob "stderr");
+        ("SIZE", Const 8); ("true", Const 1); ("false", Const 0)
+    ] in
     let global = get_global_vars decl_list in
-    List.iter (gen_decl global) decl_list;
+    List.iter (gen_decl (global::[universal])) decl_list;
     generate out prog
 
 

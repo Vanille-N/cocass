@@ -6,6 +6,7 @@ type location =
     | Reg of register
     | Deref of register
     | Const of int
+    | Index of register * register * int
 
 type instruction =
     | RET
@@ -28,13 +29,10 @@ type instruction =
     | PUSH of location
     | POP of location
     | NOP
-    (* | JEQ of location * location *)
-    (* | JGE of location * location *)
-    (* | JGT of location * location *)
-    (* | JLE of location * location *)
-    (* | JLT of location * location *)
-    (* | JNE of location * location *)
-    (* | IDX of location * location * location *)
+    | CMP of location * location
+    | JLE of string * string
+    | JLT of string * string
+    | JEQ of string * string
 
 type program
 
