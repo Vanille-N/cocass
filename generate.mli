@@ -5,11 +5,13 @@ type location =
     | Glob of string
     | Reg of register
     | Deref of register
+    | Const of int
 
 type instruction =
     | RET
-    | QTO
-    | CAL of string
+    | CQTO
+    | SYS
+    | CALL of string
     | FUN of string
     | TAG of string * string
     | INC of location
@@ -22,7 +24,9 @@ type instruction =
     | LEA of location * location
     | SUB of location * location
     | ADD of location * location
-    | MUL of location * location
+    | MUL of location
+    | PUSH of location
+    | POP of location
     | NOP
     (* | JEQ of location * location *)
     (* | JGE of location * location *)
@@ -40,4 +44,4 @@ val decl_asm: program -> instruction -> string -> unit
 
 val make_prog: unit -> program
 
-val generate: Format.formatter -> program -> unit
+val generate: out_channel -> program -> unit

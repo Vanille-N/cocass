@@ -1,4 +1,4 @@
-open Format
+open Printf
 
 type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9
 
@@ -7,11 +7,13 @@ type location =
     | Glob of string
     | Reg of register
     | Deref of register
+    | Const of int
 
 type instruction =
     | RET
-    | QTO
-    | CAL of string
+    | CQTO
+    | SYS
+    | CALL of string
     | FUN of string
     | TAG of string * string
     | INC of location
@@ -24,7 +26,9 @@ type instruction =
     | LEA of location * location
     | SUB of location * location
     | ADD of location * location
-    | MUL of location * location
+    | MUL of location
+    | PUSH of location
+    | POP of location
     | NOP
 
 type program = {
@@ -62,10 +66,11 @@ let regname = function
     | R9 -> "9"
 
 let address = function
-    | Stack k -> sprintf "$%d(%%rbp)" k
+    | Stack k -> sprintf "%d(%%rbp)" k
     | Glob v -> sprintf "%s(%%rip)" v
     | Reg r -> sprintf "%%r%s" (regname r)
     | Deref r -> sprintf "(%%r%s)" (regname r)
+    | Const c -> sprintf "$%d" c
 
 let generate_idata out name =
     fprintf out "%s: .long 0\n" name
@@ -76,8 +81,9 @@ let generate_text out instr =
     let info = if snd instr = "" then "" else "    # " ^ (snd instr) in
     match fst instr with
         | RET -> fprintf out "    ret%s\n\n" info
-        | QTO -> fprintf out "    cqto%s\n" info
-        | CAL fname -> fprintf out "    call %s%s\n" fname info
+        | CQTO -> fprintf out "    cqto%s\n" info
+        | SYS -> fprintf out "    syscall%s\n" info
+        | CALL fname -> fprintf out "    call %s%s\n" fname info
         | FUN fname -> fprintf out "%s:%s\n" fname info
         | TAG (fname, tagname) -> fprintf out "  %s.%s:%s\n" fname tagname info
         | INC loc -> fprintf out "    incq %s%s\n" (address loc) info
@@ -90,10 +96,12 @@ let generate_text out instr =
         | LEA (src, dest) -> fprintf out "    lea %s, %s%s\n" (address src) (address dest) info
         | SUB (src, dest) -> fprintf out "    sub %s, %s%s\n" (address src) (address dest) info
         | ADD (src, dest) -> fprintf out "    add %s, %s%s\n" (address src) (address dest) info
-        | MUL (src, dest) -> fprintf out "    mul %s, %s%s\n" (address src) (address dest) info
+        | MUL loc -> fprintf out "    mul %s%s\n" (address loc) info
+        | PUSH loc -> fprintf out "    push %s%s\n" (address loc) info
+        | POP loc -> fprintf out "    pop %s%s\n" (address loc) info
         | NOP -> fprintf out "%s\n" (if info = "" then "    nop" else info)
 
-let generate out prog =
+let generate (out:out_channel) prog =
     fprintf out "    .data\n";
     fprintf out "    .align 8\n";
     let idata = List.rev prog.idata in
