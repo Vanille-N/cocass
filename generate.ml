@@ -26,3 +26,25 @@ type instruction =
     | ADD of location * location
     | MUL of location * location
     | NOP
+
+type program = {
+    mutable idata: string list;
+    mutable sdata: (string * string) list;
+    mutable text: (instruction * string) list;
+}
+
+let decl_int prog name =
+    prog.idata <- name :: prog.idata
+
+let decl_str prog name value =
+    prog.sdata <- (name, value) :: prog.sdata
+
+let decl_asm prog instr info =
+    prog.text <- (instr, info) :: prog.text
+
+let make_prog () =
+    {
+        idata = [];
+        sdata = [];
+        text = [];
+    }
