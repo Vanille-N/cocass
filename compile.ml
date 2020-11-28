@@ -1,6 +1,7 @@
 open Cparse
 open CAST
 open Genlab
+open Generate
 open Printf
 
 let rec all f = function
@@ -43,6 +44,7 @@ let verify_scope decl_list =
 let global_decl out decl_list = ()
 
 let generate_asm out decl_list =
+    let prog = make_prog () in
     let extract_decl_name = function
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
@@ -58,53 +60,52 @@ let generate_asm out decl_list =
             | CIF (expr, do_true, do_false) -> failwith "TODO if"
             | CWHILE (cond, code) -> failwith "TODO while"
             | CRETURN None -> (
-                fprintf out "    mov $0, %%rax\n";
-                fprintf out "    jmp %s.leave\n" label;
+                decl_asm prog (MOV (Const 0, Reg AX)) "";
+                decl_asm prog (JMP (label, "leave")) "";
             )
             | CRETURN (Some ret) -> (
                 gen_expr (depth, frame, label) ret;
-                fprintf out "    jmp %s.leave\n" label;
+                decl_asm prog (JMP (label, "leave")) "";
             )
     and enter_stackframe () =
-        fprintf out "    push %%rbp        # enter stackframe\n";
-        fprintf out "    mov %%rsp, %%rbp\n"
+        decl_asm prog (PUSH (Reg BP)) "enter stackframe";
+        decl_asm prog (MOV (Reg SP, Reg BP)) "";
     and leave_stackframe fname =
-        fprintf out "    mov $0, %%rax\n";
-        fprintf out "  %s.leave:             # leave stackframe\n" fname;
-        fprintf out "    pop %%rbp\n";
+        decl_asm prog (MOV (Const 0, Reg AX)) "";
+        decl_asm prog (TAG (fname, "leave")) "leave stackframe";
+        decl_asm prog (POP (Reg BP)) "";
         if fname = "main" then (
-            fprintf out "    mov %%rax, %%rdi     # return value\n";
-            fprintf out "    mov $60, %%rax      # syscall for return\n";
-            fprintf out "    syscall\n\n";
+            decl_asm prog (MOV (Reg AX, Reg DI)) "return value";
+            decl_asm prog (MOV (Const 60, Reg AX)) "syscall code for exit";
+            decl_asm prog SYS "";
         ) else (
-            fprintf out "    ret\n\n";
+            decl_asm prog RET "";
         )
     and stack_args decs =
         let n = List.length decs in
-        let stacked = List.init (max 0 (n-6)) (fun i -> sprintf "%d(%%rbp)" (8*(i+2))) in
-        let regged = truncate (min 6 n) ["%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9"] in
+        let stacked = List.init (max 0 (n-6)) (fun i -> Stack (8*(i+2))) in
+        let regged = truncate (min 6 n) [DI; SI; DX; CX; R8; R9] in
         let regged = List.mapi (fun i loc ->
-            let newloc = sprintf "-%d(%%rbp)" ((i+1)*8) in
-            fprintf out "    mov %s, %s\n" loc newloc;
+            let newloc = Stack (-(i+1)*8) in
+            decl_asm prog (MOV (Reg loc, newloc)) "";
             newloc
         ) regged in
         let names = List.map extract_decl_name decs in
         zip names (regged @ stacked)
     and make_scope depth decls =
         let n = List.length decls in
-        let pos = List.init n (fun i -> sprintf "-%d(%%rbp)" (8*(i+1+depth))) in
+        let pos = List.init n (fun i -> Stack (-8*(i+1+depth))) in
         let names = List.map extract_decl_name decls in
         let vars = zip names pos in
-        List.iter (fun (name, pos) -> printf " %s is at %s\n" name pos) vars;
         vars
     and store depth reg =
-        fprintf out "    mov %s, -%d(%%rbp)\n" reg ((depth+1)*8)
+        decl_asm prog (MOV (reg, Stack (-(depth+1)*8))) ""
     and retrieve depth reg =
-        fprintf out "    mov -%d(%%rbp), %s\n" ((depth+1)*8) reg
+        decl_asm prog (MOV (Stack (-(depth+1)*8), reg)) ""
     and gen_decl global = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
-            fprintf out "%s:\n" name;
+            decl_asm prog (FUN name) "";
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
@@ -114,98 +115,103 @@ let generate_asm out decl_list =
     and gen_expr (depth, frame, label) expr = match snd expr with
         | VAR name -> (
             let loc = assoc name frame in
-            fprintf out "    lea %s, %%rbx    # access %s\n" loc name;
-            fprintf out "    mov (%%rbx), %%rax    # read from %s\n" name;
+            decl_asm prog (LEA (loc, Reg BX)) (sprintf "access %s" name);
+            decl_asm prog (MOV (Deref BX, Reg AX)) (sprintf "read from %s" name);
         )
-        | CST value -> fprintf out "    mov $%d, %%rax     # load value %d\n" value value
+        | CST value -> decl_asm prog (MOV (Const value, Reg AX)) (sprintf "load value %d" value);
         | STRING str -> failwith "TODO string"
         | SET_VAR (name, expr) -> (
             gen_expr (depth, frame, label) expr;
             let loc = assoc name frame in
-            printf "found %s at %s\n" name loc; flush stdout;
-            fprintf out "    lea %s, %%rbx    # acccess %s\n" loc name;
-            fprintf out "    mov %%rax, (%%rbx)    # write to %s\n" name;
+            decl_asm prog (LEA (loc, Reg BX)) (sprintf "access %s" name);
+            decl_asm prog (MOV (Reg AX, Deref BX)) (sprintf "write to %s" name);
         )
         | SET_ARRAY (name, index, value) -> failwith "TODO set array"
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;
-                store (depth+i) "%rax";
+                store (depth+i) (Reg AX);
             ) expr_lst;
             let nb_args = List.length expr_lst in
             let nb_regged = min 6 nb_args in
             let nb_stacked = max 0 (nb_args-6) in
-            let reg_dests = truncate nb_regged ["%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9"] in
-            let stack_dests = List.init nb_stacked (fun i -> sprintf "-%d(%%rbp)" ((depth+nb_args+1+i)*8)) in
+            let reg_dests = truncate nb_regged [DI; SI; DX; CX; R8; R9] in
+            let reg_dests = List.map (fun r -> Reg r) reg_dests in
+            let stack_dests = List.init nb_stacked (fun i -> Stack (-(depth+nb_args+1+i)*8)) in
             let dests = reg_dests @ stack_dests in
-            let locs = List.init nb_args (fun i -> sprintf "-%d(%%rbp)" ((depth+1+i)*8)) in
+            let locs = List.init nb_args (fun i -> Stack (-(depth+1+i)*8)) in
             let moves = zip locs dests in
             List.iter (fun (loc, dest) ->
-                fprintf out "    mov %s, %%rax\n" loc;
-                fprintf out "    mov %%rax, %s\n" dest;
+                match dest with
+                    | Stack k -> (
+                        decl_asm prog (MOV (loc, Reg AX)) "";
+                        decl_asm prog (MOV (Reg AX, dest)) "";
+                    )
+                    | Reg r -> decl_asm prog (MOV (loc, dest)) ""
+                    | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
-            fprintf out "    sub $%d, %%rsp\n" ((depth+nb_args+1)*8);
-            fprintf out "    call %s\n" fname;
-            fprintf out "    add $%d, %%rsp\n" ((depth+nb_args+1)*8);
+            decl_asm prog (SUB (Const ((depth+nb_args+1)*8), Reg SP)) "";
+            decl_asm prog (CALL fname) "";
+            decl_asm prog (ADD (Const ((depth+nb_args+1)*8), Reg SP)) "";
         )
         | OP1 (op, expr) -> (
             gen_expr (depth, frame, label) expr;
             match op with
-                | M_MINUS -> fprintf out "    neg %%rax\n"
-                | M_NOT -> fprintf out "    not %%rax\n"
-                | M_POST_INC -> fprintf out "    incq (%%rbx)\n"
-                | M_POST_DEC -> fprintf out "    decq (%%rbx)\n"
+                | M_MINUS -> decl_asm prog (NEG (Reg AX)) "";
+                | M_NOT -> decl_asm prog (NOT (Reg AX)) "";
+                | M_POST_INC -> decl_asm prog (INC (Deref BX)) "";
+                | M_POST_DEC -> decl_asm prog (DEC (Deref BX)) "";
                 | M_PRE_INC -> (
-                    fprintf out "    incq (%%rbx)\n";
-                    fprintf out "    inc %%rax\n";
+                    decl_asm prog (INC (Deref BX)) "";
+                    decl_asm prog (INC (Reg AX)) "";
                 )
                 | M_PRE_DEC -> (
-                    fprintf out "    decq (%%rbx)\n";
-                    fprintf out "    dec %%rax\n";
+                    decl_asm prog (DEC (Deref BX)) "";
+                    decl_asm prog (DEC (Reg AX)) "";
                 )
         )
         | OP2 (op, lhs, rhs) -> (
             match op with
                 | S_MUL -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth "%rax";
+                    store depth (Reg AX);
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth "%rcx";
-                    fprintf out "    mul %%rcx\n";
+                    retrieve depth (Reg CX);
+                    decl_asm prog (MUL (Reg CX)) "";
                 )
                 | S_MOD -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth "%rax";
+                    store depth (Reg AX);
                     gen_expr (depth+1, frame, label) rhs;
-                    fprintf out "    mov %%rax, %%rcx\n";
-                    retrieve depth "%rax";
-                    fprintf out "    cqto\n";
-                    fprintf out "    idiv %%rcx\n";
-                    fprintf out "    mov %%rdx, %%rax\n";
+                    decl_asm prog (MOV (Reg AX, Reg CX)) "";
+                    retrieve depth (Reg AX);
+                    decl_asm prog CQTO "";
+                    decl_asm prog (DIV (Reg CX)) "";
+                    decl_asm prog (MOV (Reg DX, Reg AX)) "";
                 )
                 | S_DIV -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth "%rax";
+                    store depth (Reg AX);
                     gen_expr (depth+1, frame, label) rhs;
-                    fprintf out "    mov %%rax, %%rcx\n";
-                    retrieve depth "%rax";
-                    fprintf out "    cqto\n";
-                    fprintf out "    idiv %%rcx\n";
+                    decl_asm prog (MOV (Reg AX, Reg CX)) "";
+                    retrieve depth (Reg AX);
+                    decl_asm prog CQTO "";
+                    decl_asm prog (DIV (Reg CX)) "";
                 )
                 | S_ADD -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth "%rax";
+                    store depth (Reg AX);
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth "%rcx";
-                    fprintf out "    add %%rcx, %%rax\n";
+                    retrieve depth (Reg CX);
+                    decl_asm prog (ADD (Reg CX, Reg AX)) "";
                 )
                 | S_SUB -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth "%rax";
+                    store depth (Reg AX);
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth "%rcx";
-                    fprintf out "    neg %%rax\n";
-                    fprintf out "    add %%rcx, %%rax\n";
+                    retrieve depth (Reg CX);
+                    decl_asm prog (NEG (Reg AX)) "";
+                    decl_asm prog (ADD (Reg CX, Reg AX)) "";
                 )
                 | S_INDEX -> failwith "TODO index"
         )
@@ -217,17 +223,13 @@ let generate_asm out decl_list =
         | [] -> []
         | (CFUN _) :: tl -> get_global_vars tl
         | (CDECL (_, name)) :: tl -> (
-            fprintf out "%s: .long 0\n" name;
-            (name, (name ^ "(%rip)")) :: (get_global_vars tl)
+            decl_int prog name;
+            (name, (Glob name)) :: (get_global_vars tl)
         )
     in
-    fprintf out "    .data\n";
-    fprintf out "    .align 8\n";
     let global = get_global_vars decl_list in
-    fprintf out "\n";
-    fprintf out "    .global main\n";
-    fprintf out "    .text\n";
-    List.iter (gen_decl global) decl_list
+    List.iter (gen_decl global) decl_list;
+    generate out prog
 
 
 let compile out decl_list =
