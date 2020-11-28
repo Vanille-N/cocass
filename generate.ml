@@ -48,3 +48,27 @@ let make_prog () =
         sdata = [];
         text = [];
     }
+
+let regname = function
+    | AX -> "ax"
+    | BX -> "bx"
+    | CX -> "cx"
+    | DX -> "dx"
+    | DI -> "di"
+    | SI -> "si"
+    | SP -> "sp"
+    | BP -> "bp"
+    | R8 -> "8"
+    | R9 -> "9"
+
+let address = function
+    | Stack k -> sprintf "$%d(%%rbp)" k
+    | Glob v -> sprintf "%s(%%rip)" v
+    | Reg r -> sprintf "%%r%s" (regname r)
+    | Deref r -> sprintf "(%%r%s)" (regname r)
+
+let generate_idata out name =
+    fprintf out "%s: .long 0\n" name
+
+let generate_sdata out name = ()
+
