@@ -12,12 +12,13 @@
 
 # Compilation parameters:
 CAMLOBJS=error.cmo cAST.cmo pigment.cmo cprint.cmo \
-	cparse.cmo clex.cmo verbose.cmo genlab.cmo compile.cmo \
+	cparse.cmo clex.cmo verbose.cmo genlab.cmo generate.cmo compile.cmo \
 	main.cmo
 CAMLSRC=$(addsuffix .ml,$(basename $(CAMLOBJS)))
 PJ=ProjetCOCass
 FILES=clex.mll cAST.ml cAST.mli cparse.mly \
 	  pigment.ml pigment.mli \
+	  generate.ml generate.mli \
 	  compile.ml compile.mli \
 	  cprint.ml cprint.mli \
 	  error.ml verbose.ml genlab.ml main.ml Makefile
