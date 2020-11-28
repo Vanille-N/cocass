@@ -94,14 +94,14 @@ let generate_asm out decl_list =
         zip names (regged @ stacked)
     and make_scope depth decls =
         let n = List.length decls in
-        let pos = List.init n (fun i -> Stack (-8*(i+1+depth))) in
+        let pos = List.init n (fun i -> Stack (-8*(i+depth))) in
         let names = List.map extract_decl_name decls in
         let vars = zip names pos in
         vars
     and store depth reg =
-        decl_asm prog (MOV (reg, Stack (-(depth+1)*8))) ""
+        decl_asm prog (MOV (Reg reg, Stack (-depth*8))) ""
     and retrieve depth reg =
-        decl_asm prog (MOV (Stack (-(depth+1)*8), reg)) ""
+        decl_asm prog (MOV (Stack (-depth*8), Reg reg)) ""
     and gen_decl global = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
@@ -109,7 +109,7 @@ let generate_asm out decl_list =
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
-            gen_code (nb_args, args :: [global], name) code;
+            gen_code (nb_args+1, args :: [global], name) code;
             leave_stackframe name;
         )
     and gen_expr (depth, frame, label) expr = match snd expr with
@@ -130,16 +130,16 @@ let generate_asm out decl_list =
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;
-                store (depth+i) (Reg AX);
+                store (depth+i) AX;
             ) expr_lst;
             let nb_args = List.length expr_lst in
             let nb_regged = min 6 nb_args in
             let nb_stacked = max 0 (nb_args-6) in
             let reg_dests = truncate nb_regged [DI; SI; DX; CX; R8; R9] in
             let reg_dests = List.map (fun r -> Reg r) reg_dests in
-            let stack_dests = List.init nb_stacked (fun i -> Stack (-(depth+nb_args+1+i)*8)) in
+            let stack_dests = List.init nb_stacked (fun i -> Stack (-(depth+nb_args+i)*8)) in
             let dests = reg_dests @ stack_dests in
-            let locs = List.init nb_args (fun i -> Stack (-(depth+1+i)*8)) in
+            let locs = List.init nb_args (fun i -> Stack (-(depth+i)*8)) in
             let moves = zip locs dests in
             List.iter (fun (loc, dest) ->
                 match dest with
@@ -150,9 +150,9 @@ let generate_asm out decl_list =
                     | Reg r -> decl_asm prog (MOV (loc, dest)) ""
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
-            decl_asm prog (SUB (Const ((depth+nb_args+1)*8), Reg SP)) "";
+            decl_asm prog (SUB (Const ((depth+nb_args)*8), Reg SP)) "";
             decl_asm prog (CALL fname) "";
-            decl_asm prog (ADD (Const ((depth+nb_args+1)*8), Reg SP)) "";
+            decl_asm prog (ADD (Const ((depth+nb_args)*8), Reg SP)) "";
         )
         | OP1 (op, expr) -> (
             gen_expr (depth, frame, label) expr;
@@ -174,42 +174,42 @@ let generate_asm out decl_list =
             match op with
                 | S_MUL -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth (Reg AX);
+                    store depth AX;
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth (Reg CX);
+                    retrieve depth CX;
                     decl_asm prog (MUL (Reg CX)) "";
                 )
                 | S_MOD -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth (Reg AX);
+                    store depth AX;
                     gen_expr (depth+1, frame, label) rhs;
                     decl_asm prog (MOV (Reg AX, Reg CX)) "";
-                    retrieve depth (Reg AX);
+                    retrieve depth AX;
                     decl_asm prog CQTO "";
                     decl_asm prog (DIV (Reg CX)) "";
                     decl_asm prog (MOV (Reg DX, Reg AX)) "";
                 )
                 | S_DIV -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth (Reg AX);
+                    store depth AX;
                     gen_expr (depth+1, frame, label) rhs;
                     decl_asm prog (MOV (Reg AX, Reg CX)) "";
-                    retrieve depth (Reg AX);
+                    retrieve depth AX;
                     decl_asm prog CQTO "";
                     decl_asm prog (DIV (Reg CX)) "";
                 )
                 | S_ADD -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth (Reg AX);
+                    store depth AX;
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth (Reg CX);
+                    retrieve depth CX;
                     decl_asm prog (ADD (Reg CX, Reg AX)) "";
                 )
                 | S_SUB -> (
                     gen_expr (depth, frame, label) lhs;
-                    store depth (Reg AX);
+                    store depth AX;
                     gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth (Reg CX);
+                    retrieve depth CX;
                     decl_asm prog (NEG (Reg AX)) "";
                     decl_asm prog (ADD (Reg CX, Reg AX)) "";
                 )
