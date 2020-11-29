@@ -13,6 +13,7 @@ type location =
 type instruction =
     | RET
     | CQTO
+    | CLTQ
     | SYS
     | CALL of string
     | FUN of string
@@ -105,6 +106,10 @@ let generate_talign (instr, info) =
             TextLt "    cqto ";
             Skip 5;
             fmtinfo]
+        | CLTQ -> [
+            TextLt "    cltq ";
+            Skip 5;
+            fmtinfo]
         | SYS -> [
             TextLt "    syscall ";
             Skip 5;
@@ -138,7 +143,7 @@ let generate_talign (instr, info) =
             Skip 3;
             fmtinfo]
         | DEC loc -> [
-            TextLt "    dec ";
+            TextLt "    decq ";
             Node (address loc);
             Skip 3;
             fmtinfo]

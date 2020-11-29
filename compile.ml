@@ -55,6 +55,13 @@ let generate_asm out decl_list =
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
     in
+    let whitelist_longret = (
+        let rec scan_toplevel = function
+            | [] -> ["malloc"; "fopen"]
+            | (CDECL _) :: rest -> scan_toplevel rest
+            | (CFUN (_, name, _, _)) :: rest -> name :: (scan_toplevel rest)
+        in scan_toplevel decl_list
+    ) in
     let rec gen_code (depth, frame, label) code =
         match snd code with
             | CBLOCK (decl_lst, code_lst) -> (
@@ -206,6 +213,8 @@ let generate_asm out decl_list =
             decl_asm prog (MOV (Const nb_stacked, Reg AX)) (sprintf "varargs: %d on the stack" nb_stacked);
             decl_asm prog (CALL fname) " +";
             decl_asm prog (ADD (Const ((depth+nb_args+nb_stacked)*8), Reg SP)) " +";
+            if not (List.mem fname whitelist_longret)
+            then decl_asm prog CLTQ "";
         )
         | OP1 (op, expr) -> (
             gen_expr (depth, frame, label) expr;
@@ -310,7 +319,7 @@ let generate_asm out decl_list =
                 )
         )
         | EIF (cond, expr_true, expr_false) -> (
-            let tagbase = sprintf "%d_cmp_" !label_cnt in
+            let tagbase = sprintf "%d_tern_" !label_cnt in
             incr label_cnt;
             gen_expr (depth, frame, label) cond;
             decl_asm prog (CMP (Const 0, Reg AX)) "apply ternary";
@@ -333,7 +342,8 @@ let generate_asm out decl_list =
     in
     let universal = [
         ("stdin", Glob "stdin"); ("stdout", Glob "stdout"); ("stderr", Glob "stderr");
-        ("SIZE", Const 8); ("true", Const 1); ("false", Const 0)
+        ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
+        ("true", Const 1); ("false", Const 0)
     ] in
     let global = get_global_vars decl_list in
     List.iter (gen_decl (global::[universal])) decl_list;

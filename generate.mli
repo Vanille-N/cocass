@@ -11,6 +11,7 @@ type location =
 type instruction =
     | RET
     | CQTO
+    | CLTQ
     | SYS
     | CALL of string
     | FUN of string
