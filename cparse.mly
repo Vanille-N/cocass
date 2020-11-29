@@ -21,7 +21,7 @@
  *
  * 4. This software is restricted to non-commercial use only.  Commercial
  *    use is subject to a specific license, obtainable from LSV.
- * 
+ *
  *)
 
 (* Analyse grammaticale d'un sous-ensemble (tres) reduit de C. *)
@@ -73,12 +73,12 @@ close_brace : CLOSE_BRACE_CHR { getloc () };
 
 string_literal:
           STRING_LITERAL { getloc (), $1 }
-        | STRING_LITERAL string_literal 
-            { 
+        | STRING_LITERAL string_literal
+            {
               let l, s = $2 in
               let s2 = $1 in
               (getloc (), s2^s)
-            } 
+            }
 
 inc_op : INC_OP { getloc () }
 dec_op : DEC_OP { getloc () }
@@ -107,7 +107,7 @@ postfix_expression:
 
 argument_expression_list:
           assignment_expression { [$1] }
-        | argument_expression_list COMMA_CHR assignment_expression { 
+        | argument_expression_list COMMA_CHR assignment_expression {
           $3 :: $1 }
         ;
 
@@ -118,7 +118,7 @@ unary_expression:
         | dec_op unary_expression
 	{ sup_locator $1 (loc_of_expr $2), OP1 (M_PRE_DEC, $2) }
         | unary_operator cast_expression
-	{ 
+	{
           let loc, c = $1 in
           let loc' = sup_locator loc (loc_of_expr $2) in
 	  match c with
@@ -165,7 +165,7 @@ multiplicative_expression:
         ;
 
 additive_expression:
-          multiplicative_expression 
+          multiplicative_expression
             { $1 }
         | additive_expression ADD_CHR multiplicative_expression
 	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
@@ -208,7 +208,7 @@ equality_expression:
 	  CMP (C_EQ, $1, $3)
 	}
         | equality_expression NE_OP relational_expression
-	{ 
+	{
           let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
 	  loc, EIF ((loc, CMP (C_EQ, $1, $3)),
 		    (loc, CST 0),
@@ -247,7 +247,7 @@ logical_or_expression:
 conditional_expression:
           logical_or_expression { $1 }
         | logical_or_expression QUES_CHR expression COLON_CHR conditional_expression
-	{ 
+	{
 	  sup_locator (loc_of_expr $1) (loc_of_expr $5),
 	  EIF ($1, $3, $5)
 	}
@@ -274,7 +274,7 @@ assignment_expression:
 expression:
           assignment_expression { $1 }
         | expression COMMA_CHR assignment_expression
-	{ 
+	{
 	  sup_locator (loc_of_expr $1) (loc_of_expr $3),
 	  ESEQ [$1; $3]
 	}
@@ -285,16 +285,16 @@ declaration:
 	{ List.rev $2 }
         ;
 
-optional_init_declarator_list : 
+optional_init_declarator_list :
           { [] }
 	| init_declarator_list { $1 }
 	;
 
 /* Une init_declarator_list est une liste a l'envers de declarator. */
 init_declarator_list
-        : init_declarator 
+        : init_declarator
             { [$1] }
-        | init_declarator_list COMMA_CHR init_declarator 
+        | init_declarator_list COMMA_CHR init_declarator
             { $3 :: $1 }
         ;
 
@@ -310,23 +310,23 @@ type_specifier: INTEGER { () }
 
 close_bracket : CLOSE_BRACKET_CHR { getloc () };
 
-statement: compound_statement   
+statement: compound_statement
             { $1 }
-        | expression_statement 
+        | expression_statement
             { loc_of_expr $1, CEXPR $1 }
-        | selection_statement  
+        | selection_statement
             { $1 }
-        | iteration_statement  
+        | iteration_statement
             { $1 }
-        | jump_statement       
+        | jump_statement
             { $1 }
 	    ;
 
 open_block : open_brace { $1 };
 close_block : close_brace { $1 };
 
-compound_statement: 
-          open_block close_block 
+compound_statement:
+          open_block close_block
         { sup_locator $1 $2, CBLOCK ([], []) }
         | open_block statement_list close_block
 	{ sup_locator $1 $3, CBLOCK ([], List.rev $2) }
@@ -338,24 +338,24 @@ compound_statement:
 
 /* Une declaration_list est une liste non inversee de declaration */
 declaration_list
-        : declaration 
+        : declaration
           { $1 }
-        | declaration_list declaration 
+        | declaration_list declaration
           { $1 @ $2 }
         ;
 
 /* Une statement_list est une liste inversee de statement */
 statement_list
-        : statement 
+        : statement
           { [$1] }
-        | statement_list statement 
+        | statement_list statement
           { $2 :: $1 }
         ;
 
-expression_statement: 
-         semi_chr 
+expression_statement:
+         semi_chr
             { $1, ESEQ [] }
-        | expression SEMI_CHR 
+        | expression SEMI_CHR
             { $1 }
         ;
 
@@ -365,12 +365,12 @@ ifkw : IF { getloc () };
 
 selection_statement
         : ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement
-	{ 
+	{
           sup_locator $1 (fst $5), CIF ($3, $5,
 					(getloc (), CBLOCK ([], [])))
 	}
         | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement ELSE statement
-	{ 
+	{
           sup_locator $1 (fst $7), CIF ($3, $5, $7)
 	}
         ;
@@ -385,14 +385,14 @@ iteration_statement: whilekw OPEN_PAREN_CHR expression close_paren statement
 	   }
         | forkw OPEN_PAREN_CHR expression_statement expression_statement close_paren statement
 	/* for (e0; e; ) c == e0; while (e) c; */
-	{ 
+	{
           let loc = sup_locator $1 (fst $6) in
 	  loc, CBLOCK ([], [(loc_of_expr $3, CEXPR $3);
 			    loc, CWHILE ($4, $6)])
 	}
         | forkw OPEN_PAREN_CHR expression_statement expression_statement expression close_paren statement
 	/* for (e0; e; e1) c == e0; while (e) { c; e1 } */
-	{ 
+	{
           let loc = sup_locator $1 (fst $7) in
 	  loc, CBLOCK ([], [(loc_of_expr $3, CEXPR $3);
 			    loc, CWHILE ($4,
@@ -405,25 +405,25 @@ iteration_statement: whilekw OPEN_PAREN_CHR expression close_paren statement
 return : RETURN { getloc () };
 
 jump_statement:
-          return SEMI_CHR 
+          return SEMI_CHR
             { $1, CRETURN None }
-        | return expression SEMI_CHR 
+        | return expression SEMI_CHR
             { sup_locator $1 (loc_of_expr $2), CRETURN (Some $2) }
         ;
 
 translation_unit:
-          external_declaration 
+          external_declaration
           { $1 }
-        | translation_unit external_declaration 
+        | translation_unit external_declaration
           { $1 @ $2 }
-        | EOF 
+        | EOF
           { [] }
         ;
 
 external_declaration
-        : function_definition 
+        : function_definition
             { [$1] }
-        | declaration 
+        | declaration
             { $1 }
         ;
 
@@ -431,7 +431,7 @@ parameter_declaration: type_specifier declarator { $2 };
 
 /*!!!should check no repeated param name! */
 /* Une parameter_list est une liste inversee de parameter_list. */
-parameter_list: parameter_declaration 
+parameter_list: parameter_declaration
           { [$1] }
         | parameter_list COMMA_CHR parameter_declaration
           { $3 :: $1 }
@@ -453,7 +453,7 @@ function_declarator : type_specifier identifier parameter_declarator
 
 function_definition
         : function_declarator compound_statement
-	{ 
+	{
           let (loc, var), decls = $1 in
 	  CFUN (loc, var, decls, $2)
 	}

@@ -11,4 +11,6 @@ ctab.output
 .gdb_history
 *.out
 clex.ml
-cparse.*
+cparse.mli
+cparse.ml
+cparse.output

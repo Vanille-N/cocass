@@ -29,28 +29,6 @@ let cmp_op_repr = function
     | C_LE -> "LE"
     | C_EQ -> "EQ"
 
-let rec inline_code code =
-    match snd code with
-        | CBLOCK _ -> false
-        | CEXPR expr -> inline_expr expr
-        | CIF _ -> false
-        | CWHILE _ -> false
-        | CRETURN None -> true
-        | CRETURN (Some ret) -> inline_expr ret
-and inline_expr expr =
-    match snd expr with
-        | VAR _ -> true
-        | CST _ -> true
-        | STRING _ -> true
-        | SET_VAR (_, expr) -> inline_expr expr
-        | SET_ARRAY (_, index, value) -> (inline_expr index) && (inline_expr value)
-        | CALL _ -> false
-        | OP1 (_, expr) -> inline_expr expr
-        | OP2 (_, lhs, rhs) -> (inline_expr lhs) && (inline_expr rhs)
-        | CMP (_, lhs, rhs) -> (inline_expr lhs) && (inline_expr rhs)
-        | EIF _ -> false
-        | ESEQ _ -> false
-
 let rec print_block printer offset out lst =
     match lst with
         | [] -> ()
