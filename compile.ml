@@ -64,7 +64,7 @@ let generate_asm out decl_list =
             )
             | CEXPR expr -> gen_expr (depth, frame, label) expr
             | CIF (cond, do_true, do_false) -> (
-                let tagbase = sprintf "%d_cmp_" !label_cnt in
+                let tagbase = sprintf "%d_cond_" !label_cnt in
                 incr label_cnt;
                 gen_expr (depth, frame, label) cond;
                 decl_asm prog (CMP (Const 0, Reg AX)) "apply cond";
@@ -75,7 +75,17 @@ let generate_asm out decl_list =
                 gen_code (depth, frame, label) do_false;
                 decl_asm prog (TAG (label, tagbase ^ "done")) "end ternary";
             )
-            | CWHILE (cond, code) -> failwith "TODO while"
+            | CWHILE (cond, code) -> (
+                let tagbase = sprintf "%d_loop_" !label_cnt in
+                incr label_cnt;
+                decl_asm prog (TAG (label, tagbase ^ "enter")) "enter loop";
+                gen_expr (depth, frame, label) cond;
+                decl_asm prog (CMP (Const 0, Reg AX)) "";
+                decl_asm prog (JEQ (label, tagbase ^ "done")) "";
+                gen_code (depth, frame, label) code;
+                decl_asm prog (JMP (label, tagbase ^ "enter")) "";
+                decl_asm prog (TAG (label, tagbase ^ "done")) "";
+            )
             | CRETURN None -> (
                 decl_asm prog (MOV (Const 0, Reg AX)) "return 0";
                 decl_asm prog (JMP (label, "return")) " +";
