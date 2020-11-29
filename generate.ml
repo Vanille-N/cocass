@@ -8,7 +8,7 @@ type location =
     | Reg of register
     | Deref of register
     | Const of int
-    | Index of register * register * int
+    | Index of register * register
 
 type instruction =
     | RET
@@ -70,62 +70,193 @@ let regname = function
     | R8 -> "8"
     | R9 -> "9"
 
+type alignment =
+    | TextRt of string
+    | TextLt of string
+    | Node of alignment list
+    | Skip of int
+
 let address = function
-    | Stack k -> sprintf "%d(%%rbp)" k
-    | Glob v -> sprintf "%s(%%rip)" v
-    | Reg r -> sprintf "%%r%s" (regname r)
-    | Deref r -> sprintf "(%%r%s)" (regname r)
-    | Const c -> sprintf "$%d" c
-    | Index (addr, idx, step) -> sprintf "(%%r%s,%%r%s,%d)" (regname addr) (regname idx) step
+    | Stack k -> [TextRt (sprintf "%d(%%rbp" k); TextLt ")"]
+    | Glob v -> [TextRt (sprintf "%s(%%rip" v); TextLt ")"]
+    | Reg r -> [TextRt (sprintf "%%r%s" (regname r)); Skip 1]
+    | Deref r -> [TextRt (sprintf "(%%r%s" (regname r)); TextLt ")"]
+    | Const c -> [TextRt (sprintf "$%d" c); Skip 1]
+    | Index (addr, idx) -> [TextLt (sprintf "(%%r%s,%%r%s,8)" (regname addr) (regname idx)); Skip 1]
 
 let lpad n s =
     let pad = String.make (max 0 (n - String.length s)) ' ' in
     pad ^ s
 
-let generate_idata out name =
-    fprintf out "%s: .long 0\n" name
+let generate_ialign name =
+    [TextLt (name ^ ": "); TextLt ".zero 8"]
 
-let generate_sdata out (name, value) =
-    fprintf out "%s: .asciz \"%s\"\n" name (String.escaped value)
+let generate_salign (name, value) =
+    [TextLt (name ^ ": "); TextLt (sprintf ".string \"%s\"" (String.escaped value))]
 
-let generate_text out (instr, info) =
-    let info = if info = "" then "" else "    # " ^ info in
-    let address x = lpad 12 (address x) in
+let generate_talign (instr, info) =
+    let fmtinfo = TextLt ((if info = "" then "#" else "# " ^ info) ^ (if instr = RET then "\n" else "")) in
     match instr with
-        | RET -> fprintf out "    ret%s\n\n" info
-        | CQTO -> fprintf out "    cqto%s\n" info
-        | SYS -> fprintf out "    syscall%s\n" info
-        | CALL fname -> fprintf out "    call %s%s\n" fname info
-        | FUN fname -> fprintf out "%s:%s\n" fname info
-        | TAG (fname, tagname) -> fprintf out "  %s.%s:%s\n" fname tagname info
-        | INC loc -> fprintf out "    incq %s%s\n" (address loc) info
-        | NOT loc -> fprintf out "    not %s%s\n" (address loc) info
-        | NEG loc -> fprintf out "    neg %s%s\n" (address loc) info
-        | DEC loc -> fprintf out "    decq %s%s\n" (address loc) info
-        | DIV loc -> fprintf out "    idiv %s%s\n" (address loc) info
-        | JMP (fname, tagname) -> fprintf out "    jmp %s.%s%s\n" fname tagname info
-        | MOV (src, dest) -> fprintf out "    mov %s, %s%s\n" (address src) (address dest) info
-        | LEA (src, dest) -> fprintf out "    lea %s, %s%s\n" (address src) (address dest) info
-        | SUB (src, dest) -> fprintf out "    sub %s, %s%s\n" (address src) (address dest) info
-        | ADD (src, dest) -> fprintf out "    add %s, %s%s\n" (address src) (address dest) info
-        | MUL loc -> fprintf out "    mul %s%s\n" (address loc) info
-        | PUSH loc -> fprintf out "    push %s%s\n" (address loc) info
-        | POP loc -> fprintf out "    pop %s%s\n" (address loc) info
-        | NOP -> fprintf out "%s\n" (if info = "" then "    nop" else info)
-        | CMP (a, b) -> fprintf out "    cmp %s, %s%s\n" (address a) (address b) info
-        | JLE (fname, tagname) -> fprintf out "    jle %s.%s%s\n" fname tagname info
-        | JLT (fname, tagname) -> fprintf out "    jl %s.%s%s\n" fname tagname info
-        | JEQ (fname, tagname) -> fprintf out "    je %s.%s%s\n" fname tagname info
+        | RET -> [
+            TextLt "    ret ";
+            Skip 5;
+            fmtinfo]
+        | CQTO -> [
+            TextLt "    cqto ";
+            Skip 5;
+            fmtinfo]
+        | SYS -> [
+            TextLt "    syscall ";
+            Skip 5;
+            fmtinfo]
+        | CALL fname -> [
+            TextLt "    call ";
+            TextLt fname;
+            Skip 4;
+            fmtinfo]
+        | FUN fname -> [
+            TextLt (fname ^ ":");
+            Skip 5;
+            fmtinfo]
+        | TAG (fname, tagname) -> [
+            TextLt (sprintf "  %s.%s:" fname tagname);
+            Skip 5;
+            fmtinfo]
+        | INC loc -> [
+            TextLt "    incq ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | NOT loc -> [
+            TextLt "    not ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | NEG loc -> [
+            TextLt "    neg ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | DEC loc -> [
+            TextLt "    dec ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | DIV loc -> [
+            TextLt "    idiv ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | JMP (fname, tagname) -> [
+            TextLt "    jmp ";
+            TextLt (sprintf "%s.%s" fname tagname);
+            Skip 4;
+            fmtinfo]
+        | SUB (s, d) -> [
+            TextLt "    sub ";
+            Node (address s);
+            TextLt ", ";
+            Node (address d); fmtinfo]
+        | ADD (s, d) -> [
+            TextLt "    add ";
+            Node (address s);
+            TextLt ", ";
+            Node (address d); fmtinfo]
+        | MOV (s, d) -> [
+            TextLt "    mov ";
+            Node (address s);
+            TextLt ", ";
+            Node (address d); fmtinfo]
+        | LEA (s, d) -> [
+            TextLt "    lea ";
+            Node (address s);
+            TextLt ", ";
+            Node (address d); fmtinfo]
+        | MUL loc -> [
+            TextLt "    mul ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | PUSH loc -> [
+            TextLt "    push ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | POP loc -> [
+            TextLt "    pop ";
+            Node (address loc);
+            Skip 3;
+            fmtinfo]
+        | NOP -> if info = ""
+            then [TextLt "    nop "; Skip 5; fmtinfo]
+            else [Skip 6; fmtinfo]
+        | CMP (a, b) -> [
+            TextLt "    cmp ";
+            Node (address a);
+            TextLt ", ";
+            Node (address b);
+            fmtinfo]
+        | JLE (fname, tagname) -> [
+            TextLt "    jle ";
+            TextLt (sprintf "%s.%s" fname tagname);
+            Skip 4;
+            fmtinfo]
+        | JLT (fname, tagname) -> [
+            TextLt "    jl ";
+            TextLt (sprintf "%s.%s" fname tagname);
+            Skip 4;
+            fmtinfo]
+        | JEQ (fname, tagname) -> [
+            TextLt "    je ";
+            TextLt (sprintf "%s.%s" fname tagname);
+            Skip 4;
+            fmtinfo]
+
+let display_align out marks text =
+    (* printf "newline\n"; *)
+    let current = ref 0 in
+    let target = ref 0 in
+    let marks = ref marks in
+    let pop lst =
+        let x = List.hd !lst in
+        lst := List.tl !lst;
+        x
+    in
+    let top lst = List.hd !lst in
+    let rec aux = function
+        | TextRt t -> (
+            let len = String.length t in
+            target := !target + pop marks;
+            let unused = max 0 (!target - !current - len) in
+            (* printf "    len=%d; unused=%d; target=%d; current=%d\n" len unused !target !current; *)
+            fprintf out "%s%s" (String.make unused ' ') t;
+            current := len + unused + !current;
+        )
+        | TextLt t -> (
+            let len = String.length t in
+            target := !target + pop marks;
+            let unused = max 0 (!target - !current - len) in
+            (* printf "    len=%d; unused=%d; target=%d; current=%d\n" len unused !target !current; *)
+            fprintf out "%s%s" t (String.make unused ' ');
+            current := len + unused + !current;
+        )
+        | Node l -> List.iter aux l
+        | Skip k -> for i = 1 to k do aux (TextLt "") done
+    in List.iter aux text;
+    fprintf out "\n"
 
 let generate (out:out_channel) prog =
     fprintf out "    .data\n";
     fprintf out "    .align 8\n";
     let idata = List.rev prog.idata in
-    List.iter (generate_idata out) idata;
+    let ialign = List.map generate_ialign idata in
+    List.iter (display_align out [10; 0]) ialign;
     let sdata = List.rev prog.sdata in
-    List.iter (generate_sdata out) sdata;
+    let salign = List.map generate_salign sdata in
+    List.iter (display_align out [10; 0]) salign;
     fprintf out "\n";
     fprintf out "    .global main\n";
     fprintf out "    .text\n";
-    let text = List.rev prog.text in
-    List.iter (generate_text out) text;
+    let tdata = List.rev prog.text in
+    let talign = List.map generate_talign tdata in
+    List.iter (display_align out [9; 12; 0; 0; 12; 7; 0]) talign;

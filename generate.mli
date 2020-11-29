@@ -6,7 +6,7 @@ type location =
     | Reg of register
     | Deref of register
     | Const of int
-    | Index of register * register * int
+    | Index of register * register
 
 type instruction =
     | RET
