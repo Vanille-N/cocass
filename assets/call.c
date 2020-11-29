@@ -1,8 +1,12 @@
 int nth(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8) {
-    int x, y;
-    x = x1;
-    y = x * x;
-    return y;
+    printf("x1 = %d\n", x1);
+    printf("x2 = %d\n", x2);
+    printf("x3 = %d\n", x3);
+    printf("x4 = %d\n", x4);
+    printf("x5 = %d\n", x5);
+    printf("x6 = %d\n", x6);
+    printf("x7 = %d\n", x7);
+    printf("x8 = %d\n", x8);
 }
 
 int main() {

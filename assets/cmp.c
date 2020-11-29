@@ -1,5 +1,6 @@
+int i;
 int main() {
-    int i, j;
+    int j;
     i = 5;
     j = 6;
     printf("Yes:\n");
