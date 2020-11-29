@@ -63,7 +63,18 @@ let generate_asm out decl_list =
                 List.iter (gen_code (depth, frame, label)) code_lst
             )
             | CEXPR expr -> gen_expr (depth, frame, label) expr
-            | CIF (expr, do_true, do_false) -> failwith "TODO if"
+            | CIF (cond, do_true, do_false) -> (
+                let tagbase = sprintf "%d_cmp_" !label_cnt in
+                incr label_cnt;
+                gen_expr (depth, frame, label) cond;
+                decl_asm prog (CMP (Const 0, Reg AX)) "apply cond";
+                decl_asm prog (JEQ (label, tagbase ^ "false")) "";
+                gen_code (depth, frame, label) do_true;
+                decl_asm prog (JMP (label, tagbase ^ "done")) "end case true";
+                decl_asm prog (TAG (label, tagbase ^ "false")) "begin case false";
+                gen_code (depth, frame, label) do_false;
+                decl_asm prog (TAG (label, tagbase ^ "done")) "end ternary";
+            )
             | CWHILE (cond, code) -> failwith "TODO while"
             | CRETURN None -> (
                 decl_asm prog (MOV (Const 0, Reg AX)) "return 0";
