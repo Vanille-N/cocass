@@ -288,7 +288,18 @@ let generate_asm out decl_list =
                     decl_asm prog (TAG (label, tagbase ^ "done")) " +";
                 )
         )
-        | EIF (cond, expr_true, expr_false) -> failwith "TODO eif"
+        | EIF (cond, expr_true, expr_false) -> (
+            let tagbase = sprintf "%d_cmp_" !label_cnt in
+            incr label_cnt;
+            gen_expr (depth, frame, label) cond;
+            decl_asm prog (CMP (Const 0, Reg AX)) "apply ternary";
+            decl_asm prog (JEQ (label, tagbase ^ "false")) "";
+            gen_expr (depth, frame, label) expr_true;
+            decl_asm prog (JMP (label, tagbase ^ "done")) "end case true";
+            decl_asm prog (TAG (label, tagbase ^ "false")) "begin case false";
+            gen_expr (depth, frame, label) expr_false;
+            decl_asm prog (TAG (label, tagbase ^ "done")) "end ternary";
+        )
         | ESEQ exprs -> List.iter (gen_expr (depth, frame, label)) exprs
     in
     let rec get_global_vars = function

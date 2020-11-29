@@ -7,8 +7,14 @@ int main() {
     printf("\ti < j: %d\n", i < j);
     printf("\ti <= j: %d\n", i <= j);
     printf("\ti == i: %d\n", i == i);
+    printf("\tj > i: %d\n", !(j <= i));
+    printf("\tj >= i: %d\n", !(j < i));
+    printf("\tj != i: %d\n", j != i);
     printf("No:\n");
     printf("\tj < i: %d\n", j < i);
     printf("\tj <= i: %d\n", j <= i);
     printf("\ti == j: %d\n", i == j);
+    printf("\ti > j: %d\n", !(i <= j));
+    printf("\ti >= j: %d\n", !(i < j));
+    printf("\ti != i: %d\n", i != i);
 }
