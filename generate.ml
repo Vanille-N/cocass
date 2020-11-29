@@ -77,7 +77,7 @@ type alignment =
     | Node of alignment list
     | Skip of int
 
-let address = function
+let locate = function
     | Stack k -> [TextRt (sprintf "%d(%%rbp" k); TextLt ")"]
     | Glob v -> [TextRt (sprintf "%s(%%rip" v); TextLt ")"]
     | Reg r -> [TextRt (sprintf "%%r%s" (regname r)); Skip 1]
@@ -96,126 +96,38 @@ let generate_salign (name, value) =
     [TextLt (name ^ ": "); TextLt (sprintf ".string \"%s\"" (String.escaped value))]
 
 let generate_talign (instr, info) =
-    let fmtinfo = TextLt ((if info = "" then "#" else "# " ^ info) ^ (if instr = RET then "\n" else "")) in
+    let fmtinfo = TextLt (
+        (if info = "" then "#" else "# " ^ info)
+        ^ (if instr = RET then "\n" else "")
+    ) in
     match instr with
-        | RET -> [
-            TextLt "    ret ";
-            Skip 5;
-            fmtinfo]
-        | CQTO -> [
-            TextLt "    cqto ";
-            Skip 5;
-            fmtinfo]
-        | CLTQ -> [
-            TextLt "    cltq ";
-            Skip 5;
-            fmtinfo]
-        | SYS -> [
-            TextLt "    syscall ";
-            Skip 5;
-            fmtinfo]
-        | CALL fname -> [
-            TextLt "    call ";
-            TextLt fname;
-            Skip 4;
-            fmtinfo]
-        | FUN fname -> [
-            TextLt (fname ^ ":");
-            Skip 5;
-            fmtinfo]
-        | TAG (fname, tagname) -> [
-            TextLt (sprintf "  %s.%s:" fname tagname);
-            Skip 5;
-            fmtinfo]
-        | INC loc -> [
-            TextLt "    incq ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | NOT loc -> [
-            TextLt "    not ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | NEG loc -> [
-            TextLt "    neg ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | DEC loc -> [
-            TextLt "    decq ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | DIV loc -> [
-            TextLt "    idiv ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | JMP (fname, tagname) -> [
-            TextLt "    jmp ";
-            TextLt (sprintf "%s.%s" fname tagname);
-            Skip 4;
-            fmtinfo]
-        | SUB (s, d) -> [
-            TextLt "    sub ";
-            Node (address s);
-            TextLt ", ";
-            Node (address d); fmtinfo]
-        | ADD (s, d) -> [
-            TextLt "    add ";
-            Node (address s);
-            TextLt ", ";
-            Node (address d); fmtinfo]
-        | MOV (s, d) -> [
-            TextLt "    mov ";
-            Node (address s);
-            TextLt ", ";
-            Node (address d); fmtinfo]
-        | LEA (s, d) -> [
-            TextLt "    lea ";
-            Node (address s);
-            TextLt ", ";
-            Node (address d); fmtinfo]
-        | MUL loc -> [
-            TextLt "    mul ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | PUSH loc -> [
-            TextLt "    push ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
-        | POP loc -> [
-            TextLt "    pop ";
-            Node (address loc);
-            Skip 3;
-            fmtinfo]
+        | RET -> [TextLt "    ret "; Skip 5; fmtinfo]
+        | CQTO -> [TextLt "    cqto "; Skip 5; fmtinfo]
+        | CLTQ -> [TextLt "    cltq "; Skip 5; fmtinfo]
+        | SYS -> [TextLt "    syscall "; Skip 5; fmtinfo]
+        | CALL fn -> [TextLt "    call "; TextLt fn; Skip 4; fmtinfo]
+        | FUN fn -> [TextLt (fn ^ ":"); Skip 5; fmtinfo]
+        | TAG (fn, tag) -> [TextLt (sprintf "  %s.%s:" fn tag); Skip 5; fmtinfo]
+        | INC l -> [TextLt "    incq "; Node (locate l); Skip 3; fmtinfo]
+        | NOT l -> [TextLt "    not "; Node (locate l); Skip 3; fmtinfo]
+        | NEG l -> [TextLt "    neg "; Node (locate l); Skip 3; fmtinfo]
+        | DEC l -> [TextLt "    decq "; Node (locate l); Skip 3; fmtinfo]
+        | DIV l -> [TextLt "    idiv "; Node (locate l); Skip 3; fmtinfo]
+        | JMP (fn, tag) -> [TextLt "    jmp "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
+        | SUB (s, d) -> [TextLt "    sub "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | ADD (s, d) -> [TextLt "    add "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | MOV (s, d) -> [TextLt "    mov "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | LEA (s, d) -> [TextLt "    lea "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | MUL l -> [TextLt "    mul "; Node (locate l); Skip 3; fmtinfo]
+        | PUSH l -> [TextLt "    push "; Node (locate l); Skip 3; fmtinfo]
+        | POP l -> [TextLt "    pop "; Node (locate l); Skip 3; fmtinfo]
         | NOP -> if info = ""
             then [TextLt "    nop "; Skip 5; fmtinfo]
             else [Skip 6; fmtinfo]
-        | CMP (a, b) -> [
-            TextLt "    cmp ";
-            Node (address a);
-            TextLt ", ";
-            Node (address b);
-            fmtinfo]
-        | JLE (fname, tagname) -> [
-            TextLt "    jle ";
-            TextLt (sprintf "%s.%s" fname tagname);
-            Skip 4;
-            fmtinfo]
-        | JLT (fname, tagname) -> [
-            TextLt "    jl ";
-            TextLt (sprintf "%s.%s" fname tagname);
-            Skip 4;
-            fmtinfo]
-        | JEQ (fname, tagname) -> [
-            TextLt "    je ";
-            TextLt (sprintf "%s.%s" fname tagname);
-            Skip 4;
-            fmtinfo]
+        | CMP (a, b) -> [ TextLt "    cmp "; Node (locate a); TextLt ", "; Node (locate b); fmtinfo]
+        | JLE (fn, tag) -> [ TextLt "    jle "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
+        | JLT (fn, tag) -> [ TextLt "    jl "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
+        | JEQ (fn, tag) -> [ TextLt "    je "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
 
 let display_align out marks text =
     (* printf "newline\n"; *)
@@ -227,13 +139,11 @@ let display_align out marks text =
         lst := List.tl !lst;
         x
     in
-    let top lst = List.hd !lst in
     let rec aux = function
         | TextRt t -> (
             let len = String.length t in
             target := !target + pop marks;
             let unused = max 0 (!target - !current - len) in
-            (* printf "    len=%d; unused=%d; target=%d; current=%d\n" len unused !target !current; *)
             fprintf out "%s%s" (String.make unused ' ') t;
             current := len + unused + !current;
         )
@@ -241,7 +151,6 @@ let display_align out marks text =
             let len = String.length t in
             target := !target + pop marks;
             let unused = max 0 (!target - !current - len) in
-            (* printf "    len=%d; unused=%d; target=%d; current=%d\n" len unused !target !current; *)
             fprintf out "%s%s" t (String.make unused ' ');
             current := len + unused + !current;
         )
