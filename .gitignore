@@ -1,6 +1,7 @@
 assets/*
 !assets/*.c
-!assets/*.py
+failures/*
+!failures/*.c
 
 
 *.cmi

@@ -38,7 +38,9 @@ clean:
 	rm -rf ProjetCOCass.tar.gz $(PJ)
 	rm -rf Test/
 	rm -rf assets/*.s
+	rm -rf failures/*.s
 	find assets ! -name '*.*' -type f -exec rm {} +
+	find failures ! -name '*.*' -type f -exec rm {} +
 
 test: projet.tar.gz
 	-mkdir Test

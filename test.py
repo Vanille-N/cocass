@@ -31,7 +31,7 @@ def compile(cc, fbase, more=[]):
     return success
 
 def check(fbase):
-    module = Module("assets/{}.py".format(fbase))
+    module = Module("verify/{}.py".format(fbase))
     for d in module.data:
         res = run(["./assets/{}".format(fbase), *d], capture_output=True)
         code, out, err = res.returncode, res.stdout, res.stderr

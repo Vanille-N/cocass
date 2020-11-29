@@ -1,4 +1,4 @@
-exec(open("assets/overflow.py").read())
+exec(open("verify/overflow.py").read())
 
 def factorial(n):
     f = 1
