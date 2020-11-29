@@ -21,6 +21,10 @@ let assoc x ll =
         | (_::l)::ll -> aux (l::ll)
     in aux ll
 
+let rec is_lvalue = function
+    | VAR _ -> true
+    | OP2 (S_INDEX, lhs, _) -> is_lvalue (snd lhs)
+    | _ -> false
 
 let generate_asm decl_list =
     let label_cnt = ref 0 in
@@ -128,14 +132,13 @@ let generate_asm decl_list =
             leave_stackframe name;
         )
     and gen_expr (depth, frame, label) expr = match snd expr with
-        | VAR name -> (
-            let loc = unwrap (assoc name frame) in
-            match loc with
-                | Const k -> decl_asm prog (MOV (loc, Reg AX)) (sprintf "const val %s = %d" name k);
-                | loc -> (
-                    decl_asm prog (LEA (loc, Reg DX)) (sprintf "access %s" name);
-                    decl_asm prog (MOV (Deref DX, Reg AX)) (sprintf "read %s" name);
-                )
+        | VAR name -> (match assoc name frame with
+            | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
+            | Some (Const k) -> decl_asm prog (MOV (Const k, Reg AX)) (sprintf "const val %s = %d" name k);
+            | Some loc -> (
+                decl_asm prog (LEA (loc, Reg DX)) (sprintf "access %s" name);
+                decl_asm prog (MOV (Deref DX, Reg AX)) (sprintf "read %s" name);
+            )
         )
         | CST value -> decl_asm prog (MOV (Const value, Reg AX)) (sprintf "load val %d" value);
         | STRING str -> (
@@ -145,21 +148,27 @@ let generate_asm decl_list =
             decl_asm prog (LEA (Glob name, Reg DX)) (sprintf "access %s" name);
             decl_asm prog (MOV (Reg DX, Reg AX)) (sprintf "read %s" name);
         )
-        | SET_VAR (name, expr) -> (
-            gen_expr (depth, frame, label) expr;
-            let loc = unwrap (assoc name frame) in
-            decl_asm prog (LEA (loc, Reg DX)) (sprintf "access %s" name);
-            decl_asm prog (MOV (Reg AX, Deref DX)) (sprintf "write %s" name);
+        | SET_VAR (name, value) -> (
+            gen_expr (depth, frame, label) value;
+            match assoc name frame with
+                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
+                | Some loc -> (
+                    decl_asm prog (LEA (loc, Reg DX)) (sprintf "access %s" name);
+                    decl_asm prog (MOV (Reg AX, Deref DX)) (sprintf "write %s" name);
+                )
         )
         | SET_ARRAY (arr, idx, value) -> (
-            let loc = unwrap (assoc arr frame) in
-            gen_expr (depth, frame, label) idx;
-            store depth AX;
-            gen_expr (depth+1, frame, label) value;
-            retrieve (depth) CX;
-            decl_asm prog (MOV (loc, Reg DX)) "access array";
-            decl_asm prog (LEA (Index (DX, CX), Reg DX)) " +";
-            decl_asm prog (MOV (Reg AX, Deref DX)) " +";
+            match assoc arr frame with
+                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" arr)
+                | Some loc -> (
+                    gen_expr (depth, frame, label) idx;
+                    store depth AX;
+                    gen_expr (depth+1, frame, label) value;
+                    retrieve (depth) CX;
+                    decl_asm prog (MOV (loc, Reg DX)) "access array";
+                    decl_asm prog (LEA (Index (DX, CX), Reg DX)) " +";
+                    decl_asm prog (MOV (Reg AX, Deref DX)) " +";
+                )
         )
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
@@ -194,18 +203,24 @@ let generate_asm decl_list =
         | OP1 (op, expr) -> (
             gen_expr (depth, frame, label) expr;
             match op with
-                | M_MINUS -> decl_asm prog (NEG (Reg AX)) "negative";
-                | M_NOT -> decl_asm prog (NOT (Reg AX)) "bitwise not";
-                | M_POST_INC -> decl_asm prog (INC (Deref DX)) "incr (post)";
-                | M_POST_DEC -> decl_asm prog (DEC (Deref DX)) "decr (post)";
-                | M_PRE_INC -> (
-                    decl_asm prog (INC (Deref DX)) "incr (pre)";
-                    decl_asm prog (INC (Reg AX)) " +";
-                )
-                | M_PRE_DEC -> (
-                    decl_asm prog (DEC (Deref DX)) "decr (pre)";
-                    decl_asm prog (DEC (Reg AX)) " +";
-                )
+                | M_MINUS -> decl_asm prog (NEG (Reg AX)) "negative"
+                | M_NOT -> decl_asm prog (NOT (Reg AX)) "bitwise not"
+                | M_POST_INC -> if is_lvalue (snd expr)
+                    then decl_asm prog (INC (Deref DX)) "incr (post)"
+                    else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
+                | M_POST_DEC -> if is_lvalue (snd expr)
+                    then decl_asm prog (DEC (Deref DX)) "decr (post)"
+                    else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
+                | M_PRE_INC -> if is_lvalue (snd expr)
+                    then (
+                        decl_asm prog (INC (Deref DX)) "incr (pre)";
+                        decl_asm prog (INC (Reg AX)) " +";
+                    ) else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
+                | M_PRE_DEC -> if is_lvalue (snd expr)
+                    then (
+                        decl_asm prog (DEC (Deref DX)) "decr (pre)";
+                        decl_asm prog (DEC (Reg AX)) " +";
+                    ) else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
         )
         | OP2 (op, lhs, rhs) -> (
             match op with
@@ -251,12 +266,16 @@ let generate_asm decl_list =
                     decl_asm prog (ADD (Reg CX, Reg AX)) "    & add";
                 )
                 | S_INDEX -> (
-                    gen_expr (depth, frame, label) lhs;
-                    store depth AX;
-                    gen_expr (depth+1, frame, label) rhs;
-                    retrieve depth CX;
-                    decl_asm prog (LEA (Index (CX, AX), Reg DX)) "";
-                    decl_asm prog (MOV (Deref DX, Reg AX)) "";
+                    if is_lvalue (snd lhs) then (
+                        gen_expr (depth, frame, label) lhs;
+                        store depth AX;
+                        gen_expr (depth+1, frame, label) rhs;
+                        retrieve depth CX;
+                        decl_asm prog (LEA (Index (CX, AX), Reg DX)) "";
+                        decl_asm prog (MOV (Deref DX, Reg AX)) "";
+                    ) else (
+                        Error.error (Some (fst expr)) "index requires an lvalue.\n"
+                    )
                 )
         )
         | CMP (op, lhs, rhs) -> (
@@ -327,5 +346,11 @@ let generate_asm decl_list =
 
 let compile out decl_list =
     let instructions = generate_asm decl_list in
+    if !Error.error_count = 0 then
         generate out instructions
+    else (
+        Error.flush_error ();
+        printf "%d errors were found, no assembler generated.\n" !Error.error_count;
+        flush stdout;
+        exit 100
     )
