@@ -4,10 +4,6 @@ open Genlab
 open Generate
 open Printf
 
-let rec all f = function
-    | [] -> true
-    | hd::tl -> (f hd) && (all f tl)
-
 let rec zip a b = match (a, b) with
     | (hdl::tll, hdr::tlr) -> (hdl,hdr) :: (zip tll tlr)
     | _ -> []
@@ -25,29 +21,8 @@ let assoc x ll =
         | (_::l)::ll -> aux (l::ll)
     in aux ll
 
-let unwrap = function
-    | Some x -> x
-    | None -> raise Not_found
 
-let verify_scope decl_list =
-    let rec verify_expr declared expr = match snd expr with
-        | VAR name -> List.mem name declared
-        | CST value -> true
-        | STRING str -> true
-        | SET_VAR (name, expr) -> verify_expr declared expr
-        | SET_ARRAY (name, index, value) -> all (verify_expr declared) [index; value]
-        | CALL (fname, expr_lst) -> all (verify_expr declared) expr_lst
-        | OP1 (op, expr) -> verify_expr declared expr
-        | OP2 (op, lhs, rhs) -> all (verify_expr declared) [lhs; rhs]
-        | CMP (op, lhs, rhs) -> all (verify_expr declared) [lhs; rhs]
-        | EIF (cond, expr_true, expr_false) -> all (verify_expr declared) [cond; expr_true; expr_false]
-        | ESEQ exprs -> verify_block declared exprs
-    and verify_block declared code = true
-    in true
-
-let global_decl out decl_list = ()
-
-let generate_asm out decl_list =
+let generate_asm decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
     let str_count = ref 0 in
@@ -347,11 +322,10 @@ let generate_asm out decl_list =
     ] in
     let global = get_global_vars decl_list in
     List.iter (gen_decl (global::[universal])) decl_list;
-    generate out prog
+    prog
 
 
 let compile out decl_list =
-    if verify_scope decl_list then (
-        global_decl out decl_list;
-        generate_asm out decl_list;
+    let instructions = generate_asm decl_list in
+        generate out instructions
     )
