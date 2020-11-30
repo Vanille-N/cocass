@@ -125,7 +125,9 @@ unary_expression:
 	      ADD_CHR -> $2
 	    | SUB_CHR -> loc', OP1 (M_MINUS, $2)
 	    | BANG_CHR -> loc', EIF ($2, (loc', CST 0), (loc', CST 1))
-            | TILDE_CHR -> loc', OP1 (M_NOT, $2)
+        | TILDE_CHR -> loc', OP1 (M_NOT, $2)
+        | AND_CHR -> loc', OP1 (M_ADDR, $2)
+        | STAR_CHR -> loc', OP1 (M_DEREF, $2)
 	    | _ -> (Error.error (Some loc) "unknown unary operator";
 		     loc, CST 0) }
         ;
@@ -135,12 +137,16 @@ unary_operator:
         | sub_chr   { $1 }
         | bang_chr  { $1 }
         | tilde_chr { $1 }
+        | star_chr  { $1 }
+        | and_chr   { $1 }
         ;
 
 add_chr     : ADD_CHR   { getloc (), ADD_CHR   }
 sub_chr     : SUB_CHR   { getloc (), SUB_CHR   }
 bang_chr    : BANG_CHR  { getloc (), BANG_CHR  }
 tilde_chr   : TILDE_CHR { getloc (), TILDE_CHR }
+star_chr    : STAR_CHR  { getloc (), STAR_CHR  }
+and_chr     : AND_CHR   { getloc (), AND_CHR   }
 
 close_paren : CLOSE_PAREN_CHR { getloc () }
 

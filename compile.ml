@@ -24,6 +24,7 @@ let assoc x ll =
 let rec is_lvalue = function
     | VAR _ -> true
     | OP2 (S_INDEX, lhs, _) -> is_lvalue (snd lhs)
+    | OP1 (M_DEREF, _) -> true
     | _ -> false
 
 let generate_asm decl_list =
@@ -230,6 +231,13 @@ let generate_asm decl_list =
                         decl_asm prog (DEC (Deref RDX)) "decr (pre)";
                         decl_asm prog (DEC (Reg RAX)) " +";
                     ) else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
+                | M_DEREF -> (
+                    decl_asm prog (MOV (Reg RAX, Reg RDX)) "deref";
+                    decl_asm prog (MOV (Deref RAX, Reg RAX)) " +";
+                )
+                | M_ADDR -> if is_lvalue (snd expr)
+                    then decl_asm prog (MOV (Reg RDX, Reg RAX)) "indir"
+                    else Error.error (Some (fst expr)) "indirection needs an lvalue.\n"
         )
         | OP2 (op, lhs, rhs) -> (
             match op with

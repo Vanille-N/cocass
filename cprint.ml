@@ -15,6 +15,8 @@ let mon_op_repr = function
     | M_POST_DEC -> "POST-DEC"
     | M_PRE_INC -> "PRE-INC"
     | M_PRE_DEC -> "PRE-DEC"
+    | M_DEREF -> "DEREF"
+    | M_ADDR -> "ADDR"
 
 let bin_op_repr = function
     | S_MUL -> "MUL"
