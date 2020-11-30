@@ -34,6 +34,7 @@ type mon_op = M_MINUS | M_NOT | M_POST_INC | M_POST_DEC | M_PRE_INC | M_PRE_DEC
      M_PRE_DEC: pré-décrémentation --e.
      *)
 type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
+    | S_SHL | S_SHR
     (* Les opérations binaires:
      S_MUL: multiplication entière;
      S_DIV: division entière (quotient);
@@ -61,7 +62,7 @@ and expr = VAR of string (* une variable --- toujours de type int. *)
 	(* operations arithmetiques: *)
     | OP1 of mon_op * loc_expr (* OP1(mop, e) dénote -e, ~e, e++, e--, ++e, ou --e. *)
     | OP2 of bin_op * loc_expr * loc_expr (* OP2(bop,e,e') dénote e*e', e/e', e%e',
-					   e+e', e-e', ou e[e']. *)
+					   e+e', e-e', e[e'], e << e', e >> e'. *)
     | CMP of cmp_op * loc_expr * loc_expr (* CMP(cop,e,e') vaut e<e', e<=e', ou e==e' *)
     | EIF of loc_expr * loc_expr * loc_expr (* EIF(e1,e2,e3) est e1?e2:e3 *)
     | ESEQ of loc_expr list (* e1, ..., en [sequence, analogue a e1;e2 au niveau code];
@@ -137,6 +138,8 @@ let setop_text setop =
       | S_ADD -> "+="
       | S_SUB -> "-="
       | S_INDEX -> ""
+      | S_SHR -> ">>="
+      | S_SHL -> "<<="
 
 let mop_text mop =
   match mop with
@@ -159,6 +162,8 @@ let op_text setop =
       | S_ADD -> "+"
       | S_SUB -> "-"
       | S_INDEX -> "["
+      | S_SHL -> "<<"
+      | S_SHR -> ">>"
 
 let fin_op_text setop =
     match setop with
@@ -168,6 +173,8 @@ let fin_op_text setop =
       | S_ADD -> ""
       | S_SUB -> ""
       | S_INDEX -> "]"
+      | S_SHL -> ""
+      | S_SHR -> ""
 
 let op_prec setop =
     match setop with
@@ -177,6 +184,7 @@ let op_prec setop =
       | S_ADD -> add_prec
       | S_SUB -> sub_prec
       | S_INDEX -> index_prec
+      | S_SHL | S_SHR -> shift_prec
 
 let rec bufout_expr buf pri e =
     match e with

@@ -179,7 +179,15 @@ additive_expression:
 
 shift_expression:
           additive_expression { $1 }
-        ;
+          | additive_expression LEFT_OP multiplicative_expression
+  	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
+  	  OP2 (S_SHL, $1, $3)
+  	}
+          | additive_expression RIGHT_OP multiplicative_expression
+  	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
+  	  OP2 (S_SHR, $1, $3)
+  	}
+          ;
 
 relational_expression:
           shift_expression { $1 }

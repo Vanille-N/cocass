@@ -23,6 +23,8 @@ let bin_op_repr = function
     | S_SUB -> "SUB"
     | S_INDEX -> "IDX"
     | S_MOD -> "MOD"
+    | S_SHL -> "SHL"
+    | S_SHR -> "SHR"
 
 let cmp_op_repr = function
     | C_LT -> "LT"

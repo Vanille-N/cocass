@@ -9,6 +9,7 @@ type mon_op = M_MINUS | M_NOT | M_POST_INC | M_POST_DEC | M_PRE_INC | M_PRE_DEC
   *)
 
 type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
+    | S_SHL | S_SHR
 (** Les opérations binaires:
   S_MUL: multiplication entière;
   S_DIV: division entière (quotient);

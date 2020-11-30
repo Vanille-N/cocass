@@ -1,6 +1,17 @@
 open Printf
 
-type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9 | R10
+type register =
+    | RAX
+    | RBX
+    | RCX | CL
+    | RDX
+    | RDI
+    | RSI
+    | RSP
+    | RBP
+    | R8
+    | R9
+    | R10
 
 type location =
     | Stack of int
@@ -30,6 +41,8 @@ type instruction =
     | SUB of location * location
     | ADD of location * location
     | XOR of location * location
+    | SHL of location * location
+    | SHR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
@@ -63,17 +76,17 @@ let make_prog () =
     }
 
 let regname = function
-    | AX -> "ax"
-    | BX -> "bx"
-    | CX -> "cx"
-    | DX -> "dx"
-    | DI -> "di"
-    | SI -> "si"
-    | SP -> "sp"
-    | BP -> "bp"
-    | R8 -> "8"
-    | R9 -> "9"
-    | R10 -> "10"
+    | RAX -> "rax"
+    | RBX -> "rbx"
+    | RCX -> "rcx" | CL -> "cl"
+    | RDX -> "rdx"
+    | RDI -> "rdi"
+    | RSI -> "rsi"
+    | RSP -> "rsp"
+    | RBP -> "rbp"
+    | R8 -> "r8"
+    | R9 -> "r9"
+    | R10 -> "r10"
 
 type alignment =
     | TextRt of string
@@ -84,10 +97,10 @@ type alignment =
 let locate = function
     | Stack k -> [TextRt (sprintf "%d(%%rbp" k); TextLt ")"]
     | Glob v -> [TextRt (sprintf "%s(%%rip" v); TextLt ")"]
-    | Reg r -> [TextRt (sprintf "%%r%s" (regname r)); Skip 1]
-    | Deref r -> [TextRt (sprintf "(%%r%s" (regname r)); TextLt ")"]
+    | Reg r -> [TextRt (sprintf "%%%s" (regname r)); Skip 1]
+    | Deref r -> [TextRt (sprintf "(%%%s" (regname r)); TextLt ")"]
     | Const c -> [TextRt (sprintf "$%d" c); Skip 1]
-    | Index (addr, idx) -> [TextLt (sprintf "(%%r%s,%%r%s,8)" (regname addr) (regname idx)); Skip 1]
+    | Index (addr, idx) -> [TextLt (sprintf "(%%%s,%%%s,8)" (regname addr) (regname idx)); Skip 1]
     | FnPtr f -> [TextRt (sprintf "%s(%%rip" f); TextLt ")"]
 
 let lpad n s =
@@ -124,6 +137,8 @@ let generate_talign (instr, info) =
         | MOV (s, d) -> [TextLt "    mov "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | LEA (s, d) -> [TextLt "    lea "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | XOR (s, d) -> [TextLt "    xor "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | SHL (s, d) -> [TextLt "    sal "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | SHR (s, d) -> [TextLt "    sar "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | MUL l -> [TextLt "    mul "; Node (locate l); Skip 3; fmtinfo]
         | PUSH l -> [TextLt "    push "; Node (locate l); Skip 3; fmtinfo]
         | POP l -> [TextLt "    pop "; Node (locate l); Skip 3; fmtinfo]

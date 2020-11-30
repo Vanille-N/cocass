@@ -1,4 +1,15 @@
-type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9 | R10
+type register =
+    | RAX
+    | RBX
+    | RCX | CL
+    | RDX
+    | RDI
+    | RSI
+    | RSP
+    | RBP
+    | R8
+    | R9
+    | R10
 
 type location =
     | Stack of int
@@ -28,6 +39,8 @@ type instruction =
     | SUB of location * location
     | ADD of location * location
     | XOR of location * location
+    | SHL of location * location
+    | SHR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
