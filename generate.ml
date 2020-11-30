@@ -43,6 +43,8 @@ type instruction =
     | XOR of location * location
     | SHL of location * location
     | SHR of location * location
+    | AND of location * location
+    | OR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
@@ -137,6 +139,8 @@ let generate_talign (instr, info) =
         | MOV (s, d) -> [TextLt "    mov "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | LEA (s, d) -> [TextLt "    lea "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | XOR (s, d) -> [TextLt "    xor "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | OR (s, d) -> [TextLt "    or "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | AND (s, d) -> [TextLt "    and "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | SHL (s, d) -> [TextLt "    sal "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | SHR (s, d) -> [TextLt "    sar "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | MUL l -> [TextLt "    mul "; Node (locate l); Skip 3; fmtinfo]

@@ -317,6 +317,27 @@ let generate_asm decl_list =
                     retrieve depth RAX;
                     decl_asm prog (SHR (Reg CL, Reg RAX)) "";
                 )
+                | S_AND -> (
+                    gen_expr (depth, frame, label) lhs;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, label) rhs;
+                    retrieve depth RCX;
+                    decl_asm prog (AND (Reg RCX, Reg RAX)) "and";
+                )
+                | S_OR -> (
+                    gen_expr (depth, frame, label) lhs;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, label) rhs;
+                    retrieve depth RCX;
+                    decl_asm prog (OR (Reg RCX, Reg RAX)) "incl. or";
+                )
+                | S_XOR -> (
+                    gen_expr (depth, frame, label) lhs;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, label) rhs;
+                    retrieve depth RCX;
+                    decl_asm prog (XOR (Reg RCX, Reg RAX)) "excl. or";
+                )
         )
         | CMP (op, lhs, rhs) -> (
             gen_expr (depth, frame, label) lhs;

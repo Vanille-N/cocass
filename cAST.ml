@@ -38,7 +38,7 @@ type mon_op = M_MINUS | M_NOT | M_POST_INC | M_POST_DEC | M_PRE_INC | M_PRE_DEC
      *)
 
 type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
-    | S_SHL | S_SHR
+    | S_SHL | S_SHR | S_AND | S_OR | S_XOR
    (** Les opérations binaires:
      * S_MUL: multiplication entière;
      * S_DIV: division entière (quotient);
@@ -46,10 +46,13 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
      * S_ADD: addition entière;
      * S_SUB: soustraction entière;
      * S_INDEX: accès à un élément de tableau a[i].
-     * S_AND: et bit-à-bit
      * S_SHL: shift gauche
      * S_SHR: shift droit
+     * S_AND: et bit-à-bit
+     * S_OR: ou incl. bit-à-bit
+     * S_XOR: ou excl. bit-à-bit
      *)
+
 type cmp_op = C_LT | C_LE | C_EQ
     | C_GT | C_GE
    (** Les opérations de comparaison:
@@ -148,6 +151,9 @@ let setop_text = function
     | S_INDEX -> ""
     | S_SHR -> ">>="
     | S_SHL -> "<<="
+    | S_AND -> "&="
+    | S_OR -> "|="
+    | S_XOR -> "^="
 
 let mop_text = function
     | M_MINUS -> "-"
@@ -173,6 +179,9 @@ let op_text = function
     | S_INDEX -> "["
     | S_SHL -> "<<"
     | S_SHR -> ">>"
+    | S_AND -> "&"
+    | S_OR -> "|"
+    | S_XOR -> "^"
 
 let cmp_text = function
     | C_GT -> ">"
@@ -182,14 +191,8 @@ let cmp_text = function
     | C_LE -> "<="
 
 let fin_op_text = function
-    | S_MUL -> ""
-    | S_DIV -> ""
-    | S_MOD -> ""
-    | S_ADD -> ""
-    | S_SUB -> ""
     | S_INDEX -> "]"
-    | S_SHL -> ""
-    | S_SHR -> ""
+    | _ -> ""
 
 let op_prec = function
     | S_MUL -> mul_prec
@@ -199,6 +202,9 @@ let op_prec = function
     | S_SUB -> sub_prec
     | S_INDEX -> index_prec
     | S_SHL | S_SHR -> shift_prec
+    | S_AND -> binand_prec
+    | S_OR -> binor_prec
+    | S_XOR -> binxor_prec
 
 let rec bufout_expr buf pri e =
     match e with

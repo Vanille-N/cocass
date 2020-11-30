@@ -27,6 +27,9 @@ let bin_op_repr = function
     | S_MOD -> "MOD"
     | S_SHL -> "SHL"
     | S_SHR -> "SHR"
+    | S_AND -> "AND"
+    | S_OR -> "OR"
+    | S_XOR -> "XOR"
 
 let cmp_op_repr = function
     | C_LT -> "LT"

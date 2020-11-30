@@ -41,6 +41,8 @@ type instruction =
     | XOR of location * location
     | SHL of location * location
     | SHR of location * location
+    | AND of location * location
+    | OR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
