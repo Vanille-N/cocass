@@ -27,11 +27,13 @@ type instruction =
     | LEA of location * location
     | SUB of location * location
     | ADD of location * location
+    | XOR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
     | NOP
     | CMP of location * location
+    | TEST of location * location
     | JLE of string * string
     | JLT of string * string
     | JEQ of string * string

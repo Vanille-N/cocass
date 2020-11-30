@@ -29,11 +29,13 @@ type instruction =
     | LEA of location * location
     | SUB of location * location
     | ADD of location * location
+    | XOR of location * location
     | MUL of location
     | PUSH of location
     | POP of location
     | NOP
     | CMP of location * location
+    | TEST of location * location
     | JLE of string * string
     | JLT of string * string
     | JEQ of string * string
@@ -121,6 +123,7 @@ let generate_talign (instr, info) =
         | ADD (s, d) -> [TextLt "    add "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | MOV (s, d) -> [TextLt "    mov "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | LEA (s, d) -> [TextLt "    lea "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
+        | XOR (s, d) -> [TextLt "    xor "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
         | MUL l -> [TextLt "    mul "; Node (locate l); Skip 3; fmtinfo]
         | PUSH l -> [TextLt "    push "; Node (locate l); Skip 3; fmtinfo]
         | POP l -> [TextLt "    pop "; Node (locate l); Skip 3; fmtinfo]
@@ -128,6 +131,7 @@ let generate_talign (instr, info) =
             then [TextLt "    nop "; Skip 5; fmtinfo]
             else [Skip 6; fmtinfo]
         | CMP (a, b) -> [ TextLt "    cmp "; Node (locate a); TextLt ", "; Node (locate b); fmtinfo]
+        | TEST (a, b) -> [ TextLt "    test "; Node (locate a); TextLt ", "; Node (locate b); fmtinfo]
         | JLE (fn, tag) -> [ TextLt "    jle "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
         | JLT (fn, tag) -> [ TextLt "    jl "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
         | JEQ (fn, tag) -> [ TextLt "    je "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]

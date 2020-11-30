@@ -53,7 +53,7 @@ let generate_asm decl_list =
                 let tagbase = sprintf "%d_cond_" !label_cnt in
                 incr label_cnt;
                 gen_expr (depth, frame, label) cond;
-                decl_asm prog (CMP (Const 0, Reg AX)) "apply cond";
+                decl_asm prog (TEST (Reg AX, Reg AX)) "apply cond";
                 decl_asm prog (JEQ (label, tagbase ^ "false")) "";
                 gen_code (depth, frame, label) do_true;
                 decl_asm prog (JMP (label, tagbase ^ "done")) "end case true";
@@ -84,7 +84,7 @@ let generate_asm decl_list =
         decl_asm prog (PUSH (Reg BP)) "enter stackframe";
         decl_asm prog (MOV (Reg SP, Reg BP)) " +";
     and leave_stackframe fname =
-        decl_asm prog (MOV (Const 0, Reg AX)) "";
+        decl_asm prog (XOR (Reg AX, Reg AX)) "set to 0";
         decl_asm prog (TAG (fname, "return")) "leave stackframe";
         decl_asm prog (POP (Reg BP)) " +";
         if fname = "main" then (
@@ -341,7 +341,7 @@ let generate_asm decl_list =
             let tagbase = sprintf "%d_tern_" !label_cnt in
             incr label_cnt;
             gen_expr (depth, frame, label) cond;
-            decl_asm prog (CMP (Const 0, Reg AX)) "apply ternary";
+            decl_asm prog (TEST (Reg AX, Reg AX)) "apply ternary";
             decl_asm prog (JEQ (label, tagbase ^ "false")) "";
             gen_expr (depth, frame, label) expr_true;
             decl_asm prog (JMP (label, tagbase ^ "done")) "end case true";
