@@ -1,11 +1,11 @@
 int main() {
     int i, j;
     i = malloc(SIZE*3);
-    i[0] = 52;
+    *i = 52;
     printf("%d ?= 52\n", *i);
-    i[1] = (*i)++ + 2;
+    *(i+SIZE) = (*i)++ + 2;
     printf("%d ?= 53, %d ?= 54\n", *i,  *(i+SIZE));
-    i[2] = ++(*(i+SIZE)) + 2;
+    *(i+2*SIZE) = ++(*(i+SIZE)) + 2;
     printf("%d ?= 53, %d ?= 55, %d ?= 57\n\n", *i, *(i+SIZE), *(i+2*SIZE));
 
     free(i);
@@ -17,6 +17,8 @@ int main() {
     j++;
     printf("%d == %d\n", *i, j);
     (*i)++;
+    printf("%d == %d\n", *i, j);
+    *i = 3;
     printf("%d == %d\n", *i, j);
 
 

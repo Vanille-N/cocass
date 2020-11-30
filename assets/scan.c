@@ -1,7 +1,6 @@
 int main() {
     int x;
-    x = malloc(SIZE);
-    scanf("%d", x);
-    printf("You gave me the number %d", x[0]);
+    scanf("%d", &x);
+    printf("You gave me the number %d", x);
     fflush(stdout);
 }

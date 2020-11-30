@@ -107,6 +107,13 @@ and print_expr_indent offset next out expr =
             fprintf out "%svalue\n" (offset ^ curr_empty ^ Pg.reset ^ termin);
             print_expr_indent (offset ^ curr_empty ^ Pg.reset ^ blank) false out value;
         )
+        | SET_DEREF (index, value) -> (
+            fprintf out "%sassign\n" (offset ^ curr_full ^ Pg.reset);
+            fprintf out "%sderef\n" (offset ^ curr_empty ^ Pg.reset ^ bifurc);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset ^ cont) false out index;
+            fprintf out "%svalue\n" (offset ^ curr_empty ^ Pg.reset ^ termin);
+            print_expr_indent (offset ^ curr_empty ^ Pg.reset ^ blank) false out value;
+        )
         | CALL (fname, expr_lst) -> (
             fprintf out "%scall fn <%s>\n" (offset ^ curr_full ^ Pg.reset) (Pg.wrap_red fname);
             print_block print_expr_indent (offset ^ blank ^ Pg.reset) out expr_lst;
@@ -193,6 +200,10 @@ let print_ast_close_to_C out dec_list =
       String.concat "" ["SET_VAR{";s;", ";string_of_expr e1 0;"}"]
     |SET_ARRAY(s,(_,e1),(_,e2)) ->
       String.concat "" ["SET_ARRAY{";s;", ";
+                        string_of_expr e1 0;", ";
+                        string_of_expr e2 0;"}"]
+    |SET_DEREF((_,e1),(_,e2)) ->
+      String.concat "" ["SET_ARRAY{";
                         string_of_expr e1 0;", ";
                         string_of_expr e2 0;"}"]
     |CALL(s,l) ->

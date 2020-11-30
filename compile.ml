@@ -172,6 +172,13 @@ let generate_asm decl_list =
                     decl_asm prog (MOV (Reg RAX, Deref RDX)) " +";
                 )
         )
+        | SET_DEREF (dest, value) -> (
+            gen_expr (depth, frame, label) dest;
+            store depth RAX;
+            gen_expr (depth+1, frame, label) value;
+            retrieve depth RDX;
+            decl_asm prog (MOV (Reg RAX, Deref RDX)) "write to deref";
+        )
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;

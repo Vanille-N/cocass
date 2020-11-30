@@ -26,7 +26,7 @@ open Error
 
 type mon_op = M_MINUS | M_NOT | M_POST_INC | M_POST_DEC | M_PRE_INC | M_PRE_DEC
     | M_DEREF | M_ADDR
-    (* Les opérations unaires:
+   (** Les opérations unaires:
      * M_MINUS: calcule l'opposé -e de e;
      * M_NOT: calcule la négation logique ~e de e;
      * M_POST_INC: post-incrémentation e++;
@@ -39,7 +39,7 @@ type mon_op = M_MINUS | M_NOT | M_POST_INC | M_POST_DEC | M_PRE_INC | M_PRE_DEC
 
 type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
     | S_SHL | S_SHR
-    (* Les opérations binaires:
+   (** Les opérations binaires:
      * S_MUL: multiplication entière;
      * S_DIV: division entière (quotient);
      * S_MOD: division entière (reste);
@@ -52,7 +52,7 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
      *)
 type cmp_op = C_LT | C_LE | C_EQ
     | C_GT | C_GE
-    (* Les opérations de comparaison:
+   (** Les opérations de comparaison:
      * C_LT (less than): <;
      * C_LE (less than or equal to): <=;
      * C_EQ (equal): ==.
@@ -66,6 +66,7 @@ and expr = VAR of string (* une variable --- toujours de type int. *)
     | STRING of string (* une constante chaine. *)
     | SET_VAR of string * loc_expr (* affectation x=e. *)
     | SET_ARRAY of string * loc_expr * loc_expr (* affectation x[e]=e'. *)
+    | SET_DEREF of loc_expr * loc_expr (* affectation *e = e'. *)
     | CALL of string * loc_expr list (* appel de fonction f(e1,...,en) *)
     (* operations arithmetiques: *)
     | OP1 of mon_op * loc_expr (* OP1(mop, e) dénote -e, ~e, e++, e--, ++e, ou --e. *)
@@ -221,6 +222,14 @@ let rec bufout_expr buf pri e =
             Buffer.add_string buf "[";
             bufout_loc_expr buf index_prec e;
             Buffer.add_string buf "]=";
+            bufout_loc_expr buf setop_prec e';
+            bufout_close buf pri setop_prec
+        )
+        | SET_DEREF (e, e') -> (
+            bufout_open buf pri setop_prec;
+            Buffer.add_string buf "*";
+            bufout_loc_expr buf star_prec e;
+            Buffer.add_string buf "=";
             bufout_loc_expr buf setop_prec e';
             bufout_close buf pri setop_prec
         )

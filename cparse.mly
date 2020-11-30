@@ -276,6 +276,7 @@ assignment_expression:
 	     match left with
 	       VAR x -> loc, SET_VAR (x, $3)
 	     | OP2 (S_INDEX, (_, VAR x), i) -> loc, SET_ARRAY (x, i, $3)
+         | OP1 (M_DEREF, lhs) -> loc, SET_DEREF (lhs, $3)
 	     | _ ->
 		 begin
 		   Error.error (Some loc)
