@@ -417,7 +417,7 @@ let generate_asm decl_list =
         ("true", Const 1); ("false", Const 0);
         ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
         ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
-        ("RAND_MRAX", Const 2147483647);
+        ("RAND_MAX", Const 2147483647);
     ] in
     let global = get_global_vars decl_list in
     List.iter (gen_decl (global::[universal])) decl_list;
