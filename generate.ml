@@ -140,10 +140,6 @@ let generate ((out:out_channel), color) prog =
             TextLt (color_int ^ ")")
         ]
     in
-    let lpad n s =
-        let pad = String.make (max 0 (n - String.length s)) ' ' in
-        pad ^ s
-    in
     let generate_ialign name =
         [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.zero %s8" color_meta color_int)]
     in
