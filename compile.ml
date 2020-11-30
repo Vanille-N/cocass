@@ -424,10 +424,10 @@ let generate_asm decl_list =
     prog
 
 
-let compile out decl_list =
+let compile (out, color) decl_list =
     let instructions = generate_asm decl_list in
     if !Error.error_count = 0 then
-        generate out instructions
+        generate (out, color) instructions
     else (
         Error.flush_error ();
         printf "%d errors were found, no assembler generated.\n" !Error.error_count;

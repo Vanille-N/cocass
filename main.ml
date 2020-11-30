@@ -9,6 +9,7 @@ let c_D = ref false
 let c_A = ref false
 let c_C = ref false
 let c_S = ref false
+let c_Color = ref false
 
 let basename s =
     try String.sub s 0 (String.rindex s '.')
@@ -22,7 +23,8 @@ let () =
          ("-D",  Unit (fun () -> c_D:=true),  "print declarations");
          ("-A",  Unit (fun () -> c_A:=true),  "print abstract syntax tree");
          ("-C",  Unit (fun () -> c_C:=true),  "print abstract syntax tree close to the C code");
-         ("-S",  Unit (fun () -> c_S:=true),  "output assembler dump")]
+         ("-S",  Unit (fun () -> c_S:=true),  "output assembler dump");
+         ("--no-color", Unit (fun () -> c_Color:=true), "do not add syntax coloring")]
         (fun s ->
             c_prefix := basename s;
             input :=
@@ -32,21 +34,24 @@ let () =
 let () =
     let lexbuf = Lexing.from_channel (!input) in
     let c = Cparse.translation_unit Clex.ctoken lexbuf in
-    let out = if !c_S then stdout else open_out (!c_prefix ^ ".s") in
+    let (out, color) = if !c_S
+        then (stdout, Pigment.has_color && (not !c_Color))
+        else (open_out (!c_prefix ^ ".s"), false)
+    in
     Error.flush_error ();
 
     if !c_D then (
-        Cprint.print_declarations Format.std_formatter c
+        Cprint.print_declarations (Format.std_formatter, Pigment.has_color && (not !c_Color)) c
     );
     if !c_A then (
-        Cprint.print_ast Format.std_formatter c
+        Cprint.print_ast (Format.std_formatter, Pigment.has_color && (not !c_Color))  c
     );
     if !c_C then (
         Cprint.print_ast_close_to_C Format.std_formatter c
     );
 
     if not (!c_D || !c_A || !c_C) then (
-        compile out c;
+        compile (out, color) c;
         Error.flush_error ()
     );
 

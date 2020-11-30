@@ -10,6 +10,7 @@ type register =
     | R8
     | R9
     | R10
+    | RIP
 
 type location =
     | Stack of int
@@ -61,4 +62,4 @@ val decl_asm: program -> instruction -> string -> unit
 
 val make_prog: unit -> program
 
-val generate: out_channel -> program -> unit
+val generate: (out_channel * bool) -> program -> unit

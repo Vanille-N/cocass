@@ -12,6 +12,7 @@ type register =
     | R8
     | R9
     | R10
+    | RIP
 
 type location =
     | Stack of int
@@ -77,117 +78,222 @@ let make_prog () =
         text = [];
     }
 
-let regname = function
-    | RAX -> "rax"
-    | RBX -> "rbx"
-    | RCX -> "rcx" | CL -> "cl"
-    | RDX -> "rdx"
-    | RDI -> "rdi"
-    | RSI -> "rsi"
-    | RSP -> "rsp"
-    | RBP -> "rbp"
-    | R8 -> "r8"
-    | R9 -> "r9"
-    | R10 -> "r10"
-
 type alignment =
     | TextRt of string
     | TextLt of string
     | Node of alignment list
     | Skip of int
 
-let locate = function
-    | Stack k -> [TextRt (sprintf "%d(%%rbp" k); TextLt ")"]
-    | Glob v -> [TextRt (sprintf "%s(%%rip" v); TextLt ")"]
-    | Reg r -> [TextRt (sprintf "%%%s" (regname r)); Skip 1]
-    | Deref r -> [TextRt (sprintf "(%%%s" (regname r)); TextLt ")"]
-    | Const c -> [TextRt (sprintf "$%d" c); Skip 1]
-    | Index (addr, idx) -> [TextLt (sprintf "(%%%s,%%%s,8)" (regname addr) (regname idx)); Skip 1]
-    | FnPtr f -> [TextRt (sprintf "%s(%%rip" f); TextLt ")"]
 
-let lpad n s =
-    let pad = String.make (max 0 (n - String.length s)) ' ' in
-    pad ^ s
-
-let generate_ialign name =
-    [TextLt (name ^ ": "); TextLt ".zero 8"]
-
-let generate_salign (name, value) =
-    [TextLt (name ^ ": "); TextLt (sprintf ".string \"%s\"" (String.escaped value))]
-
-let generate_talign (instr, info) =
-    let fmtinfo = TextLt (
-        (if info = "" then "#" else "# " ^ info)
-        ^ (if instr = RET then "\n" else "")
-    ) in
-    match instr with
-        | RET -> [TextLt "    ret "; Skip 5; fmtinfo]
-        | CQTO -> [TextLt "    cqto "; Skip 5; fmtinfo]
-        | CLTQ -> [TextLt "    cltq "; Skip 5; fmtinfo]
-        | SYS -> [TextLt "    syscall "; Skip 5; fmtinfo]
-        | CALL fn -> [TextLt "    call "; TextLt fn; Skip 4; fmtinfo]
-        | FUN fn -> [TextLt (fn ^ ":"); Skip 5; fmtinfo]
-        | TAG (fn, tag) -> [TextLt (sprintf "  %s.%s:" fn tag); Skip 5; fmtinfo]
-        | INC l -> [TextLt "    incq "; Node (locate l); Skip 3; fmtinfo]
-        | NOT l -> [TextLt "    not "; Node (locate l); Skip 3; fmtinfo]
-        | NEG l -> [TextLt "    neg "; Node (locate l); Skip 3; fmtinfo]
-        | DEC l -> [TextLt "    decq "; Node (locate l); Skip 3; fmtinfo]
-        | DIV l -> [TextLt "    idiv "; Node (locate l); Skip 3; fmtinfo]
-        | JMP (fn, tag) -> [TextLt "    jmp "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
-        | SUB (s, d) -> [TextLt "    sub "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | ADD (s, d) -> [TextLt "    add "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | MOV (s, d) -> [TextLt "    mov "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | LEA (s, d) -> [TextLt "    lea "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | XOR (s, d) -> [TextLt "    xor "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | OR (s, d) -> [TextLt "    or "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | AND (s, d) -> [TextLt "    and "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | SHL (s, d) -> [TextLt "    sal "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | SHR (s, d) -> [TextLt "    sar "; Node (locate s); TextLt ", "; Node (locate d); fmtinfo]
-        | MUL l -> [TextLt "    mul "; Node (locate l); Skip 3; fmtinfo]
-        | PUSH l -> [TextLt "    push "; Node (locate l); Skip 3; fmtinfo]
-        | POP l -> [TextLt "    pop "; Node (locate l); Skip 3; fmtinfo]
-        | NOP -> if info = ""
-            then [TextLt "    nop "; Skip 5; fmtinfo]
-            else [Skip 6; fmtinfo]
-        | CMP (a, b) -> [ TextLt "    cmp "; Node (locate a); TextLt ", "; Node (locate b); fmtinfo]
-        | TEST (a, b) -> [ TextLt "    test "; Node (locate a); TextLt ", "; Node (locate b); fmtinfo]
-        | JLE (fn, tag) -> [ TextLt "    jle "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
-        | JLT (fn, tag) -> [ TextLt "    jl "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
-        | JEQ (fn, tag) -> [ TextLt "    je "; TextLt (sprintf "%s.%s" fn tag); Skip 4; fmtinfo]
-
-let display_align out marks text =
-    (* printf "newline\n"; *)
-    let current = ref 0 in
-    let target = ref 0 in
-    let marks = ref marks in
-    let pop lst =
-        let x = List.hd !lst in
-        lst := List.tl !lst;
-        x
+let generate ((out:out_channel), color) prog =
+    let color_reg = if color then Pigment.purple else "" in
+    let color_int = if color then Pigment.blue else "" in
+    let color_meta = if color then Pigment.reset else "" in
+    let color_var = if color then Pigment.cyan else "" in
+    let color_tag = if color then Pigment.green else "" in
+    let color_instr = if color then Pigment.yellow else "" in
+    let color_comment = if color then Pigment.gray else "" in
+    let regname r =
+        color_reg ^ (
+            match r with
+                | RAX -> "%rax"
+                | RBX -> "%rbx"
+                | RCX -> "%rcx" | CL -> "%cl"
+                | RDX -> "%rdx"
+                | RDI -> "%rdi"
+                | RSI -> "%rsi"
+                | RSP -> "%rsp"
+                | RBP -> "%rbp"
+                | R8 -> "%r8"
+                | R9 -> "%r9"
+                | R10 -> "%r10"
+                | RIP -> "%rip"
+            )
     in
-    let rec aux = function
-        | TextRt t -> (
-            let len = String.length t in
-            target := !target + pop marks;
-            let unused = max 0 (!target - !current - len) in
-            fprintf out "%s%s" (String.make unused ' ') t;
-            current := len + unused + !current;
-        )
-        | TextLt t -> (
-            let len = String.length t in
-            target := !target + pop marks;
-            let unused = max 0 (!target - !current - len) in
-            fprintf out "%s%s" t (String.make unused ' ');
-            current := len + unused + !current;
-        )
-        | Node l -> List.iter aux l
-        | Skip k -> for i = 1 to k do aux (TextLt "") done
-    in List.iter aux text;
-    fprintf out "\n"
-
-let generate (out:out_channel) prog =
-    fprintf out "    .data\n";
-    fprintf out "    .align 8\n";
+    let locate = function
+        | Stack k -> [
+            TextRt (sprintf "%s%d(%s" color_int k (regname RBP));
+            TextLt (color_int ^ ")")
+        ]
+        | Glob v -> [
+            TextRt (sprintf "%s%s(%s" color_var v (regname RIP));
+            TextLt (color_var ^ ")")
+        ]
+        | Reg r -> [
+            TextRt (sprintf "%s" (regname r));
+            Skip 1
+        ]
+        | Deref r -> [
+            TextRt (sprintf "%s(%s" color_int (regname r));
+            TextLt (color_int ^ ")")
+        ]
+        | Const c -> [
+            TextRt (sprintf "%s$%d" color_int c);
+            Skip 1
+        ]
+        | Index (addr, idx) -> [
+            TextLt (sprintf "%s(%s%s,%s%s,8)" color_int (regname addr) color_int (regname idx) color_int);
+            Skip 1
+        ]
+        | FnPtr f -> [
+            TextRt (sprintf "%s%s(%s" color_int f (regname RIP));
+            TextLt (color_int ^ ")")
+        ]
+    in
+    let lpad n s =
+        let pad = String.make (max 0 (n - String.length s)) ' ' in
+        pad ^ s
+    in
+    let generate_ialign name =
+        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.zero %s8" color_meta color_int)]
+    in
+    let generate_salign (name, value) =
+        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped value))]
+    in
+    let generate_talign (instr, info) =
+        let fmtinfo = TextLt (
+            color_comment
+            ^ (if info = "" then "#" else "# " ^ info)
+            ^ (if instr = RET then "\n" else "")
+        ) in
+        match instr with
+            | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
+            | CQTO -> [TextLt (color_instr ^ "    cqto "); Skip 5; fmtinfo]
+            | CLTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
+            | SYS -> [TextLt (color_instr ^ "    syscall "); Skip 5; fmtinfo]
+            | CALL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
+            | FUN fn -> [TextLt (color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
+            | TAG (fn, tag) -> [TextLt (sprintf "  %s%s.%s:" color_tag fn tag); Skip 5; fmtinfo]
+            | INC l -> [TextLt (color_instr ^ "    incq "); Node (locate l); Skip 3; fmtinfo]
+            | NOT l -> [TextLt (color_instr ^ "    not "); Node (locate l); Skip 3; fmtinfo]
+            | NEG l -> [TextLt (color_instr ^ "    neg "); Node (locate l); Skip 3; fmtinfo]
+            | DEC l -> [TextLt (color_instr ^ "    decq "); Node (locate l); Skip 3; fmtinfo]
+            | DIV l -> [TextLt (color_instr ^ "    idiv "); Node (locate l); Skip 3; fmtinfo]
+            | JMP (fn, tag) -> [
+                TextLt (color_instr ^ "    jmp ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag);
+                Skip 4; fmtinfo]
+            | SUB (s, d) -> [
+                TextLt (color_instr ^ "    sub ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | ADD (s, d) -> [
+                TextLt (color_instr ^ "    add ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | MOV (s, d) -> [
+                TextLt (color_instr ^ "    mov ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | LEA (s, d) -> [
+                TextLt (color_instr ^ "    lea ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | XOR (s, d) -> [
+                TextLt (color_instr ^ "    xor ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | OR (s, d) -> [
+                TextLt (color_instr ^ "    or ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | AND (s, d) -> [
+                TextLt (color_instr ^ "    and ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | SHL (s, d) -> [
+                TextLt (color_instr ^ "    sal ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | SHR (s, d) -> [
+                TextLt (color_instr ^ "    sar ");
+                Node (locate s); TextLt ", ";
+                Node (locate d); fmtinfo]
+            | MUL l -> [
+                TextLt (color_instr ^ "    mul ");
+                Node (locate l);
+                Skip 3; fmtinfo]
+            | PUSH l -> [
+                TextLt (color_instr ^ "    push ");
+                Node (locate l);
+                Skip 3; fmtinfo]
+            | POP l -> [
+                TextLt (color_instr ^ "    pop ");
+                Node (locate l);
+                Skip 3; fmtinfo]
+            | NOP -> if info = ""
+                then [TextLt (color_instr ^ "    nop "); Skip 5; fmtinfo]
+                else [Skip 6; fmtinfo]
+            | CMP (a, b) -> [
+                TextLt (color_instr ^ "    cmp ");
+                Node (locate a);
+                TextLt ", ";
+                Node (locate b); fmtinfo]
+            | TEST (a, b) -> [
+                TextLt (color_instr ^ "    test ");
+                Node (locate a);
+                TextLt ", ";
+                Node (locate b); fmtinfo]
+            | JLE (fn, tag) -> [
+                TextLt (color_instr ^ "    jle ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+            | JLT (fn, tag) -> [
+                TextLt (color_instr ^ "    jl ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+            | JEQ (fn, tag) -> [
+                TextLt (color_instr ^ "    je ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+    in
+    let display_align out marks text =
+        (* printf "newline\n"; *)
+        let current = ref 0 in
+        let target = ref 0 in
+        let marks = ref marks in
+        let pop lst =
+            let x = List.hd !lst in
+            lst := List.tl !lst;
+            x
+        in
+        let true_length str =
+            let len = ref 0 in
+            let count = ref true in
+            for i = 0 to String.length str - 1 do
+                if !count then (
+                    if str.[i] = '\x1b' then (
+                        count := false
+                    ) else (
+                        incr len
+                    )
+                ) else (
+                    if str.[i] = 'm' then (
+                        count := true
+                    )
+                )
+            done;
+            !len
+        in
+        let rec aux = function
+            | TextRt t -> (
+                let len = true_length t in
+                target := !target + pop marks;
+                let unused = max 0 (!target - !current - len) in
+                fprintf out "%s%s" (String.make unused ' ') t;
+                current := len + unused + !current;
+            )
+            | TextLt t -> (
+                let len = true_length t in
+                target := !target + pop marks;
+                let unused = max 0 (!target - !current - len) in
+                fprintf out "%s%s" t (String.make unused ' ');
+                current := len + unused + !current;
+            )
+            | Node l -> List.iter aux l
+            | Skip k -> for i = 1 to k do aux (TextLt "") done
+        in List.iter aux text;
+        fprintf out "\n"
+    in
+    fprintf out "    %s.data\n" color_meta;
+    fprintf out "    %s.align %s8\n" color_meta color_int;
     let idata = List.rev prog.idata in
     let ialign = List.map generate_ialign idata in
     List.iter (display_align out [10; 0]) ialign;
@@ -195,8 +301,8 @@ let generate (out:out_channel) prog =
     let salign = List.map generate_salign sdata in
     List.iter (display_align out [10; 0]) salign;
     fprintf out "\n";
-    fprintf out "    .global main\n";
-    fprintf out "    .text\n";
+    fprintf out "    %s.global %smain\n" color_meta color_tag;
+    fprintf out "    %s.text\n" color_meta;
     let tdata = List.rev prog.text in
     let talign = List.map generate_talign tdata in
     List.iter (display_align out [9; 12; 0; 0; 12; 7; 0]) talign;
