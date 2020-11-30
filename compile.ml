@@ -36,7 +36,7 @@ let generate_asm decl_list =
     in
     let whitelist_longret = (
         let rec scan_toplevel = function
-            | [] -> ["malloc"; "fopen"]
+            | [] -> ["malloc"; "fopen"; "atol"; "strtol"; "labs"]
             | (CDECL _) :: rest -> scan_toplevel rest
             | (CFUN (_, name, _, _)) :: rest -> name :: (scan_toplevel rest)
         in scan_toplevel decl_list
@@ -134,7 +134,8 @@ let generate_asm decl_list =
     and gen_expr (depth, frame, label) expr = match snd expr with
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
-            | Some (Const k) -> decl_asm prog (MOV (Const k, Reg AX)) (sprintf "const val %s = %d" name k);
+            | Some (Const k) -> decl_asm prog (MOV (Const k, Reg AX)) (sprintf "const val %s = %d" name k)
+            | Some (FnPtr f) -> decl_asm prog (LEA (FnPtr f, Reg AX)) (sprintf "function pointer %s" f)
             | Some loc -> (
                 decl_asm prog (LEA (loc, Reg DX)) (sprintf "access %s" name);
                 decl_asm prog (MOV (Deref DX, Reg AX)) (sprintf "read %s" name);
@@ -180,7 +181,9 @@ let generate_asm decl_list =
             let nb_stacked = max 0 (nb_args-6) in
             let reg_dests = truncate nb_regged [DI; SI; DX; CX; R8; R9] in
             let reg_dests = List.map (fun r -> Reg r) reg_dests in
-            let stack_dests = List.init nb_stacked (fun i -> Stack (-(depth+nb_args+nb_stacked-i)*8)) in
+            let nbvars = depth + nb_args + nb_stacked in
+            let offset = nbvars + (nbvars mod 2) in
+            let stack_dests = List.init nb_stacked (fun i -> Stack (-(offset-i)*8)) in
             let dests = reg_dests @ stack_dests in
             let locs = List.init nb_args (fun i -> Stack (-(depth+i)*8)) in
             let moves = zip locs dests in
@@ -193,10 +196,16 @@ let generate_asm decl_list =
                     | Reg r -> decl_asm prog (MOV (loc, dest)) (sprintf "%d'th arg" i)
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
-            decl_asm prog (SUB (Const ((depth+nb_args+nb_stacked)*8), Reg SP)) (sprintf "%d locals" (depth+nb_args));
+            decl_asm prog (SUB (Const (offset*8), Reg SP)) (sprintf "%d locals" (depth+nb_args));
             decl_asm prog (MOV (Const nb_stacked, Reg AX)) (sprintf "varargs: %d on the stack" nb_stacked);
-            decl_asm prog (CALL fname) " +";
-            decl_asm prog (ADD (Const ((depth+nb_args+nb_stacked)*8), Reg SP)) " +";
+            (match assoc fname frame with
+                | None | Some (FnPtr _) -> decl_asm prog (CALL fname) " +"
+                | Some loc -> (
+                    decl_asm prog (MOV (loc, Reg R10)) "";
+                    decl_asm prog (CALL "*%r10") "";
+                )
+            );
+            decl_asm prog (ADD (Const (offset*8), Reg SP)) " +";
             if not (List.mem fname whitelist_longret)
             then decl_asm prog CLTQ "";
         )
@@ -328,7 +337,7 @@ let generate_asm decl_list =
     in
     let rec get_global_vars = function
         | [] -> []
-        | (CFUN _) :: tl -> get_global_vars tl
+        | (CFUN (_, name, _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
         | (CDECL (_, name)) :: tl -> (
             decl_int prog name;
             (name, (Glob name)) :: (get_global_vars tl)
@@ -337,7 +346,10 @@ let generate_asm decl_list =
     let universal = [
         ("stdin", Glob "stdin"); ("stdout", Glob "stdout"); ("stderr", Glob "stderr");
         ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
-        ("true", Const 1); ("false", Const 0)
+        ("true", Const 1); ("false", Const 0);
+        ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
+        ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
+        ("RAND_MAX", Const 2147483647);
     ] in
     let global = get_global_vars decl_list in
     List.iter (gen_decl (global::[universal])) decl_list;

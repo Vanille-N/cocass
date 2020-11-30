@@ -1,4 +1,4 @@
-type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9
+type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9 | R10
 
 type location =
     | Stack of int
@@ -7,6 +7,7 @@ type location =
     | Deref of register
     | Const of int
     | Index of register * register
+    | FnPtr of string
 
 type instruction =
     | RET

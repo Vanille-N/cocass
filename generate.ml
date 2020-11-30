@@ -1,6 +1,6 @@
 open Printf
 
-type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9
+type register = AX | BX | CX | DX | DI | SI | SP | BP | R8 | R9 | R10
 
 type location =
     | Stack of int
@@ -9,6 +9,7 @@ type location =
     | Deref of register
     | Const of int
     | Index of register * register
+    | FnPtr of string
 
 type instruction =
     | RET
@@ -70,6 +71,7 @@ let regname = function
     | BP -> "bp"
     | R8 -> "8"
     | R9 -> "9"
+    | R10 -> "10"
 
 type alignment =
     | TextRt of string
@@ -84,6 +86,7 @@ let locate = function
     | Deref r -> [TextRt (sprintf "(%%r%s" (regname r)); TextLt ")"]
     | Const c -> [TextRt (sprintf "$%d" c); Skip 1]
     | Index (addr, idx) -> [TextLt (sprintf "(%%r%s,%%r%s,8)" (regname addr) (regname idx)); Skip 1]
+    | FnPtr f -> [TextRt (sprintf "%s(%%rip" f); TextLt ")"]
 
 let lpad n s =
     let pad = String.make (max 0 (n - String.length s)) ' ' in
