@@ -19,7 +19,7 @@
  *
  *  4. This software is restricted to non-commercial use only.  Commercial
  *     use is subject to a specific license, obtainable from LSV.
- * 
+ *
  *)
 
 open Error
@@ -41,8 +41,10 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
      S_ADD: addition entière;
      S_SUB: soustraction entière;
      S_INDEX: accès à un élément de tableau a[i].
+     S_AND: et bit-à-bit
      *)
 type cmp_op = C_LT | C_LE | C_EQ
+    | C_GT | C_GE
     (* Les opérations de comparaison:
      C_LT (less than): <;
      C_LE (less than or equal to): <=;
@@ -230,6 +232,16 @@ let rec bufout_expr buf pri e =
       | CMP (C_LE, e, e') -> (bufout_open buf pri cmp_prec;
 			      bufout_loc_expr buf cmp_prec e;
 			      Buffer.add_string buf "<=";
+			      bufout_loc_expr buf cmp_prec e';
+			      bufout_close buf pri cmp_prec)
+      | CMP (C_GT, e, e') -> (bufout_open buf pri cmp_prec;
+			      bufout_loc_expr buf cmp_prec e;
+			      Buffer.add_string buf ">";
+			      bufout_loc_expr buf cmp_prec e';
+			      bufout_close buf pri cmp_prec)
+      | CMP (C_GE, e, e') -> (bufout_open buf pri cmp_prec;
+			      bufout_loc_expr buf cmp_prec e;
+			      Buffer.add_string buf ">=";
 			      bufout_loc_expr buf cmp_prec e';
 			      bufout_close buf pri cmp_prec)
       | CMP (C_EQ, e, e') -> (bufout_open buf pri eq_prec;

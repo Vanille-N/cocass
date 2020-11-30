@@ -18,7 +18,7 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
   S_INDEX: accès à un élément de tableau a[i].
   *)
 
-type cmp_op = C_LT | C_LE | C_EQ
+type cmp_op = C_LT | C_LE | C_EQ | C_GT | C_GE
 (** Les opérations de comparaison:
   C_LT (less than): <;
   C_LE (less than or equal to): <=;

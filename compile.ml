@@ -320,6 +320,22 @@ let generate_asm decl_list =
                     decl_asm prog (MOV (Const 1, Reg AX)) " +";
                     decl_asm prog (TAG (label, tagbase ^ "done")) " +";
                 )
+                | C_GT -> (
+                    decl_asm prog (JLE (label, tagbase ^ "le")) "case ! >";
+                    decl_asm prog (MOV (Const 1, Reg AX)) "";
+                    decl_asm prog (JMP (label, tagbase ^ "done")) " +";
+                    decl_asm prog (TAG (label, tagbase ^ "le")) " +";
+                    decl_asm prog (MOV (Const 0, Reg AX)) " +";
+                    decl_asm prog (TAG (label, tagbase ^ "done")) " +";
+                )
+                | C_GE -> (
+                    decl_asm prog (JLT (label, tagbase ^ "lt")) "case ! >=";
+                    decl_asm prog (MOV (Const 1, Reg AX)) "";
+                    decl_asm prog (JMP (label, tagbase ^ "done")) " +";
+                    decl_asm prog (TAG (label, tagbase ^ "lt")) " +";
+                    decl_asm prog (MOV (Const 0, Reg AX)) " +";
+                    decl_asm prog (TAG (label, tagbase ^ "done")) " +";
+                )
         )
         | EIF (cond, expr_true, expr_false) -> (
             let tagbase = sprintf "%d_tern_" !label_cnt in

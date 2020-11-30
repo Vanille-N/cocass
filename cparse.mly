@@ -189,7 +189,7 @@ relational_expression:
 	}
         | relational_expression CLOSE_ANGLE_CHR shift_expression
 	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
-	  CMP (C_LT, $3, $1)
+	  CMP (C_GT, $1, $3)
 	}
         | relational_expression LE_OP shift_expression
 	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
@@ -197,7 +197,7 @@ relational_expression:
 	}
         | relational_expression GE_OP shift_expression
 	{ sup_locator (loc_of_expr $1) (loc_of_expr $3),
-	  CMP (C_LE, $3, $1)
+	  CMP (C_GE, $1, $3)
 	}
         ;
 
