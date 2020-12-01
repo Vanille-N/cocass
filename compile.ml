@@ -66,15 +66,21 @@ let generate_asm decl_list =
                 gen_code (depth, frame, label) do_false;
                 decl_asm prog (TAG (label, tagbase ^ "done")) "end ternary";
             )
-            | CWHILE (cond, code) -> (
+            | CWHILE (cond, body, finally, test_at_start) -> (
                 let tagbase = sprintf "%d_loop_" !label_cnt in
                 incr label_cnt;
-                decl_asm prog (TAG (label, tagbase ^ "enter")) "enter loop";
+                if test_at_start then decl_asm prog (JMP (label, tagbase ^ "check")) "";
+                decl_asm prog (TAG (label, tagbase ^ "start")) "";
+                gen_code (depth, frame, label) body;
+                decl_asm prog (TAG (label, tagbase ^ "finally")) "";
+                (match finally with
+                    | None -> ()
+                    | Some e -> gen_expr (depth, frame, label) e
+                );
+                decl_asm prog (TAG (label, tagbase ^ "check")) "";
                 gen_expr (depth, frame, label) cond;
-                decl_asm prog (CMP (Const 0, Regst RAX)) "";
-                decl_asm prog (JEQ (label, tagbase ^ "done")) "";
-                gen_code (depth, frame, label) code;
-                decl_asm prog (JMP (label, tagbase ^ "enter")) "";
+                decl_asm prog (TST (Regst RAX, Regst RAX)) "";
+                decl_asm prog (JNE (label, tagbase ^ "start")) "";
                 decl_asm prog (TAG (label, tagbase ^ "done")) "";
             )
             | CRETURN None -> (
