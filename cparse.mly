@@ -280,8 +280,16 @@ conditional_expression:
         ;
 
 extended_assignment_operator:
-    | ADD_ASSIGN { S_ADD }
-    | MUL_ASSIGN { S_MUL }
+    | ADD_ASSIGN   { S_ADD }
+    | MUL_ASSIGN   { S_MUL }
+    | SUB_ASSIGN   { S_SUB }
+    | DIV_ASSIGN   { S_DIV }
+    | MOD_ASSIGN   { S_MOD }
+    | OR_ASSIGN    { S_OR  }
+    | AND_ASSIGN   { S_AND }
+    | XOR_ASSIGN   { S_XOR }
+    | LEFT_ASSIGN  { S_SHL }
+    | RIGHT_ASSIGN { S_SHR }
     ;
 
 assignment_expression:
