@@ -1,9 +1,8 @@
-(** A few used registers *)
+(** A few used registers (not a complete list) *)
 type register =
     | RAX
-    | RBX | BL
     | RCX | CL
-    | RDX | DL
+    | RDX
     | RDI
     | RSI
     | RSP
@@ -31,7 +30,6 @@ type instruction =
     | RET (** return *)
     | QTO (** convert qword RAX to oword RDX:RAX *)
     | LTQ (** convert dword EAX to qword RAX *)
-    | SYS (** a syscall *)
     | NOP
     | CAL of string (** a function call *)
     | FUN of string (** a function declaration *)
@@ -48,6 +46,7 @@ type instruction =
     | JLE of string * string (** jump to function.label if less or equal *)
     | JLT of string * string (** jump to function.label if less *)
     | JEQ of string * string (** jump to function.label if equal *)
+    | JNE of string * string (** jump to function.label if not equal *)
     | MOV of location * location (** move qword *)
     | LEA of location * location (** load address *)
     | SUB of location * location (** subtraction *)

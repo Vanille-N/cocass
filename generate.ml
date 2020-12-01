@@ -2,9 +2,8 @@ open Printf
 
 type register =
     | RAX
-    | RBX | BL
     | RCX | CL
-    | RDX | DL
+    | RDX
     | RDI
     | RSI
     | RSP
@@ -27,7 +26,6 @@ type instruction =
     | RET
     | QTO
     | LTQ
-    | SYS
     | NOP
     | CAL of string
     | FUN of string
@@ -44,6 +42,7 @@ type instruction =
     | JLE of string * string
     | JLT of string * string
     | JEQ of string * string
+    | JNE of string * string
     | MOV of location * location
     | LEA of location * location
     | SUB of location * location
@@ -97,9 +96,8 @@ let generate ((out:out_channel), color) prog =
         color_reg ^ (
             match r with
                 | RAX -> "%rax"
-                | RBX -> "%rbx" | BL -> "%bl"
                 | RCX -> "%rcx" | CL -> "%cl"
-                | RDX -> "%rdx" | DL -> "%dl"
+                | RDX -> "%rdx"
                 | RDI -> "%rdi"
                 | RSI -> "%rsi"
                 | RSP -> "%rsp"
@@ -156,7 +154,6 @@ let generate ((out:out_channel), color) prog =
             | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
             | QTO -> [TextLt (color_instr ^ "    cqto "); Skip 5; fmtinfo]
             | LTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
-            | SYS -> [TextLt (color_instr ^ "    syscall "); Skip 5; fmtinfo]
             | CAL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
             | FUN fn -> [TextLt ("\n" ^ color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
             | TAG (fn, tag) -> [TextLt (sprintf "  %s%s.%s:" color_tag fn tag); Skip 5; fmtinfo]
@@ -238,6 +235,9 @@ let generate ((out:out_channel), color) prog =
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
             | JEQ (fn, tag) -> [
                 TextLt (color_instr ^ "    je ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+            | JNE (fn, tag) -> [
+                TextLt (color_instr ^ "    jne ");
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
     in
     let display_align out marks text =

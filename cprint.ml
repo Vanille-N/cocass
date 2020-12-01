@@ -75,11 +75,21 @@ let print_ast (out, color) code =
                 fprintf out "%scase false\n" (offset ^ curr_empty ^ color_cond ^ termin ^ color_none);
                 print_code_indent (offset ^ curr_empty ^ blank) false out code_false;
             )
-            | CWHILE (cond, code) -> (
-                fprintf out "%swhile\n" (offset ^ curr_full ^ color_loop);
+            | CWHILE (cond, code, finally, test_at_start) -> (
+                fprintf out "%s%s\n" (offset ^ curr_full ^ color_loop) (if not test_at_start then "do-while" else if finally = None then "while" else "for-loop");
                 print_expr_indent (offset ^ color_none ^ curr_empty ^ color_loop) true out cond;
-                fprintf out "%srepeat\n" (offset ^ curr_empty ^ color_loop ^ termin ^ color_none);
-                print_code_indent (offset ^ curr_empty ^ blank) false out code;
+                (match finally with
+                    | None -> (
+                        fprintf out "%srepeat\n" (offset ^ curr_empty ^ color_loop ^ termin ^ color_none);
+                        print_code_indent (offset ^ curr_empty ^ blank) false out code;
+                    )
+                    | Some e -> (
+                        fprintf out "%srepeat\n" (offset ^ curr_empty ^ color_loop ^ bifurc ^ color_none);
+                        print_code_indent (offset ^ curr_empty ^ color_loop ^ cont ^ color_none) false out code;
+                        fprintf out "%sfinally\n" (offset ^ curr_empty ^ color_loop ^ termin ^ color_none);
+                        print_expr_indent (offset ^ curr_empty ^ blank) false out e;
+                    )
+                );
             )
             | CRETURN None -> fprintf out "%sreturn void\n" (offset ^ curr_full ^ color_none)
             | CRETURN (Some ret) -> (
