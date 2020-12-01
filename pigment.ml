@@ -2,8 +2,8 @@ open Printf
 
 let has_color = true
 
-let color_bold = if has_color then (sprintf "\x1b[1;%dm") else (fun _ -> "")
-let color = if has_color then (sprintf "\x1b[%dm") else (fun _ -> "")
+let color_bold = sprintf "\x1b[1;%dm"
+let color = sprintf "\x1b[%dm"
 
 let code_red = 31
 let code_green = 32

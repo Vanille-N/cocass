@@ -7,7 +7,6 @@ let input = ref stdin
 let c_prefix = ref "a.out"
 let c_D = ref false
 let c_A = ref false
-let c_C = ref false
 let c_S = ref false
 let c_Color = ref false
 
@@ -22,7 +21,6 @@ let () =
          ("-v2", Unit (fun () -> verbose:=2), "reports stuff, and stuff");
          ("-D",  Unit (fun () -> c_D:=true),  "print declarations");
          ("-A",  Unit (fun () -> c_A:=true),  "print abstract syntax tree");
-         ("-C",  Unit (fun () -> c_C:=true),  "print abstract syntax tree close to the C code");
          ("-S",  Unit (fun () -> c_S:=true),  "output assembler dump");
          ("--no-color", Unit (fun () -> c_Color:=true), "do not add syntax coloring")]
         (fun s ->
@@ -46,16 +44,13 @@ let () =
     if !c_A then (
         Cprint.print_ast (Format.std_formatter, Pigment.has_color && (not !c_Color))  c
     );
-    if !c_C then (
-        Cprint.print_ast_close_to_C Format.std_formatter c
-    );
 
-    if not (!c_D || !c_A || !c_C) then (
+    if not (!c_D || !c_A) then (
         compile (out, color) c;
         Error.flush_error ()
     );
 
-    if not (!c_D || !c_A || !c_C || !c_S) then (
+    if not (!c_D || !c_A || !c_S) then (
         flush out;
         close_out_noerr out;
         let command =
