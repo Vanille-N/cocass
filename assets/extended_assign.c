@@ -10,10 +10,10 @@ int main() {
     printf("%d ?= 6\n", i[0]);
     *i += 1;
     printf("%d ?= 7\n", *i);
-    // j *= 2;
-    // printf("%d ?= 4\n", j);
-    // i[0] *= 2;
-    // printf("%d ?= 12\n", i[0]);
-    // *i *= 2;
-    // printf("%d ?= 24\n", *i);
+    j *= 2;
+    printf("%d ?= 4\n", j);
+    i[0] *= 2;
+    printf("%d ?= 14\n", i[0]);
+    *i *= 2;
+    printf("%d ?= 28\n", *i);
 }

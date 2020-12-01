@@ -195,7 +195,7 @@ let generate_asm decl_list =
                         | Some loc when is_addr loc -> (
                             decl_asm prog (LEA (loc, Regst RBX)) (sprintf "access %s" name);
                         )
-                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign"
+                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
                     ); (op, value)
                 )
                 | OPSET_ARRAY (op, name, idx, value) -> (
@@ -230,7 +230,15 @@ let generate_asm decl_list =
                     decl_asm prog (MUL (Regst RCX)) " + multiply";
                     decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
                 )
-                | _ -> failwith "TODO more extended assignment"
+                | S_SUB -> failwith "TODO extended sub"
+                | S_MOD -> failwith "TODO extended mod"
+                | S_DIV -> failwith "TODO extended div"
+                | S_SHL -> failwith "TODO extended shl"
+                | S_SHR -> failwith "TODO extended shr"
+                | S_AND -> failwith "TODO extended and"
+                | S_OR -> failwith "TODO extended or"
+                | S_XOR -> failwith "TODO extended xor"
+                | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
             );
         )
         | CALL (fname, expr_lst) -> (
