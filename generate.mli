@@ -7,34 +7,41 @@ type register =
     | RSI
     | RSP
     | RBP
-    | R8
-    | R9
+    | R08
+    | R09
     | R10
     | RIP
 
 type location =
     | Stack of int
-    | Glob of string
-    | Reg of register
-    | Deref of register
     | Const of int
-    | Index of register * register
+    | Globl of string
     | FnPtr of string
+    | Regst of register
+    | Deref of register
+    | Index of register * register
 
 type instruction =
     | RET
-    | CQTO
-    | CLTQ
+    | QTO
+    | LTQ
     | SYS
-    | CALL of string
+    | NOP
+    | CAL of string
     | FUN of string
-    | TAG of string * string
     | INC of location
     | NOT of location
     | NEG of location
     | DEC of location
     | DIV of location
+    | MUL of location
+    | PSH of location
+    | POP of location
+    | TAG of string * string
     | JMP of string * string
+    | JLE of string * string
+    | JLT of string * string
+    | JEQ of string * string
     | MOV of location * location
     | LEA of location * location
     | SUB of location * location
@@ -43,16 +50,9 @@ type instruction =
     | SHL of location * location
     | SHR of location * location
     | AND of location * location
-    | OR of location * location
-    | MUL of location
-    | PUSH of location
-    | POP of location
-    | NOP
+    | IOR of location * location
     | CMP of location * location
-    | TEST of location * location
-    | JLE of string * string
-    | JLT of string * string
-    | JEQ of string * string
+    | TST of location * location
 
 type program
 

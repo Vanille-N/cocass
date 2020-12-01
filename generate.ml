@@ -9,34 +9,41 @@ type register =
     | RSI
     | RSP
     | RBP
-    | R8
-    | R9
+    | R08
+    | R09
     | R10
     | RIP
 
 type location =
     | Stack of int
-    | Glob of string
-    | Reg of register
-    | Deref of register
     | Const of int
-    | Index of register * register
+    | Globl of string
     | FnPtr of string
+    | Regst of register
+    | Deref of register
+    | Index of register * register
 
 type instruction =
     | RET
-    | CQTO
-    | CLTQ
+    | QTO
+    | LTQ
     | SYS
-    | CALL of string
+    | NOP
+    | CAL of string
     | FUN of string
-    | TAG of string * string
     | INC of location
     | NOT of location
     | NEG of location
     | DEC of location
     | DIV of location
+    | MUL of location
+    | PSH of location
+    | POP of location
+    | TAG of string * string
     | JMP of string * string
+    | JLE of string * string
+    | JLT of string * string
+    | JEQ of string * string
     | MOV of location * location
     | LEA of location * location
     | SUB of location * location
@@ -45,16 +52,9 @@ type instruction =
     | SHL of location * location
     | SHR of location * location
     | AND of location * location
-    | OR of location * location
-    | MUL of location
-    | PUSH of location
-    | POP of location
-    | NOP
+    | IOR of location * location
     | CMP of location * location
-    | TEST of location * location
-    | JLE of string * string
-    | JLT of string * string
-    | JEQ of string * string
+    | TST of location * location
 
 type program = {
     mutable idata: string list;
@@ -104,8 +104,8 @@ let generate ((out:out_channel), color) prog =
                 | RSI -> "%rsi"
                 | RSP -> "%rsp"
                 | RBP -> "%rbp"
-                | R8 -> "%r8"
-                | R9 -> "%r9"
+                | R08 -> "%r8"
+                | R09 -> "%r9"
                 | R10 -> "%r10"
                 | RIP -> "%rip"
             )
@@ -115,11 +115,11 @@ let generate ((out:out_channel), color) prog =
             TextRt (sprintf "%s%d(%s" color_int k (regname RBP));
             TextLt (color_int ^ ")")
         ]
-        | Glob v -> [
+        | Globl v -> [
             TextRt (sprintf "%s%s(%s" color_var v (regname RIP));
             TextLt (color_var ^ ")")
         ]
-        | Reg r -> [
+        | Regst r -> [
             TextRt (sprintf "%s" (regname r));
             Skip 1
         ]
@@ -154,10 +154,10 @@ let generate ((out:out_channel), color) prog =
         ) in
         match instr with
             | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
-            | CQTO -> [TextLt (color_instr ^ "    cqto "); Skip 5; fmtinfo]
-            | CLTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
+            | QTO -> [TextLt (color_instr ^ "    cqto "); Skip 5; fmtinfo]
+            | LTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
             | SYS -> [TextLt (color_instr ^ "    syscall "); Skip 5; fmtinfo]
-            | CALL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
+            | CAL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
             | FUN fn -> [TextLt (color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
             | TAG (fn, tag) -> [TextLt (sprintf "  %s%s.%s:" color_tag fn tag); Skip 5; fmtinfo]
             | INC l -> [TextLt (color_instr ^ "    incq "); Node (locate l); Skip 3; fmtinfo]
@@ -189,7 +189,7 @@ let generate ((out:out_channel), color) prog =
                 TextLt (color_instr ^ "    xor ");
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
-            | OR (s, d) -> [
+            | IOR (s, d) -> [
                 TextLt (color_instr ^ "    or ");
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
@@ -209,7 +209,7 @@ let generate ((out:out_channel), color) prog =
                 TextLt (color_instr ^ "    mul ");
                 Node (locate l);
                 Skip 3; fmtinfo]
-            | PUSH l -> [
+            | PSH l -> [
                 TextLt (color_instr ^ "    push ");
                 Node (locate l);
                 Skip 3; fmtinfo]
@@ -225,7 +225,7 @@ let generate ((out:out_channel), color) prog =
                 Node (locate a);
                 TextLt ", ";
                 Node (locate b); fmtinfo]
-            | TEST (a, b) -> [
+            | TST (a, b) -> [
                 TextLt (color_instr ^ "    test ");
                 Node (locate a);
                 TextLt ", ";
