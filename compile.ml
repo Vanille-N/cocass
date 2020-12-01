@@ -231,12 +231,13 @@ let generate_asm decl_list =
                     decl_asm prog (MUL (Regst RCX)) " + calculate";
                     decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
                 )
-                | S_SUB -> failwith "TODO extended sub"
-                | S_SHL -> failwith "TODO extended shl"
-                | S_SHR -> failwith "TODO extended shr"
                 | S_AND -> failwith "TODO extended and"
                 | S_OR -> failwith "TODO extended or"
                 | S_XOR -> failwith "TODO extended xor"
+                | S_SUB -> (
+                    decl_asm prog (SUB (Regst RAX, Deref RBX)) "in-place sub";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
                 | S_MOD -> (
                     decl_asm prog NOP "extended mod";
                     decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move divisor";
@@ -253,6 +254,18 @@ let generate_asm decl_list =
                     decl_asm prog QTO " +";
                     decl_asm prog (DIV (Regst RCX)) " + calculate";
                     decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value"
+                )
+                | S_SHL -> (
+                    decl_asm prog NOP "in-place shl";
+                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move amount";
+                    decl_asm prog (SHL (Regst CL, Deref RBX)) " + calculate";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
+                | S_SHR -> (
+                    decl_asm prog NOP "in-place shl";
+                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move amount";
+                    decl_asm prog (SHR (Regst CL, Deref RBX)) " + calculate";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
                 )
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
             );
