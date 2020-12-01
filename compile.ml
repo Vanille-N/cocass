@@ -179,6 +179,9 @@ let generate_asm decl_list =
             retrieve depth RDX;
             decl_asm prog (MOV (Reg RAX, Deref RDX)) "write to deref";
         )
+        | OPSET_VAR _ -> failwith "TODO opset var"
+        | OPSET_ARRAY _ -> failwith "TODO opset array"
+        | OPSET_DEREF _ -> failwith "TODO opset deref"
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;

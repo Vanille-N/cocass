@@ -279,6 +279,11 @@ conditional_expression:
 	}
         ;
 
+extended_assignment_operator:
+    | ADD_ASSIGN { S_ADD }
+    | MUL_ASSIGN { S_MUL }
+    ;
+
 assignment_expression:
           conditional_expression { $1 }
 	| unary_expression EQ_CHR assignment_expression
@@ -292,7 +297,22 @@ assignment_expression:
 	     | _ ->
 		 begin
 		   Error.error (Some loc)
-		     "Can only write assignments of the form x=e or x[e]=e'.\n";
+		     "Can only write assignments of the form x=e or x[e]=e or *e=e.\n";
+		   $3
+		 end
+	   }
+    | unary_expression extended_assignment_operator assignment_expression
+	    {
+	     let locvar, left = $1 in
+	     let loc = sup_locator locvar (loc_of_expr $3) in
+	     match left with
+	       VAR x -> loc, OPSET_VAR ($2, x, $3)
+	     | OP2 (S_INDEX, (_, VAR x), i) -> loc, OPSET_ARRAY ($2, x, i, $3)
+         | OP1 (M_DEREF, lhs) -> loc, OPSET_DEREF ($2, lhs, $3)
+	     | _ ->
+		 begin
+		   Error.error (Some loc)
+		     "Can only write assignments of the form x=e or x[e]=e or *e=e or with an extended assignment operator.\n";
 		   $3
 		 end
 	   }
