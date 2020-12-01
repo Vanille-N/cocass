@@ -231,9 +231,6 @@ let generate_asm decl_list =
                     decl_asm prog (MUL (Regst RCX)) " + calculate";
                     decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
                 )
-                | S_AND -> failwith "TODO extended and"
-                | S_OR -> failwith "TODO extended or"
-                | S_XOR -> failwith "TODO extended xor"
                 | S_SUB -> (
                     decl_asm prog (SUB (Regst RAX, Deref RBX)) "in-place sub";
                     decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
@@ -265,6 +262,18 @@ let generate_asm decl_list =
                     decl_asm prog NOP "in-place shl";
                     decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move amount";
                     decl_asm prog (SHR (Regst CL, Deref RBX)) " + calculate";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
+                | S_AND -> (
+                    decl_asm prog (AND (Regst RAX, Deref RBX)) "in-place and";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
+                | S_OR -> (
+                    decl_asm prog (IOR (Regst RAX, Deref RBX)) "in-place incl. or";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
+                | S_XOR -> (
+                    decl_asm prog (XOR (Regst RAX, Deref RBX)) "in-place excl. or";
                     decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
                 )
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
@@ -300,8 +309,8 @@ let generate_asm decl_list =
             (match assoc fname frame with
                 | None | Some (FnPtr _) -> decl_asm prog (CAL fname) " +"
                 | Some loc -> (
-                    decl_asm prog (MOV (loc, Regst R10)) "";
-                    decl_asm prog (CAL "*%r10") "";
+                    decl_asm prog (MOV (loc, Regst R10)) "function pointer";
+                    decl_asm prog (CAL "*%r10") " +";
                 )
             );
             decl_asm prog (ADD (Const (offset*8), Regst RSP)) " +";
