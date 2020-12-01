@@ -149,8 +149,8 @@ let generate ((out:out_channel), color) prog =
     let generate_talign (instr, info) =
         let fmtinfo = TextLt (
             color_comment
+            ^ (match instr with FUN _ -> " " | _ -> "")
             ^ (if info = "" then "#" else "# " ^ info)
-            ^ (if instr = RET then "\n" else "")
         ) in
         match instr with
             | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
@@ -158,7 +158,7 @@ let generate ((out:out_channel), color) prog =
             | LTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
             | SYS -> [TextLt (color_instr ^ "    syscall "); Skip 5; fmtinfo]
             | CAL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
-            | FUN fn -> [TextLt (color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
+            | FUN fn -> [TextLt ("\n" ^ color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
             | TAG (fn, tag) -> [TextLt (sprintf "  %s%s.%s:" color_tag fn tag); Skip 5; fmtinfo]
             | INC l -> [TextLt (color_instr ^ "    incq "); Node (locate l); Skip 3; fmtinfo]
             | NOT l -> [TextLt (color_instr ^ "    not "); Node (locate l); Skip 3; fmtinfo]
@@ -198,11 +198,11 @@ let generate ((out:out_channel), color) prog =
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
             | SHL (s, d) -> [
-                TextLt (color_instr ^ "    sal ");
+                TextLt (color_instr ^ "    salq ");
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
             | SHR (s, d) -> [
-                TextLt (color_instr ^ "    sar ");
+                TextLt (color_instr ^ "    sarq ");
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
             | MUL l -> [
@@ -298,7 +298,7 @@ let generate ((out:out_channel), color) prog =
     List.iter (display_align out [10; 0]) salign;
     fprintf out "\n";
     fprintf out "    %s.global %smain\n" color_meta color_tag;
-    fprintf out "    %s.text\n" color_meta;
+    fprintf out "    %s.text" color_meta;
     let tdata = List.rev prog.text in
     let talign = List.map generate_talign tdata in
     List.iter (display_align out [9; 12; 0; 0; 12; 7; 0]) talign;
