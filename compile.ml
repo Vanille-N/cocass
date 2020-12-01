@@ -216,6 +216,23 @@ let generate_asm decl_list =
                 )
                 | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET__"
             ) in
+            (* The address of our expression is in RBX *)
+            store depth RBX;
+            gen_expr (depth+1, frame, label) value;
+            retrieve depth RBX;
+            (match op with
+                | S_ADD -> (
+                    decl_asm prog (ADD (Regst RAX, Deref RBX)) "in-place add";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
+                )
+                | S_MUL -> (
+                    decl_asm prog (MOV (Deref RBX, Regst RCX)) "load current value";
+                    decl_asm prog (MUL (Regst RCX)) " + multiply";
+                    decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
+                )
+                | _ -> failwith "TODO more extended assignment"
+            );
+        )
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;
