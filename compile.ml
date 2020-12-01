@@ -226,18 +226,34 @@ let generate_asm decl_list =
                     decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load final value";
                 )
                 | S_MUL -> (
-                    decl_asm prog (MOV (Deref RBX, Regst RCX)) "load current value";
-                    decl_asm prog (MUL (Regst RCX)) " + multiply";
+                    decl_asm prog NOP "extended mul";
+                    decl_asm prog (MOV (Deref RBX, Regst RCX)) " + load current value";
+                    decl_asm prog (MUL (Regst RCX)) " + calculate";
                     decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
                 )
                 | S_SUB -> failwith "TODO extended sub"
-                | S_MOD -> failwith "TODO extended mod"
-                | S_DIV -> failwith "TODO extended div"
                 | S_SHL -> failwith "TODO extended shl"
                 | S_SHR -> failwith "TODO extended shr"
                 | S_AND -> failwith "TODO extended and"
                 | S_OR -> failwith "TODO extended or"
                 | S_XOR -> failwith "TODO extended xor"
+                | S_MOD -> (
+                    decl_asm prog NOP "extended mod";
+                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move divisor";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load dividend";
+                    decl_asm prog QTO " +";
+                    decl_asm prog (DIV (Regst RCX)) " + calculate";
+                    decl_asm prog (MOV (Regst RDX, Regst RAX)) " + select mod";
+                    decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value";
+                )
+                | S_DIV -> (
+                    decl_asm prog NOP "extended div";
+                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move divisor";
+                    decl_asm prog (MOV (Deref RBX, Regst RAX)) " + load dividend";
+                    decl_asm prog QTO " +";
+                    decl_asm prog (DIV (Regst RCX)) " + calculate";
+                    decl_asm prog (MOV (Regst RAX, Deref RBX)) " + store final value"
+                )
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
             );
         )
