@@ -29,7 +29,7 @@ int isnumber(char* str) {
     len = strlen(str);
     for (i = 0; i < len; i++) {
         val = strindex(str, i);
-        if (!('0' <= val && val <= '9')) {
+        if (!('0' <= val && val <= '9' && val)) {
             return false;
         }
     }
@@ -63,7 +63,7 @@ int play() {
     printf("It's between 0 and %d.\n", max);
     while (!found) {
         printf("   > ");
-        scanf("%d", guess);
+        scanf("%ld", guess);
         found = compare(guess[0], real);
     }
     free(guess);

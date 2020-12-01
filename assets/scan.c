@@ -1,6 +1,6 @@
 int main() {
     int x;
-    scanf("%d", &x);
+    scanf("%ld", &x);
     printf("You gave me the number %d", x);
     fflush(stdout);
 }

@@ -9,8 +9,8 @@ int main() {
         printf(fmtloop, i);
         printf("j = %d\n", j);
     }
+    printf("j ended at %d\n", i);
     printf(fmtend, j);
-    printf("i ended at %d\n\n", i);
     for (i = 0; i < 10; i++) {
         printf("i = %d\n", i);
     }

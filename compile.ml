@@ -83,12 +83,14 @@ let generate_asm decl_list =
             )
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
+        decl_asm prog (PSH (Regst RBX)) " +";
         decl_asm prog (MOV (Regst RSP, Regst RBP)) " +";
     and leave_stackframe fname =
         decl_asm prog (XOR (Regst RAX, Regst RAX)) "set to 0";
         decl_asm prog (TAG (fname, "return")) "leave stackframe";
+        decl_asm prog (POP (Regst RBX)) " +";
         decl_asm prog (POP (Regst RBP)) " +";
-        if fname = "main" then (
+        if fname = "main" && false then (
             decl_asm prog (MOV (Regst RAX, Regst RDI)) "syscall for exit";
             decl_asm prog (MOV (Const 60, Regst RAX)) " +";
             decl_asm prog SYS " +";
@@ -138,8 +140,8 @@ let generate_asm decl_list =
             | Some (Const k) -> decl_asm prog (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
             | Some (FnPtr f) -> decl_asm prog (LEA (FnPtr f, Regst RAX)) (sprintf "function pointer %s" f)
             | Some loc -> (
-                decl_asm prog (LEA (loc, Regst RDX)) (sprintf "access %s" name);
-                decl_asm prog (MOV (Deref RDX, Regst RAX)) (sprintf "read %s" name);
+                decl_asm prog (LEA (loc, Regst RBX)) (sprintf "access %s" name);
+                decl_asm prog (MOV (Deref RBX, Regst RAX)) (sprintf "read %s" name);
             )
         )
         | CST value -> decl_asm prog (MOV (Const value, Regst RAX)) (sprintf "load val %d" value);
@@ -147,37 +149,39 @@ let generate_asm decl_list =
             let name = sprintf ".LC%d" !str_count in
             incr str_count;
             decl_str prog name str;
-            decl_asm prog (LEA (Globl name, Regst RDX)) (sprintf "access %s" name);
-            decl_asm prog (MOV (Regst RDX, Regst RAX)) (sprintf "read %s" name);
+            decl_asm prog (LEA (Globl name, Regst RBX)) (sprintf "access %s" name);
+            decl_asm prog (MOV (Regst RBX, Regst RAX)) (sprintf "read %s" name);
         )
         | SET_VAR (name, value) -> (
             gen_expr (depth, frame, label) value;
             match assoc name frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
-                | Some loc -> (
-                    decl_asm prog (LEA (loc, Regst RDX)) (sprintf "access %s" name);
-                    decl_asm prog (MOV (Regst RAX, Deref RDX)) (sprintf "write %s" name);
+                | Some loc when is_addr loc -> (
+                    decl_asm prog (LEA (loc, Regst RBX)) (sprintf "access %s" name);
+                    decl_asm prog (MOV (Regst RAX, Deref RBX)) (sprintf "write %s" name);
                 )
+                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
         | SET_ARRAY (arr, idx, value) -> (
             match assoc arr frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" arr)
-                | Some loc -> (
+                | Some loc when is_addr loc -> (
                     gen_expr (depth, frame, label) idx;
                     store depth RAX;
                     gen_expr (depth+1, frame, label) value;
                     retrieve (depth) RCX;
-                    decl_asm prog (MOV (loc, Regst RDX)) "access array";
-                    decl_asm prog (LEA (Index (RDX, RCX), Regst RDX)) " +";
-                    decl_asm prog (MOV (Regst RAX, Deref RDX)) " +";
+                    decl_asm prog (MOV (loc, Regst RBX)) "access array";
+                    decl_asm prog (LEA (Index (RBX, RCX), Regst RBX)) " +";
+                    decl_asm prog (MOV (Regst RAX, Deref RBX)) " +";
                 )
+                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
         | SET_DEREF (dest, value) -> (
             gen_expr (depth, frame, label) dest;
             store depth RAX;
             gen_expr (depth+1, frame, label) value;
-            retrieve depth RDX;
-            decl_asm prog (MOV (Regst RAX, Deref RDX)) "write to deref";
+            retrieve depth RBX;
+            decl_asm prog (MOV (Regst RAX, Deref RBX)) "write to deref";
         )
         | OPSET_VAR _ -> failwith "TODO opset var"
         | OPSET_ARRAY _ -> failwith "TODO opset array"
@@ -226,27 +230,27 @@ let generate_asm decl_list =
                 | M_MINUS -> decl_asm prog (NEG (Regst RAX)) "negative"
                 | M_NOT -> decl_asm prog (NOT (Regst RAX)) "bitwise not"
                 | M_POST_INC -> if is_lvalue (snd expr)
-                    then decl_asm prog (INC (Deref RDX)) "incr (post)"
+                    then decl_asm prog (INC (Deref RBX)) "incr (post)"
                     else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
                 | M_POST_DEC -> if is_lvalue (snd expr)
-                    then decl_asm prog (DEC (Deref RDX)) "decr (post)"
+                    then decl_asm prog (DEC (Deref RBX)) "decr (post)"
                     else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
                 | M_PRE_INC -> if is_lvalue (snd expr)
                     then (
-                        decl_asm prog (INC (Deref RDX)) "incr (pre)";
+                        decl_asm prog (INC (Deref RBX)) "incr (pre)";
                         decl_asm prog (INC (Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
                 | M_PRE_DEC -> if is_lvalue (snd expr)
                     then (
-                        decl_asm prog (DEC (Deref RDX)) "decr (pre)";
+                        decl_asm prog (DEC (Deref RBX)) "decr (pre)";
                         decl_asm prog (DEC (Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
                 | M_DEREF -> (
-                    decl_asm prog (MOV (Regst RAX, Regst RDX)) "deref";
+                    decl_asm prog (MOV (Regst RAX, Regst RBX)) "deref";
                     decl_asm prog (MOV (Deref RAX, Regst RAX)) " +";
                 )
                 | M_ADDR -> if is_lvalue (snd expr)
-                    then decl_asm prog (MOV (Regst RDX, Regst RAX)) "indir"
+                    then decl_asm prog (MOV (Regst RBX, Regst RAX)) "indir"
                     else Error.error (Some (fst expr)) "indirection needs an lvalue.\n"
         )
         | OP2 (op, lhs, rhs) -> (
@@ -298,8 +302,8 @@ let generate_asm decl_list =
                         store depth RAX;
                         gen_expr (depth+1, frame, label) rhs;
                         retrieve depth RCX;
-                        decl_asm prog (LEA (Index (RCX, RAX), Regst RDX)) "";
-                        decl_asm prog (MOV (Deref RDX, Regst RAX)) "";
+                        decl_asm prog (LEA (Index (RCX, RAX), Regst RBX)) "";
+                        decl_asm prog (MOV (Deref RBX, Regst RAX)) "";
                     ) else (
                         Error.error (Some (fst expr)) "index requires an lvalue.\n"
                     )

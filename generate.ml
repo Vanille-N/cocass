@@ -2,9 +2,9 @@ open Printf
 
 type register =
     | RAX
-    | RBX
+    | RBX | BL
     | RCX | CL
-    | RDX
+    | RDX | DL
     | RDI
     | RSI
     | RSP
@@ -97,9 +97,9 @@ let generate ((out:out_channel), color) prog =
         color_reg ^ (
             match r with
                 | RAX -> "%rax"
-                | RBX -> "%rbx"
+                | RBX -> "%rbx" | BL -> "%bl"
                 | RCX -> "%rcx" | CL -> "%cl"
-                | RDX -> "%rdx"
+                | RDX -> "%rdx" | DL -> "%dl"
                 | RDI -> "%rdi"
                 | RSI -> "%rsi"
                 | RSP -> "%rsp"

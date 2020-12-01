@@ -1,8 +1,8 @@
 type register =
     | RAX
-    | RBX
+    | RBX | BL
     | RCX | CL
-    | RDX
+    | RDX | DL
     | RDI
     | RSI
     | RSP
