@@ -27,6 +27,10 @@ let rec is_lvalue = function
     | OP1 (M_DEREF, _) -> true
     | _ -> false
 
+let rec is_addr = function
+    | Const _ | FnPtr _ -> false
+    | _ -> true
+
 let generate_asm decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
@@ -183,9 +187,35 @@ let generate_asm decl_list =
             retrieve depth RBX;
             decl_asm prog (MOV (Regst RAX, Deref RBX)) "write to deref";
         )
-        | OPSET_VAR _ -> failwith "TODO opset var"
-        | OPSET_ARRAY _ -> failwith "TODO opset array"
-        | OPSET_DEREF _ -> failwith "TODO opset deref"
+        | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
+            let (op, value) = (match snd expr with
+                | OPSET_VAR (op, name, value) -> (
+                    (match assoc name frame with
+                        | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
+                        | Some loc when is_addr loc -> (
+                            decl_asm prog (LEA (loc, Regst RBX)) (sprintf "access %s" name);
+                        )
+                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign"
+                    ); (op, value)
+                )
+                | OPSET_ARRAY (op, name, idx, value) -> (
+                    (match assoc name frame with
+                        | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
+                        | Some loc when is_addr loc -> (
+                            gen_expr (depth, frame, label) idx;
+                            decl_asm prog (MOV (loc, Regst RBX)) "access array";
+                            decl_asm prog (LEA (Index (RBX, RAX), Regst RBX)) " +";
+                        )
+                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
+                    ); (op, value)
+                )
+                | OPSET_DEREF (op, addr, value) -> (
+                    gen_expr (depth, frame, label) addr;
+                    decl_asm prog (MOV (Regst RAX, Regst RBX)) "load address";
+                    (op, value)
+                )
+                | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET__"
+            ) in
         | CALL (fname, expr_lst) -> (
             List.iteri (fun i e ->
                 gen_expr (depth+i, frame, label) e;
