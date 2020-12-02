@@ -382,22 +382,31 @@ casekw    : CASE    { getloc () };
 defaultkw : DEFAULT { getloc () };
 
 case :
+    | casekw CONSTANT COLON_CHR
+        { $1, $2, [] }
+    | casekw SUB_CHR CONSTANT COLON_CHR
+        { $1, -$3, [] }
     | casekw CONSTANT COLON_CHR statement_list
-        { $1, Some $2, List.rev $4 }
+        { $1, $2, List.rev $4 }
     | casekw SUB_CHR CONSTANT COLON_CHR statement_list
-        { $1, Some (-$3), List.rev $5 }
-default : defaultkw COLON_CHR statement_list
-    { $1, None, List.rev $3 }
+        { $1, -$3, List.rev $5 }
+;
+
+default :
+    | defaultkw COLON_CHR statement_list
+        { $1, CBLOCK ([], List.rev $3) }
+    | { getloc (), CBLOCK ([], []) }
+;
 
 case_list :
     | default
-        { [$1] }
-    | case
-        { [$1] }
-    | case case_list
-        { $1 :: $2 }
+        { [], $1 }
+    | case case_list {
+        let (rest, deflt) = $2 in
+        ($1 :: rest, deflt) }
+;
 
-switch_block : open_block case_list close_block { $2 }
+switch_block : open_block case_list close_block { $2 };
 
 ifkw     : IF     { getloc () };
 switchkw : SWITCH { getloc () };
@@ -407,8 +416,9 @@ selection_statement:
         { sup_locator $1 (fst $5), CIF ($3, $5, (getloc (), CBLOCK ([], []))) }
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement ELSE statement
         { sup_locator $1 (fst $7), CIF ($3, $5, $7) }
-    | switchkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR switch_block
-        { $1, CSWITCH ($3, $5) }
+    | switchkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR switch_block {
+        let (cases, deflt) = $5 in
+        ($1, CSWITCH ($3, cases, deflt)) }
 ;
 
 whilekw : WHILE { getloc () };

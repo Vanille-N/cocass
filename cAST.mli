@@ -76,7 +76,7 @@ and code =
     | CRETURN of loc_expr option (** return; ou return (e); *)
     | CBREAK
     | CCONTINUE
-    | CSWITCH of loc_expr * (Error.locator * int option * loc_code list) list
+    | CSWITCH of loc_expr * (Error.locator * int * loc_code list) list * loc_code
 
 val cline : int ref
 val ccol : int ref
