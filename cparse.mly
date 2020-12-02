@@ -76,8 +76,7 @@ string_literal:
     | STRING_LITERAL string_literal {
         let l, s = $2 in
         let s2 = $1 in
-        (getloc (), s2^s)
-    }
+        (getloc (), s2^s) }
 ;
 
 inc_op : INC_OP { getloc () }
@@ -90,13 +89,11 @@ postfix_expression:
     | identifier OPEN_PAREN_CHR close_paren {
         let loc, var = $1 in
         let loc1 = sup_locator loc $3 in
-        loc1, CALL (var, [])
-    }
+        loc1, CALL (var, []) }
     | identifier OPEN_PAREN_CHR argument_expression_list close_paren {
         let loc, var = $1 in
         let loc1 = sup_locator loc $4 in
-        loc1, CALL (var, List.rev $3)
-    }
+        loc1, CALL (var, List.rev $3) }
     | postfix_expression inc_op
         { sup_locator (loc_of_expr $1) $2, OP1 (M_POST_INC, $1) }
     | postfix_expression dec_op
@@ -127,8 +124,7 @@ unary_expression:
             | TILDE_CHR -> loc', OP1 (M_NOT, $2)
             | AND_CHR -> loc', OP1 (M_ADDR, $2)
             | STAR_CHR -> loc', OP1 (M_DEREF, $2)
-            | _ -> (Error.error (Some loc) "unknown unary operator"; loc, CST 0)
-    }
+            | _ -> (Error.error (Some loc) "unknown unary operator"; loc, CST 0) }
 ;
 
 unary_operator:
@@ -157,16 +153,13 @@ multiplicative_expression:
     | cast_expression { $1 }
     | multiplicative_expression STAR_CHR cast_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_MUL, $1, $3)
-    }
+        OP2 (S_MUL, $1, $3) }
     | multiplicative_expression DIV_CHR cast_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_DIV, $1, $3)
-    }
+        OP2 (S_DIV, $1, $3) }
     | multiplicative_expression MOD_CHR cast_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_MOD, $1, $3)
-    }
+        OP2 (S_MOD, $1, $3) }
 ;
 
 additive_expression:
@@ -174,108 +167,92 @@ additive_expression:
         { $1 }
     | additive_expression ADD_CHR multiplicative_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_ADD, $1, $3)
-    }
+        OP2 (S_ADD, $1, $3) }
     | additive_expression SUB_CHR multiplicative_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_SUB, $1, $3)
-    }
+        OP2 (S_SUB, $1, $3) }
 ;
 
 shift_expression:
     | additive_expression { $1 }
     | additive_expression LEFT_OP multiplicative_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_SHL, $1, $3)
-    }
+        OP2 (S_SHL, $1, $3) }
     | additive_expression RIGHT_OP multiplicative_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_SHR, $1, $3)
-    }
+        OP2 (S_SHR, $1, $3) }
 ;
 
 relational_expression:
     | shift_expression { $1 }
     | relational_expression OPEN_ANGLE_CHR shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_LT, $1, $3)
-    }
+        CMP (C_LT, $1, $3) }
     | relational_expression CLOSE_ANGLE_CHR shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_GT, $1, $3)
-    }
+        CMP (C_GT, $1, $3) }
     | relational_expression LE_OP shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_LE, $1, $3)
-    }
+        CMP (C_LE, $1, $3) }
     | relational_expression GE_OP shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_GE, $1, $3)
-    }
+        CMP (C_GE, $1, $3) }
 ;
 
 equality_expression:
     | relational_expression { $1 }
     | equality_expression EQ_OP relational_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_EQ, $1, $3)
-    }
+        CMP (C_EQ, $1, $3) }
     | equality_expression NE_OP relational_expression {
         let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
         loc, EIF (
             (loc, CMP (C_EQ, $1, $3)),
             (loc, CST 0),
             (loc, CST 1)
-        )
-    }
+        ) }
 ;
 
 and_expression:
     | equality_expression { $1 }
     | and_expression AND_CHR equality_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_AND, $1, $3)
-    }
+        OP2 (S_AND, $1, $3) }
 ;
 
 exclusive_or_expression:
     | and_expression { $1 }
     | exclusive_or_expression XOR_CHR equality_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_XOR, $1, $3)
-    }
+        OP2 (S_XOR, $1, $3) }
 ;
 
 inclusive_or_expression:
     | exclusive_or_expression { $1 }
     | inclusive_or_expression OR_CHR equality_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        OP2 (S_OR, $1, $3)
-    }
+        OP2 (S_OR, $1, $3) }
 ;
 
 logical_and_expression:
     | inclusive_or_expression { $1 }
     | logical_and_expression AND_OP inclusive_or_expression {
         let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
-        loc, EIF ($1, $3, (loc, CST 0))
-    }
+        loc, EIF ($1, $3, (loc, CST 0)) }
 ;
 
 logical_or_expression:
     | logical_and_expression { $1 }
     | logical_or_expression OR_OP logical_and_expression {
         let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
-        loc, EIF ($1, (loc, CST 1), $3)
-    }
+        loc, EIF ($1, (loc, CST 1), $3) }
 ;
 
 conditional_expression:
     | logical_or_expression { $1 }
     | logical_or_expression QUES_CHR expression COLON_CHR conditional_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $5),
-        EIF ($1, $3, $5)
-    }
+        EIF ($1, $3, $5) }
 ;
 
 extended_assignment_operator:
@@ -401,13 +378,37 @@ expression_statement:
 
 semi_chr : SEMI_CHR { getloc () }
 
-ifkw : IF { getloc () };
+casekw    : CASE    { getloc () };
+defaultkw : DEFAULT { getloc () };
+
+case :
+    | casekw CONSTANT COLON_CHR statement_list
+        { $1, Some $2, List.rev $4 }
+    | casekw SUB_CHR CONSTANT COLON_CHR statement_list
+        { $1, Some (-$3), List.rev $5 }
+default : defaultkw COLON_CHR statement_list
+    { $1, None, List.rev $3 }
+
+case_list :
+    | default
+        { [$1] }
+    | case
+        { [$1] }
+    | case case_list
+        { $1 :: $2 }
+
+switch_block : open_block case_list close_block { $2 }
+
+ifkw     : IF     { getloc () };
+switchkw : SWITCH { getloc () };
 
 selection_statement:
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement
         { sup_locator $1 (fst $5), CIF ($3, $5, (getloc (), CBLOCK ([], []))) }
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement ELSE statement
         { sup_locator $1 (fst $7), CIF ($3, $5, $7) }
+    | switchkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR switch_block
+        { $1, CSWITCH ($3, $5) }
 ;
 
 whilekw : WHILE { getloc () };
