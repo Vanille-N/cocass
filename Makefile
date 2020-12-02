@@ -41,6 +41,7 @@ clean:
 	rm -rf failures/*.s
 	find assets ! -name '*.*' -type f -exec rm {} +
 	find failures ! -name '*.*' -type f -exec rm {} +
+	rm -rf NVILLANI-COCass
 
 test: projet.tar.gz
 	-mkdir Test
@@ -52,10 +53,20 @@ ProjetCOCass.tar.gz:
 	rm -rf $(PJ) && mkdir $(PJ)
 	cp $(FILES) $(PJ)
 	-mkdir $(PJ)/Exemples
-	cp Exemples/*.c $(PJ)/Exemples
+	cp assets/*.c $(PJ)/Exemples
 	cp cprint_skel.ml $(PJ)/cprint.ml
 	cp compile_skel.ml $(PJ)/compile.ml
 	tar -cvzf $@ $(PJ)
+
+final:
+	make clean
+	mkdir NVILLANI-COCass
+	mkdir NVILLANI-COCass/Exemples
+	cp assets/* NVILLANI-COCass/Exemples/
+	mkdir NVILLANI-COCass/Erreurs
+	cp failures/* NVILLANI-COCass/Erreurs/
+	cp $(FILES) NVILLANI-COCass/
+	tar czf NVILLANI-COCass.tar.gz NVILLANI-COCass
 
 P1=../boostrap
 P2=../../2/boostrap
