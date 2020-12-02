@@ -18,7 +18,9 @@ int main() {
             int i;
             printf("Reached 3/4/5\n");
             for (i = 0; i < x; i++) {
+                if (i == 5) continue;
                 printf("%d ", i);
+                if (i == 13) break;
             }
             putchar('\n');
             break;
