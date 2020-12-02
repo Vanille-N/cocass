@@ -94,6 +94,8 @@ and code =
     | CIF of loc_expr * loc_code * loc_code (* if (e) c1; else c2; *)
     | CWHILE of loc_expr * loc_code * (loc_expr option) * bool (* test_at_start? while (e) c; (finally;) *)
     | CRETURN of loc_expr option (* return; ou return (e); *)
+    | CBREAK
+    | CCONTINUE
 
 
 let cline = ref 1

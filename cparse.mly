@@ -441,13 +441,19 @@ iteration_statement:
     }
 ;
 
-return : RETURN { getloc () };
+return   : RETURN   { getloc () };
+break    : BREAK    { getloc () };
+continue : CONTINUE { getloc () };
 
 jump_statement:
     | return SEMI_CHR
         { $1, CRETURN None }
     | return expression SEMI_CHR
         { sup_locator $1 (loc_of_expr $2), CRETURN (Some $2) }
+    | break SEMI_CHR
+        { $1, CBREAK }
+    | continue SEMI_CHR
+        { $1, CCONTINUE }
 ;
 
 translation_unit:
