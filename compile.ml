@@ -118,7 +118,7 @@ let generate_asm decl_list =
                     | None -> Error.error (Some (fst code)) "no loop to continue"
                     | Some tagcont -> decl_asm prog (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
-            | CSWITCH (e, cases) -> (
+            | CSWITCH (e, cases, deflt) -> (
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
                 decl_asm prog NOP "enter switch";
