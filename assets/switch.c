@@ -1,7 +1,7 @@
 int main() {
     int x, y;
     printf("Enter y > "); fflush(stdout);
-    scanf("%d", &y);
+    scanf("%ld", &y);
     x = 10;
     switch (y) {
         case -1: printf("Received y = -1\n");

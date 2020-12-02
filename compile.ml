@@ -31,6 +31,22 @@ let rec is_addr = function
     | Const _ | FnPtr _ -> false
     | _ -> true
 
+let tag_of_int i = (if i < 0 then "_neg_" else "_pos_") ^ (string_of_int (abs i))
+
+let extract_switch_cases cases =
+    let rec is_unique = function
+        | [] -> None
+        | a :: [] -> None
+        | a :: b :: tl when a = b -> Some a
+        | _ :: tl -> is_unique tl
+    in
+    let tags = List.map (fun (_, c, _) -> c) cases in
+    let sorted = List.sort compare tags in
+    match is_unique sorted with
+        | Some dup -> Error dup
+        | None -> Ok tags
+
+
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
  * *** RAX is last evaluated expression
@@ -123,12 +139,25 @@ let generate_asm decl_list =
                 incr label_cnt;
                 decl_asm prog NOP "enter switch";
                 gen_expr (depth, frame) (label, tagbrk, tagcont) e;
-                (* let vals = extract_comparators cases in *)
-                decl_asm prog NOP "begin jump table";
-                decl_asm prog NOP "PUT SOME CMP & JMP HERE";
-                decl_asm prog NOP "end jump table";
-                decl_asm prog NOP "GENERATE CODE HERE";
-                decl_asm prog NOP "exit switch"
+                match extract_switch_cases cases with
+                    | Error c -> Error.error (Some (fst code)) (sprintf "duplicate case %d" c)
+                    | Ok vals -> (
+                        decl_asm prog NOP "begin jump table";
+                        List.iter (fun c ->
+                            decl_asm prog (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
+                            decl_asm prog (JEQ (label, tagbase ^ (tag_of_int c))) "";
+                        ) vals;
+                        decl_asm prog (JMP (label, tagbase ^ "_default")) "no match found";
+                        decl_asm prog NOP "end jump table";
+                        List.iter (fun (_, c, blk) ->
+                            decl_asm prog (TAG (label, tagbase ^ (tag_of_int c))) "";
+                            List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont)) blk;
+                        ) cases;
+                        decl_asm prog (TAG (label, tagbase ^ "_default")) "";
+                        gen_code (depth, frame) (label, Some tagbase, tagcont) deflt;
+                        decl_asm prog (TAG (label, tagbase ^ "_done")) "";
+                        decl_asm prog NOP "exit switch";
+                    )
             )
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
