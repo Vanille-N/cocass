@@ -53,6 +53,7 @@ let print_ast (out, color) code =
     let color_loop = if color then Pigment.purple_bold else "" in
     let color_cond = if color then Pigment.yellow_bold else "" in
     let color_const = if color then Pigment.blue_bold else "" in
+    let color_ctrl = if color then Pigment.purple_bold else "" in
     let rec print_code_indent offset next out code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
@@ -91,11 +92,13 @@ let print_ast (out, color) code =
                     )
                 );
             )
-            | CRETURN None -> fprintf out "%sreturn void\n" (offset ^ curr_full ^ color_none)
+            | CRETURN None -> fprintf out "%sreturn%s void\n" (offset ^ curr_full ^ color_ctrl) color_none
             | CRETURN (Some ret) -> (
-                fprintf out "%sreturn\n" (offset ^ curr_full ^ color_none);
+                fprintf out "%sreturn%s\n" (offset ^ curr_full ^ color_ctrl) color_none;
                 print_expr_indent (offset ^ curr_empty ^ color_none) false out ret;
             )
+            | CBREAK -> fprintf out "%sbreak%s\n" (offset ^ curr_full ^ color_ctrl) color_none
+            | CCONTINUE -> fprintf out "%scontinue%s\n" (offset ^ curr_full ^ color_ctrl) color_none
     and print_ast_indent offset next out dec_lst =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
