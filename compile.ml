@@ -118,6 +118,7 @@ let generate_asm decl_list =
                     | None -> Error.error (Some (fst code)) "no loop to continue"
                     | Some loop -> decl_asm prog (JMP (label, loop ^ "_finally")) (sprintf "continue to next iteration of %s" loop)
             )
+            | CSWITCH (_, _) -> failwith "TODO switch"
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
         decl_asm prog (MOV (Regst RSP, Regst RBP)) " +";

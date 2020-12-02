@@ -99,6 +99,17 @@ let print_ast (out, color) code =
             )
             | CBREAK -> fprintf out "%sbreak%s\n" (offset ^ curr_full ^ color_ctrl) color_none
             | CCONTINUE -> fprintf out "%scontinue%s\n" (offset ^ curr_full ^ color_ctrl) color_none
+            | CSWITCH (e, cases) -> (
+                fprintf out "%sswitch%s\n" (offset ^ curr_full ^ color_cond) color_none;
+                print_expr_indent (offset ^ curr_empty ^ color_none) true out e;
+                List.iter (fun (_, c, lst) -> (
+                    (match c with
+                        | None -> fprintf out "%sdefault%s\n" (offset ^ curr_empty ^ color_ctrl) color_none
+                        | Some c -> fprintf out "%scase %s%d%s\n" (offset ^ curr_empty ^ color_ctrl) color_const c color_none
+                    );
+                    List.iter (print_code_indent (offset ^ curr_empty ^ color_none) true out) lst
+                )) cases
+            )
     and print_ast_indent offset next out dec_lst =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
