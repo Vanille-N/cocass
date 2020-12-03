@@ -1,6 +1,7 @@
 (** A few used registers (not a complete list) *)
 type register =
     | RAX
+    | RBX
     | RCX | CL
     | RDX
     | RDI
@@ -31,6 +32,7 @@ type instruction =
     | QTO (** convert qword RAX to oword RDX:RAX *)
     | LTQ (** convert dword EAX to qword RAX *)
     | NOP
+    | SYS (** syscall *)
     | CAL of string (** a function call *)
     | FUN of string (** a function declaration *)
     | INC of location (** increment *)
@@ -57,7 +59,7 @@ type instruction =
     | AND of location * location (** binary bitwise and *)
     | IOR of location * location (** binary bitwise incl. or *)
     | CMP of location * location (** compare *)
-    | TST of location * location (** calc flags for binary bitwise and, used for cmp to zero*)
+    | TST of location * location (** calc flags for binary bitwise and, used for cmp to zero *)
 
 (** a list of global declarations and assembler instructions *)
 type program
@@ -67,6 +69,9 @@ val decl_int: program -> string -> unit
 
 (** declare a global string *)
 val decl_str: program -> string -> string -> unit
+
+(** declare a (possibly new) exception *)
+val decl_exc: program -> string -> string
 
 (** add a new instruction *)
 val decl_asm: program -> instruction -> string -> unit

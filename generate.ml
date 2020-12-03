@@ -2,6 +2,7 @@ open Printf
 
 type register =
     | RAX
+    | RBX
     | RCX | CL
     | RDX
     | RDI
@@ -27,6 +28,7 @@ type instruction =
     | QTO
     | LTQ
     | NOP
+    | SYS
     | CAL of string
     | FUN of string
     | INC of location
@@ -59,6 +61,8 @@ type program = {
     mutable idata: string list;
     mutable sdata: (string * string) list;
     mutable text: (instruction * string) list;
+    mutable excs: (string * string) list;
+    mutable exc_count: int;
 }
 
 let decl_int prog name =
@@ -70,11 +74,23 @@ let decl_str prog name value =
 let decl_asm prog instr info =
     prog.text <- (instr, info) :: prog.text
 
+let decl_exc prog exc =
+    match List.assoc_opt exc prog.excs with
+        | None -> (
+            let exc_tag = sprintf ".EX%d" prog.exc_count in
+            prog.exc_count <- prog.exc_count + 1;
+            prog.excs <- (exc, exc_tag) :: prog.excs;
+            exc_tag
+        )
+        | Some tag -> tag
+
 let make_prog () =
     {
         idata = [];
         sdata = [];
         text = [];
+        excs = [];
+        exc_count = 0;
     }
 
 type alignment =
@@ -96,6 +112,7 @@ let generate ((out:out_channel), color) prog =
         color_reg ^ (
             match r with
                 | RAX -> "%rax"
+                | RBX -> "%rbx"
                 | RCX -> "%rcx" | CL -> "%cl"
                 | RDX -> "%rdx"
                 | RDI -> "%rdi"
@@ -144,6 +161,9 @@ let generate ((out:out_channel), color) prog =
     let generate_salign (name, value) =
         [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped value))]
     in
+    let generate_ealign (name, value) =
+        [TextLt (color_var ^ value ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped name))]
+    in
     let generate_talign (instr, info) =
         let fmtinfo = TextLt (
             color_comment
@@ -154,6 +174,7 @@ let generate ((out:out_channel), color) prog =
             | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
             | QTO -> [TextLt (color_instr ^ "    cqto "); Skip 5; fmtinfo]
             | LTQ -> [TextLt (color_instr ^ "    cltq "); Skip 5; fmtinfo]
+            | SYS -> [TextLt (color_instr ^ "    syscall "); Skip 5; fmtinfo]
             | CAL fn -> [TextLt (color_instr ^ "    call "); TextLt (color_tag ^ fn); Skip 4; fmtinfo]
             | FUN fn -> [TextLt ("\n" ^ color_tag ^ fn ^ ":"); Skip 5; fmtinfo]
             | TAG (fn, tag) -> [TextLt (sprintf "  %s%s.%s:" color_tag fn tag); Skip 5; fmtinfo]
@@ -164,7 +185,10 @@ let generate ((out:out_channel), color) prog =
             | DIV l -> [TextLt (color_instr ^ "    idiv "); Node (locate l); Skip 3; fmtinfo]
             | JMP (fn, tag) -> [
                 TextLt (color_instr ^ "    jmp ");
-                TextLt (sprintf "%s%s.%s" color_tag fn tag);
+                (if fn <> ""
+                    then TextLt (sprintf "%s%s.%s" color_tag fn tag)
+                    else TextLt (color_tag ^ tag)
+                );
                 Skip 4; fmtinfo]
             | SUB (s, d) -> [
                 TextLt (color_instr ^ "    sub ");
@@ -296,6 +320,9 @@ let generate ((out:out_channel), color) prog =
     let sdata = List.rev prog.sdata in
     let salign = List.map generate_salign sdata in
     List.iter (display_align out [10; 0]) salign;
+    let edata = List.rev prog.excs in
+    let ealign = List.map generate_ealign edata in
+    List.iter (display_align out [10; 0]) ealign;
     fprintf out "\n";
     fprintf out "    %s.global %smain\n" color_meta color_tag;
     fprintf out "    %s.text" color_meta;
