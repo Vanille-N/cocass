@@ -216,6 +216,13 @@ let generate_asm decl_list =
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
+            (if name = "main" then (* setup exception handler *) (
+                decl_asm prog (LEA (FnPtr handler, Regst RAX)) "init exception handler";
+                decl_asm prog (LEA (Globl handler_addr, Regst RDI)) " +";
+                decl_asm prog (MOV (Regst RAX, Deref RDI)) " +";
+                decl_asm prog (LEA (Globl handler_base, Regst RDI)) " +";
+                decl_asm prog (MOV (Regst RBP, Deref RDI)) " +";
+            ));
             gen_code (nb_args+1, args :: frame) (name, None, None) code;
             leave_stackframe name;
         )
