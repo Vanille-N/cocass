@@ -75,9 +75,9 @@ let print_ast (out, color) code =
             | CIF (cond, code_true, code_false) -> (
                 fprintf out "%scond\n" (offset ^ curr_full ^ color_cond);
                 print_expr_indent (offset ^ color_none ^ curr_empty ^ color_cond) true out cond;
-                fprintf out "%scase true\n" (offset ^ curr_empty ^ color_cond ^ bifurc ^ color_none);
+                fprintf out "%swhen true\n" (offset ^ curr_empty ^ color_cond ^ bifurc ^ color_none);
                 print_code_indent (offset ^ curr_empty ^ color_cond ^ cont ^ color_none) false out code_true;
-                fprintf out "%scase false\n" (offset ^ curr_empty ^ color_cond ^ termin ^ color_none);
+                fprintf out "%swhen false\n" (offset ^ curr_empty ^ color_cond ^ termin ^ color_none);
                 print_code_indent (offset ^ curr_empty ^ blank) false out code_false;
             )
             | CWHILE (cond, code, finally, test_at_start) -> (
@@ -112,6 +112,23 @@ let print_ast (out, color) code =
                 )) cases;
                 fprintf out "%sdefault%s\n" (offset ^ curr_empty ^ color_ctrl) color_none;
                 print_code_indent (offset ^ curr_empty ^ color_cond) false out deflt;
+            )
+            | CTHROW (exc, value) -> (
+                fprintf out "%sthrow %s with\n" (offset ^ curr_full ^ color_ctrl) (color_fun ^ exc ^ color_none);
+                print_expr_indent (offset ^ curr_empty ^ color_none) false out value;
+            )
+            | CTRY (block, catch, finally) -> (
+                fprintf out "%stry%s\n" (offset ^ curr_full ^ color_ctrl) color_none;
+                print_code_indent (offset ^ curr_empty ^ color_ctrl) true out block;
+                List.iter (fun (_, exc, bind, handle) ->
+                    fprintf out "%scatch %s as %s\n" (offset ^ curr_empty ^ color_ctrl) (color_fun ^ exc ^ color_none) (color_var ^ bind ^ color_none);
+                    print_code_indent (offset ^ curr_empty ^ color_ctrl) true out handle;
+                ) catch;
+                fprintf out "%sfinally%s\n" (offset ^ curr_empty ^ color_ctrl) color_none;
+                (match finally with
+                    | None -> ()
+                    | Some c -> print_code_indent (offset ^ curr_empty ^ color_ctrl) false out c;
+                );
             )
     and print_ast_indent offset next out dec_lst =
         let curr_full = if next then bifurc else termin in
