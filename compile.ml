@@ -34,18 +34,32 @@ let rec is_addr = function
 let tag_of_int i = (if i < 0 then "_neg_" else "_pos_") ^ (string_of_int (abs i))
 
 let extract_switch_cases cases =
-    let rec is_unique = function
+    let rec dup = function
         | [] -> None
-        | a :: [] -> None
-        | a :: b :: tl when a = b -> Some a
-        | _ :: tl -> is_unique tl
+        | a :: b :: _ when a = b -> Some a
+        | _ :: tl -> dup tl
     in
     let tags = List.map (fun (_, c, _) -> c) cases in
     let sorted = List.sort compare tags in
-    match is_unique sorted with
+    match dup sorted with
         | Some dup -> Error dup
         | None -> Ok tags
 
+let find_duplicate_catch catches =
+    let rec dup = function
+        | [] -> None
+        | a :: b :: _ when a = b -> Some a
+        | _ :: tl -> dup tl
+    in
+    let rec wildcard_is_last = function
+        | [] -> true
+        | "_" :: [] -> true
+        | "_" :: tl -> false
+        | _ :: tl -> wildcard_is_last tl
+    in
+    let tags = List.map (fun (_, e, _, _) -> e) catches in
+    let sorted = List.sort compare tags in
+    if wildcard_is_last tags then dup sorted else Some "_"
 
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
@@ -154,18 +168,18 @@ let generate_asm decl_list =
             | CSWITCH (e, cases, deflt) -> (
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
-                decl_asm prog NOP "enter switch";
+                decl_asm prog NOP "# enter switch";
                 gen_expr (depth, frame) (label, tagbrk, tagcont) e;
                 match extract_switch_cases cases with
                     | Error c -> Error.error (Some (fst code)) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
-                        decl_asm prog NOP "begin jump table";
+                        decl_asm prog NOP "# begin jump table";
                         List.iter (fun c ->
                             decl_asm prog (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
                             decl_asm prog (JEQ (label, tagbase ^ (tag_of_int c))) "";
                         ) vals;
                         decl_asm prog (JMP (label, tagbase ^ "_default")) "no match found";
-                        decl_asm prog NOP "end jump table";
+                        decl_asm prog NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
                             decl_asm prog (TAG (label, tagbase ^ (tag_of_int c))) "";
                             List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont, istry)) blk;
@@ -173,10 +187,13 @@ let generate_asm decl_list =
                         decl_asm prog (TAG (label, tagbase ^ "_default")) "";
                         gen_code (depth, frame) (label, Some tagbase, tagcont, istry) deflt;
                         decl_asm prog (TAG (label, tagbase ^ "_done")) "";
-                        decl_asm prog NOP "exit switch";
+                        decl_asm prog NOP "# exit switch";
                     )
             )
             | CTHROW (name, value) -> (
+                (if name = "_" then
+                    Error.error (Some (fst code)) "wildcard _ exception may not be thrown.\n"
+                );
                 let id = decl_exc prog name in
                 gen_expr (depth, frame) (label, tagbrk, tagcont) value;
                 decl_asm prog (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
@@ -187,6 +204,11 @@ let generate_asm decl_list =
                 decl_asm prog (JMP ("", "*%rsi")) "";
             )
             | CTRY (code, catches, finally) -> (
+                (match find_duplicate_catch catches with
+                    | None -> ()
+                    | Some "_" -> Error.error (Some (fst code)) "in next handler: all catch clauses after wildcard _ are unreachable.\n"
+                    | Some e -> Error.error (Some (fst code)) (sprintf "in next handler: duplicate catch. %s is already handled by a previous clause.\n" e)
+                );
                 let tagbase = sprintf "%d_try" !label_cnt in
                 incr label_cnt;
                 (* INIT TRY *)
@@ -224,15 +246,33 @@ let generate_asm decl_list =
                 retrieve depth RCX;
                 decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
                 List.iter (fun (_, name, bind, handle) -> (
-                    let id = decl_exc prog name in
-                    decl_asm prog (LEA (Globl id, Regst RSI)) "exception name";
-                    decl_asm prog (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
-                    decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
-                    store depth RAX;
-                    gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont, istry) handle;
-                    decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
-                    decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
-                    decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
+                    if name <> "_" then (
+                        let id = decl_exc prog name in
+                        decl_asm prog (LEA (Globl id, Regst RSI)) "exception name";
+                        decl_asm prog (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
+                        decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
+                        if bind <> "_" then (
+                            store depth RAX;
+                            gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont, istry) handle;
+                        ) else (
+                            (* _ does not induce a variable binding *)
+                            gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
+                        );
+                        decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
+                        decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                        decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
+                    ) else (
+                        (* _ matches any exception *)
+                        decl_asm prog NOP "# wildcard exception";
+                        if bind <> "_" then (
+                            Error.error (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
+                        ) else (
+                            (* _ does not induce a variable binding *)
+                            gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
+                        );
+                        decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
+                        decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                    )
                 )) catches;
                 (* BEGIN FINALLY *)
                 decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
