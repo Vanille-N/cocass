@@ -189,6 +189,58 @@ let generate_asm decl_list =
                 decl_asm prog (MOV (Regst RBP, Deref RSI)) "new handler base";
                 (* BEGIN TRY *)
                 gen_code (depth+2, frame) (label, tagbrk, tagcont) code;
+                (* END TRY *)
+                decl_asm prog NOP "try block exited normally, remove handler";
+                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
+                retrieve (depth+1) RCX;
+                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "";
+                retrieve depth RCX;
+                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                decl_asm prog (MOV (Const 0, Regst RDI)) "no unhandled exception remains";
+                decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                (* BEGIN CATCH *)
+                decl_asm prog (TAG (label, tagbase ^ "_catch")) "try block aborted, remove handler";
+                decl_asm prog NOP " -> exception name is in %rdi";
+                decl_asm prog NOP " -> exception parameter is in %rax";
+                decl_asm prog (MOV (Regst RBP, Regst RSP)) "";
+                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
+                retrieve (depth+1) RCX;
+                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "";
+                retrieve depth RCX;
+                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                List.iter (fun (_, name, bind, handle) -> (
+                    let id = decl_exc prog name in
+                    decl_asm prog (LEA (Globl id, Regst RSI)) "exception name";
+                    decl_asm prog (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
+                    decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
+                    store depth RAX;
+                    gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont) handle;
+                    decl_asm prog (MOV (Const 0, Regst RAX)) "mark as handled";
+                    decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                    decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
+                )) catches;
+                (* BEGIN FINALLY *)
+                decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
+                store depth RAX;
+                store (depth+1) RDI;
+                (match finally with
+                    | None -> ()
+                    | Some code -> gen_code (depth+2, frame) (label, tagbrk, tagcont) code
+                );
+                retrieve (depth+1) RDI;
+                decl_asm prog (CMP (Const 0, Regst RDI)) "check if exception was handled";
+                decl_asm prog (JEQ (label, tagbase ^ "_end")) "done with the try block";
+                retrieve depth RAX;
+                (* MAYBE RETHROW *)
+                decl_asm prog NOP "rethrow";
+                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
+                decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
+                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
+                decl_asm prog (MOV (Deref RSI, Regst RSI)) " +";
+                decl_asm prog (JMP ("", "*%rsi")) "";
+                decl_asm prog (TAG (label, tagbase ^ "_end")) "";
             )
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
