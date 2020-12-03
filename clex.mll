@@ -100,6 +100,7 @@ rule ctoken = parse
     | "auto" { count (Lexing.lexeme lexbuf); AUTO }
     | "break" { count (Lexing.lexeme lexbuf); BREAK }
     | "case" { count (Lexing.lexeme lexbuf); CASE }
+    | "catch" { count (Lexing.lexeme lexbuf); CATCH }
     | "char" { count (Lexing.lexeme lexbuf); CHAR }
     | "const"  { count (Lexing.lexeme lexbuf); CONST }
     | "continue" { count (Lexing.lexeme lexbuf); CONTINUE }
@@ -109,6 +110,7 @@ rule ctoken = parse
     | "else" { count (Lexing.lexeme lexbuf); ELSE }
     | "enum" { count (Lexing.lexeme lexbuf); ENUM }
     | "extern" { count (Lexing.lexeme lexbuf); EXTERN }
+    | "finally" { count (Lexing.lexeme lexbuf); FINALLY }
     | "float" { count (Lexing.lexeme lexbuf); FLOATING }
     | "for" { count (Lexing.lexeme lexbuf); FOR }
     | "goto" { count (Lexing.lexeme lexbuf); GOTO }
@@ -123,6 +125,8 @@ rule ctoken = parse
     | "static" { count (Lexing.lexeme lexbuf); STATIC }
     | "struct" { count (Lexing.lexeme lexbuf); STRUCT }
     | "switch" { count (Lexing.lexeme lexbuf); SWITCH }
+    | "throw" { count (Lexing.lexeme lexbuf); THROW }
+    | "try" { count (Lexing.lexeme lexbuf); TRY }
     | "typedef" { count (Lexing.lexeme lexbuf); TYPEDEF }
     | "union" { count (Lexing.lexeme lexbuf); UNION }
     | "unsigned" { count (Lexing.lexeme lexbuf); UNSIGNED }
