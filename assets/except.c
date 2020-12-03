@@ -40,8 +40,9 @@ int test_throw(int i) {
 // }
 //
 int test_multi_catch (int i) {
+    int i;
     try {
-        return test_throw(i);
+        i = test_throw(i);
     } catch (Foo x) {
         printf("Caught Foo(%d)\n", x);
     } catch (Bar y) {
@@ -52,6 +53,7 @@ int test_multi_catch (int i) {
     } finally {
         printf("Finally...\n");
     }
+    return i;
 }
 //
 // int test_no_error (int i) {

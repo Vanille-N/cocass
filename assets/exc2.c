@@ -28,11 +28,16 @@ int main (int argc, char **argv)
     }
   j = atoi (argv[1]);
   try {
-    f (0, j);
-    fprintf (stderr, "Pas trouve...\n");
+    if (j<0)
+      fprintf (stderr, "Pas trouve...\n");
+    else
+      f (0, j);
   }
   catch (Trouve n) {
     fprintf (stderr, "La suite termine apres %d iterations en partant de %d.\n", n, j);
+  }
+  finally {
+    fprintf (stderr, "*Fin* (ce message doit toujours s'afficher).\n");
   }
   fflush (stderr);
   return 0;
