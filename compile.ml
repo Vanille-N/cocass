@@ -84,12 +84,12 @@ let generate_asm decl_list =
             | (CFUN (_, name, _, _)) :: rest -> name :: (scan_toplevel rest)
         in scan_toplevel decl_list
     ) in
-    let rec gen_code (depth, frame) (label, tagbrk, tagcont) code =
+    let rec gen_code (depth, frame) (label, tagbrk, tagcont, istry) code =
         match snd code with
             | CBLOCK (decl_lst, code_lst) -> (
                 let frame = (make_scope depth decl_lst) :: frame in
                 let depth = depth + List.length decl_lst in
-                List.iter (gen_code (depth, frame) (label, tagbrk, tagcont)) code_lst
+                List.iter (gen_code (depth, frame) (label, tagbrk, tagcont, istry)) code_lst
             )
             | CEXPR expr -> gen_expr (depth, frame) (label, tagbrk, tagcont) expr
             | CIF (cond, do_true, do_false) -> (
@@ -98,10 +98,10 @@ let generate_asm decl_list =
                 gen_expr (depth, frame) (label, tagbrk, tagcont) cond;
                 decl_asm prog (TST (Regst RAX, Regst RAX)) "apply cond";
                 decl_asm prog (JEQ (label, tagbase ^ "_false")) "";
-                gen_code (depth, frame) (label, tagbrk, tagcont) do_true;
+                gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_true;
                 decl_asm prog (JMP (label, tagbase ^ "_done")) "end case true";
                 decl_asm prog (TAG (label, tagbase ^ "_false")) "begin case false";
-                gen_code (depth, frame) (label, tagbrk, tagcont) do_false;
+                gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_false;
                 decl_asm prog (TAG (label, tagbase ^ "_done")) "end ternary";
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
@@ -109,7 +109,7 @@ let generate_asm decl_list =
                 incr label_cnt;
                 if test_at_start then decl_asm prog (JMP (label, tagbase ^ "_check")) "";
                 decl_asm prog (TAG (label, tagbase ^ "_start")) "";
-                gen_code (depth, frame) (label, Some tagbase, Some tagbase) body;
+                gen_code (depth, frame) (label, Some tagbase, Some tagbase, istry) body;
                 decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
                 (match finally with
                     | None -> ()
@@ -126,17 +126,20 @@ let generate_asm decl_list =
                 decl_asm prog (JMP (label, "return")) " +";
             )
             | CRETURN (Some ret) -> (
-                gen_expr (depth, frame) (label, tagbrk, tagcont) ret;
-                decl_asm prog (JMP (label, "return")) "return";
+                if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
+                else (
+                    gen_expr (depth, frame) (label, tagbrk, tagcont) ret;
+                    decl_asm prog (JMP (label, "return")) "return";
+                )
             )
             | CBREAK -> (
                 match tagbrk with
-                    | None -> Error.error (Some (fst code)) "no loop to break out of"
+                    | None -> Error.error (Some (fst code)) "no loop to break out of. Note that break is not allowed inside a try block"
                     | Some tagbrk -> decl_asm prog (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
             )
             | CCONTINUE -> (
                 match tagcont with
-                    | None -> Error.error (Some (fst code)) "no loop to continue"
+                    | None -> Error.error (Some (fst code)) "no loop to continue. Note that continue is not allowed inside a try block"
                     | Some tagcont -> decl_asm prog (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
             | CSWITCH (e, cases, deflt) -> (
@@ -156,10 +159,10 @@ let generate_asm decl_list =
                         decl_asm prog NOP "end jump table";
                         List.iter (fun (_, c, blk) ->
                             decl_asm prog (TAG (label, tagbase ^ (tag_of_int c))) "";
-                            List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont)) blk;
+                            List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont, istry)) blk;
                         ) cases;
                         decl_asm prog (TAG (label, tagbase ^ "_default")) "";
-                        gen_code (depth, frame) (label, Some tagbase, tagcont) deflt;
+                        gen_code (depth, frame) (label, Some tagbase, tagcont, istry) deflt;
                         decl_asm prog (TAG (label, tagbase ^ "_done")) "";
                         decl_asm prog NOP "exit switch";
                     )
@@ -189,7 +192,7 @@ let generate_asm decl_list =
                 store (depth+1) RAX;
                 decl_asm prog (MOV (Regst RBP, Deref RSI)) "new handler base";
                 (* BEGIN TRY *)
-                gen_code (depth+2, frame) (label, tagbrk, tagcont) code;
+                gen_code (depth+2, frame) (label, None, None, true) code;
                 (* END TRY *)
                 decl_asm prog NOP "# try block exited normally, remove handler";
                 decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
@@ -217,7 +220,7 @@ let generate_asm decl_list =
                     decl_asm prog (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
                     decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
                     store depth RAX;
-                    gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont) handle;
+                    gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont, istry) handle;
                     decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
                     decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
                     decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
@@ -228,13 +231,13 @@ let generate_asm decl_list =
                 store (depth+1) RDI;
                 (match finally with
                     | None -> ()
-                    | Some code -> gen_code (depth+2, frame) (label, tagbrk, tagcont) code
+                    | Some code -> gen_code (depth+2, frame) (label, tagbrk, tagcont, istry) code
                 );
+                (* MAYBE RETHROW *)
                 retrieve (depth+1) RDI;
                 decl_asm prog (CMP (Const 0, Regst RDI)) "check if exception was handled";
                 decl_asm prog (JEQ (label, tagbase ^ "_end")) "done with the try block";
                 retrieve depth RAX;
-                (* MAYBE RETHROW *)
                 decl_asm prog NOP "# no matching catch found, rethrow";
                 decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
                 decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
@@ -292,7 +295,7 @@ let generate_asm decl_list =
                 decl_asm prog (LEA (Globl handler_base, Regst RDI)) " +";
                 decl_asm prog (MOV (Regst RBP, Deref RDI)) " +";
             ));
-            gen_code (nb_args+1, args :: frame) (name, None, None) code;
+            gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
             leave_stackframe name;
         )
     and gen_expr (depth, frame) (label, tagbrk, tagcont) expr = match snd expr with
