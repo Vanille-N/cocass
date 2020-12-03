@@ -62,6 +62,12 @@ let extract_switch_cases cases =
  * *** RCX is 4'th argument
  * *** R08 is 5'th argument
  * *** R09 is 6'th argument
+ *
+ * Regarding exceptions:
+ * *** .exc_addr(%rip) is current handler address
+ * *** .exc_base(%rip) is current handler base pointer
+ * *** RAX is exception parameter
+ * *** RDI is exception identifier if not NULL
  * <><><> <><> <><><>
  *)
 let generate_asm decl_list =
@@ -122,8 +128,11 @@ let generate_asm decl_list =
                 decl_asm prog (TAG (label, tagbase ^ "_done")) "";
             )
             | CRETURN None -> (
-                decl_asm prog (MOV (Const 0, Regst RAX)) "return 0";
-                decl_asm prog (JMP (label, "return")) " +";
+                if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
+                else (
+                    decl_asm prog (MOV (Const 0, Regst RAX)) "return 0";
+                    decl_asm prog (JMP (label, "return")) " +";
+                )
             )
             | CRETURN (Some ret) -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
@@ -134,12 +143,12 @@ let generate_asm decl_list =
             )
             | CBREAK -> (
                 match tagbrk with
-                    | None -> Error.error (Some (fst code)) "no loop to break out of. Note that break is not allowed inside a try block"
+                    | None -> Error.error (Some (fst code)) "no loop to break out of. Note that break is not allowed directly inside a try block"
                     | Some tagbrk -> decl_asm prog (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
             )
             | CCONTINUE -> (
                 match tagcont with
-                    | None -> Error.error (Some (fst code)) "no loop to continue. Note that continue is not allowed inside a try block"
+                    | None -> Error.error (Some (fst code)) "no loop to continue. Note that continue is not allowed directly inside a try block"
                     | Some tagcont -> decl_asm prog (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
             | CSWITCH (e, cases, deflt) -> (
