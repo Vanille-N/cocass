@@ -174,6 +174,22 @@ let generate_asm decl_list =
                 decl_asm prog (MOV (Deref RSI, Regst RSI)) " +";
                 decl_asm prog (JMP ("", "*%rsi")) "";
             )
+            | CTRY (code, catches, finally) -> (
+                let tagbase = sprintf "%d_try" !label_cnt in
+                incr label_cnt;
+                (* INIT TRY *)
+                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
+                decl_asm prog (MOV (Deref RSI, Regst RAX)) " +";
+                store depth RAX;
+                decl_asm prog (LEA (Globl (label ^ "." ^ tagbase ^ "_catch"), Regst RAX)) "new handler addr";
+                decl_asm prog (MOV (Regst RAX, Deref RSI)) " +";
+                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "save previous handler base";
+                decl_asm prog (MOV (Deref RSI, Regst RAX)) " +";
+                store (depth+1) RAX;
+                decl_asm prog (MOV (Regst RBP, Deref RSI)) "new handler base";
+                (* BEGIN TRY *)
+                gen_code (depth+2, frame) (label, tagbrk, tagcont) code;
+            )
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
         decl_asm prog (MOV (Regst RSP, Regst RBP)) " +";
