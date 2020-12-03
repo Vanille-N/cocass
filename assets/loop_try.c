@@ -11,9 +11,16 @@ int foo() {
         } catch (Three _) {
             printf("Found 3\n");
         } catch (Seven _) {
-            continue;
+            continue; // OK
+            // break; // OK
+            // return; // OK
+            // return 1; // OK
         } finally {
             printf("Always except 7 (%d).\n", i);
+            // continue; // OK
+            // break; // OK
+            // return; // OK
+            // return 1; // OK
         }
     }
     printf("Never.\n");
