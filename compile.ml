@@ -537,6 +537,21 @@ let generate_asm decl_list =
     ] in
     let global = get_global_vars decl_list in
     List.iter (gen_decl (global::[universal])) decl_list;
+    (
+        decl_str prog ".LCEXC" "Unhandled exception %s(%d)\n";
+        decl_asm prog (FUN ".exc_handler") "handle uncaught exceptions";
+        decl_asm prog NOP " -> exception name is in %rdi";
+        decl_asm prog NOP " -> exception parameter is in %rax";
+        decl_asm prog (MOV (Regst RAX, Regst RBX)) "save parameter";
+        decl_asm prog (MOV (Regst RDI, Regst RSI)) "2nd arg is name";
+        decl_asm prog (MOV (Regst RAX, Regst RDX)) "3rd arg is parameter";
+        decl_asm prog (LEA (Globl ".LCEXC", Regst RDI)) "1st arg is format";
+        decl_asm prog (MOV (Const 0, Regst RAX)) "no args on the stack";
+        decl_asm prog (CAL "printf") "";
+        decl_asm prog (MOV (Regst RBX, Regst RDI)) "value";
+        decl_asm prog (MOV (Const 60, Regst RAX)) "code for exit";
+        decl_asm prog SYS "";
+    );
     prog
 
 
