@@ -68,6 +68,11 @@ let generate_asm decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
     let str_count = ref 0 in
+    let handler = ".exc_handler" in
+    let handler_addr = ".exc_addr" in
+    let handler_base = ".exc_base" in
+    decl_int prog handler_addr;
+    decl_int prog handler_base;
     let extract_decl_name = function
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
@@ -158,6 +163,16 @@ let generate_asm decl_list =
                         decl_asm prog (TAG (label, tagbase ^ "_done")) "";
                         decl_asm prog NOP "exit switch";
                     )
+            )
+            | CTHROW (name, value) -> (
+                let id = decl_exc prog name in
+                gen_expr (depth, frame) (label, tagbrk, tagcont) value;
+                decl_asm prog (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
+                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
+                decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
+                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
+                decl_asm prog (MOV (Deref RSI, Regst RSI)) " +";
+                decl_asm prog (JMP ("", "*%rsi")) "";
             )
     and enter_stackframe () =
         decl_asm prog (PSH (Regst RBP)) "enter stackframe";
