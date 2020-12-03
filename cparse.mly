@@ -51,6 +51,7 @@ let parse_error msg =
 %token CHAR SHORT INTEGER LONG SIGNED UNSIGNED FLOATING DOUBLE CONST VOLATILE VOID
 %token STRUCT UNION ENUM ELLIPSIS EOF
 %token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
+%token TRY THROW CATCH FINALLY
 %token ASM
 
 %type <(CAST.var_declaration list)> translation_unit
@@ -343,6 +344,7 @@ statement:
     | selection_statement { $1 }
     | iteration_statement { $1 }
     | jump_statement { $1 }
+    | handler_statement { $1 }
 ;
 
 open_block  : open_brace  { $1 };
@@ -452,9 +454,35 @@ iteration_statement:
     }
 ;
 
+trykw: TRY { getloc () };
+catchkw: CATCH { getloc () };
+finallykw: FINALLY { getloc () };
+
+finally: finallykw statement
+    { $1, $2 }
+;
+
+catch: catchkw OPEN_PAREN_CHR identifier identifier CLOSE_PAREN_CHR statement {
+    $1, snd $3, snd $4, $6 }
+;
+
+catch_list:
+    | { [] }
+    | catch catch_list
+        { $1 :: $2 }
+;
+
+handler_statement:
+    | trykw statement catch_list {
+        $1, CTRY ($2, $3, None) }
+    | trykw statement catch_list finally {
+        $1, CTRY ($2, $3, Some (snd $4)) }
+;
+
 return   : RETURN   { getloc () };
 break    : BREAK    { getloc () };
 continue : CONTINUE { getloc () };
+throw    : THROW    { getloc () };
 
 jump_statement:
     | return SEMI_CHR
@@ -465,6 +493,8 @@ jump_statement:
         { $1, CBREAK }
     | continue SEMI_CHR
         { $1, CCONTINUE }
+    | throw identifier OPEN_PAREN_CHR expression CLOSE_PAREN_CHR
+        { $1, CTHROW (snd $2, $4) }
 ;
 
 translation_unit:
