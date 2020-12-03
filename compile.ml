@@ -178,6 +178,7 @@ let generate_asm decl_list =
                 let tagbase = sprintf "%d_try" !label_cnt in
                 incr label_cnt;
                 (* INIT TRY *)
+                decl_asm prog NOP "# enter try block";
                 decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
                 decl_asm prog (MOV (Deref RSI, Regst RAX)) " +";
                 store depth RAX;
@@ -190,7 +191,7 @@ let generate_asm decl_list =
                 (* BEGIN TRY *)
                 gen_code (depth+2, frame) (label, tagbrk, tagcont) code;
                 (* END TRY *)
-                decl_asm prog NOP "try block exited normally, remove handler";
+                decl_asm prog NOP "# try block exited normally, remove handler";
                 decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
                 retrieve (depth+1) RCX;
                 decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
@@ -217,7 +218,7 @@ let generate_asm decl_list =
                     decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
                     store depth RAX;
                     gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont) handle;
-                    decl_asm prog (MOV (Const 0, Regst RAX)) "mark as handled";
+                    decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
                     decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
                     decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
                 )) catches;
@@ -234,7 +235,7 @@ let generate_asm decl_list =
                 decl_asm prog (JEQ (label, tagbase ^ "_end")) "done with the try block";
                 retrieve depth RAX;
                 (* MAYBE RETHROW *)
-                decl_asm prog NOP "rethrow";
+                decl_asm prog NOP "# no matching catch found, rethrow";
                 decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
                 decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
                 decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
@@ -574,7 +575,7 @@ let generate_asm decl_list =
             decl_asm prog (TAG (label, tagbase ^ "_done")) " +";
         )
         | EIF (cond, expr_true, expr_false) -> (
-            let tagbase = sprintf "%d_tern_" !label_cnt in
+            let tagbase = sprintf "%d_tern" !label_cnt in
             incr label_cnt;
             gen_expr (depth, frame) (label, tagbrk, tagcont) cond;
             decl_asm prog (TST (Regst RAX, Regst RAX)) "apply ternary";

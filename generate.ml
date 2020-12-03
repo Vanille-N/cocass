@@ -168,7 +168,7 @@ let generate ((out:out_channel), color) prog =
         let fmtinfo = TextLt (
             color_comment
             ^ (match instr with FUN _ -> " " | _ -> "")
-            ^ (if info = "" then "#" else "# " ^ info)
+            ^ (if info = "" then "#" else if String.get info 0 = '#' then "#" ^ info else "# " ^ info)
         ) in
         match instr with
             | RET -> [TextLt (color_instr ^ "    ret "); Skip 5; fmtinfo]
@@ -240,6 +240,7 @@ let generate ((out:out_channel), color) prog =
                 Skip 3; fmtinfo]
             | NOP -> if info = ""
                 then [TextLt (color_instr ^ "    nop "); Skip 5; fmtinfo]
+                else if String.get info 0 = '#' then [Skip 1; fmtinfo; Skip 5]
                 else [Skip 6; fmtinfo]
             | CMP (a, b) -> [
                 TextLt (color_instr ^ "    cmp ");
