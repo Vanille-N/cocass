@@ -664,11 +664,12 @@ let generate_asm decl_list =
         decl_asm prog NOP " -> exception name is in %rdi";
         decl_asm prog NOP " -> exception parameter is in %rax";
         decl_asm prog (MOV (Regst RAX, Regst RBX)) "save parameter";
-        decl_asm prog (MOV (Regst RDI, Regst RSI)) "2nd arg is name";
-        decl_asm prog (MOV (Regst RAX, Regst RDX)) "3rd arg is parameter";
-        decl_asm prog (LEA (Globl ".LCEXC", Regst RDI)) "1st arg is format";
+        decl_asm prog (MOV (Regst RAX, Regst RCX)) "4th arg is parameter";
+        decl_asm prog (MOV (Regst RDI, Regst RDX)) "3rd arg is name";
+        decl_asm prog (LEA (Globl ".LCEXC", Regst RSI)) "2nd arg is format";
+        decl_asm prog (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
         decl_asm prog (MOV (Const 0, Regst RAX)) "no args on the stack";
-        decl_asm prog (CAL "printf") "";
+        decl_asm prog (CAL "fprintf") "";
         decl_asm prog (MOV (Regst RBX, Regst RDI)) "value";
         decl_asm prog (MOV (Const 60, Regst RAX)) "code for exit";
         decl_asm prog SYS "";
