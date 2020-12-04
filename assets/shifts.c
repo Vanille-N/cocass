@@ -1,4 +1,11 @@
 int main() {
-    printf("1 << 10 = %d\n", 1 << 10);
-    printf("100 >> 2 = %d\n", 100 >> 2);
+    int i, j;
+
+    for (i = 0; i < 1000; i++) {
+        for (j = 0; j < 5; j++) {
+            printf("%ld ", i << j);
+            printf("%ld ", i >> j);
+        }
+        putchar('\n');
+    }
 }
