@@ -40,14 +40,14 @@ let () =
     in
     Error.flush_error ();
 
+    if !c_O then (
+        Reduce.reduce_exprs := true
+    );
     if !c_D then (
         Cprint.print_declarations (Format.std_formatter, Pigment.has_color && (not !c_Color)) c
     );
     if !c_A then (
         Cprint.print_ast (Format.std_formatter, Pigment.has_color && (not !c_Color))  c
-    );
-    if !c_O then (
-        Verbose.reduce_exprs := true
     );
 
     if not (!c_D || !c_A) then (

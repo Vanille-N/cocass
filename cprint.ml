@@ -70,11 +70,11 @@ let print_ast (out, color) code =
             )
             | CEXPR expr -> (
                 fprintf out "%sexpr\n" (offset ^ curr_full ^ color_none);
-                print_expr_indent (offset ^ curr_empty ^ color_none) false out expr;
+                print_expr_indent (offset ^ curr_empty ^ color_none) false out (Reduce.redexp [] expr);
             )
             | CIF (cond, code_true, code_false) -> (
                 fprintf out "%scond\n" (offset ^ curr_full ^ color_cond);
-                print_expr_indent (offset ^ color_none ^ curr_empty ^ color_cond) true out cond;
+                print_expr_indent (offset ^ color_none ^ curr_empty ^ color_cond) true out (Reduce.redexp [] cond);
                 fprintf out "%swhen true\n" (offset ^ curr_empty ^ color_cond ^ bifurc ^ color_none);
                 print_code_indent (offset ^ curr_empty ^ color_cond ^ cont ^ color_none) false out code_true;
                 fprintf out "%swhen false\n" (offset ^ curr_empty ^ color_cond ^ termin ^ color_none);
@@ -82,7 +82,7 @@ let print_ast (out, color) code =
             )
             | CWHILE (cond, code, finally, test_at_start) -> (
                 fprintf out "%s%s\n" (offset ^ curr_full ^ color_loop) (if not test_at_start then "do-while" else if finally = None then "while" else "for-loop");
-                print_expr_indent (offset ^ color_none ^ curr_empty ^ color_loop) true out cond;
+                print_expr_indent (offset ^ color_none ^ curr_empty ^ color_loop) true out (Reduce.redexp [] cond);
                 (match finally with
                     | None -> (
                         fprintf out "%srepeat\n" (offset ^ curr_empty ^ color_loop ^ termin ^ color_none);
@@ -92,20 +92,20 @@ let print_ast (out, color) code =
                         fprintf out "%srepeat\n" (offset ^ curr_empty ^ color_loop ^ bifurc ^ color_none);
                         print_code_indent (offset ^ curr_empty ^ color_loop ^ cont ^ color_none) false out code;
                         fprintf out "%sfinally\n" (offset ^ curr_empty ^ color_loop ^ termin ^ color_none);
-                        print_expr_indent (offset ^ curr_empty ^ blank) false out e;
+                        print_expr_indent (offset ^ curr_empty ^ blank) false out (Reduce.redexp [] e);
                     )
                 );
             )
             | CRETURN None -> fprintf out "%sreturn%s void\n" (offset ^ curr_full ^ color_ctrl) color_none
             | CRETURN (Some ret) -> (
                 fprintf out "%sreturn%s\n" (offset ^ curr_full ^ color_ctrl) color_none;
-                print_expr_indent (offset ^ curr_empty ^ color_none) false out ret;
+                print_expr_indent (offset ^ curr_empty ^ color_none) false out (Reduce.redexp [] ret);
             )
             | CBREAK -> fprintf out "%sbreak%s\n" (offset ^ curr_full ^ color_ctrl) color_none
             | CCONTINUE -> fprintf out "%scontinue%s\n" (offset ^ curr_full ^ color_ctrl) color_none
             | CSWITCH (e, cases, deflt) -> (
                 fprintf out "%sswitch%s\n" (offset ^ curr_full ^ color_cond) color_none;
-                print_expr_indent (offset ^ curr_empty ^ color_cond) true out e;
+                print_expr_indent (offset ^ curr_empty ^ color_cond) true out (Reduce.redexp [] e);
                 List.iter (fun (_, c, lst) -> (
                     fprintf out "%scase %s%d%s\n" (offset ^ curr_empty ^ color_ctrl) color_const c color_none;
                     List.iter (print_code_indent (offset ^ curr_empty ^ color_cond) true out) lst
@@ -115,7 +115,7 @@ let print_ast (out, color) code =
             )
             | CTHROW (exc, value) -> (
                 fprintf out "%sthrow %s with\n" (offset ^ curr_full ^ color_ctrl) (color_fun ^ exc ^ color_none);
-                print_expr_indent (offset ^ curr_empty ^ color_none) false out value;
+                print_expr_indent (offset ^ curr_empty ^ color_none) false out (Reduce.redexp [] value);
             )
             | CTRY (block, catch, finally) -> (
                 fprintf out "%stry%s\n" (offset ^ curr_full ^ color_ctrl) color_none;

@@ -4,26 +4,27 @@ from subprocess import run
 import sys
 
 assets = [
-    ("easy", [],
+    ("easy", [[], ["-O"]],
         "ex0", "ex1", "ex2", "add",
         "ret", "scoped_ret",
     ),
-    ("call", [],
+    ("call", [[], ["-O"]],
         "argcount", "noreturn", "multicall",
         "has_args", "hello", "argsort",
         "call", "exit", "put", "printglob",
     ),
-    ("calc", [],
+    ("calc", [[], ["-O"]],
         "fact", "binops", "bitwise", "cmp",
         "ordre", "incdec", "cmp_order", "shifts",
     ),
-    ("ptr", [],
+    ("ptr", [[], ["-O"]],
     ),
-    ("flow", [],
+    ("flow", [[], ["-O"]],
         "break", "continue", "count",
     ),
-    ("reduce", ["-O"],
+    ("reduce", [[], ["-O"]],
         "reduce_eif", "reduce_monops", "reduce_binops",
+        "reduce_cmp",
     )
 ]
 
@@ -37,7 +38,7 @@ class Module:
             exec(instr)
 
 def compile(cc, fbase, more=[]):
-    print("compile: {} assets/{}.c {}".format(cc, fbase, "".join(more)))
+    print("  compile: {} assets/{}.c {}".format(cc, fbase, "".join(more)))
     res = run([cc, "assets/{}.c".format(fbase), *more], capture_output=True)
     success = True
     if res.returncode != 0:
@@ -90,7 +91,7 @@ def check(fbase):
 
 
 def fulltest(cc, fbase, more=[]):
-    print("Running {}:".format(fbase))
+    print("Checking {}:".format(fbase))
     if compile(cc, fbase, more=more):
         check(fbase)
         return True
@@ -140,6 +141,7 @@ def main():
         for (category, more_args, *tests) in assets:
             print("\n\n    <<< category: {} >>>\n".format(category))
             for fbase in tests:
-                fulltest(cc, fbase, more=more_args)
+                for more in more_args:
+                    fulltest(cc, fbase, more=more)
 
 main()

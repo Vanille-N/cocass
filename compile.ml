@@ -75,79 +75,6 @@ let find_duplicate_decl decls =
     ) decls in
     dup (List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) names)
 
-(* reduce expressions *)
-let rec redexp e =
-    if not !Verbose.reduce_exprs then (
-        e
-    ) else (
-        let maxreduce_add e = abs e < 1000000 in
-        let maxreduce_mul e = abs e < 10000 in
-        let rec result e = match snd e with
-            | CST c -> Some c
-            | _ -> None
-        in
-        match e with
-            | loc, VAR name -> (loc, VAR name)
-            | loc, CST c -> (loc, CST c)
-            | loc, STRING s -> (loc, STRING s)
-            | loc, SET_VAR (name, value) -> (loc, SET_VAR (name, redexp value))
-            | loc, SET_ARRAY (name, idx, value) -> (loc, SET_ARRAY (name, redexp idx, redexp value))
-            | loc, SET_DEREF (addr, value) -> (loc, SET_DEREF (redexp addr, redexp value))
-            | loc, CALL (fn, args) -> (loc, CALL (fn, List.map redexp args))
-            | loc, OPSET_VAR (op, name, value) -> (loc, OPSET_VAR (op, name, redexp value))
-            | loc, OPSET_ARRAY (op, name, idx, value) -> (loc, OPSET_ARRAY (op, name, redexp idx, redexp value))
-            | loc, OPSET_DEREF (op, addr, value) -> (loc, OPSET_DEREF (op, redexp addr, redexp value))
-            | loc, ESEQ lst -> (loc, ESEQ (List.map redexp lst))
-            | loc, CMP (op, lhs, rhs) -> (
-                let lhs = redexp lhs in
-                let rhs = redexp rhs in
-                match (result lhs, result rhs) with
-                    | Some x, Some y -> (
-                        (loc, CST (match op with
-                            | C_EQ -> if x = y then 1 else 0
-                            | C_GE -> if x >= y then 1 else 0
-                            | C_LE -> if x <= y then 1 else 0
-                            | C_GT -> if x > y then 1 else 0
-                            | C_LT -> if x < y then 1 else 0
-                        ))
-                    )
-                    | _ -> (loc, CMP (op, lhs, rhs))
-            )
-            | loc, OP1 (op, value) -> (
-                let value = redexp value in
-                match result value with
-                    | Some x -> (
-                        (loc, match op with
-                            | M_MINUS -> CST (-x)
-                            | M_NOT -> CST (-x-1)
-                            | _ -> OP1 (op, (loc, CST x))
-                        )
-                    )
-                    | None -> (loc, (OP1 (op, value)))
-            )
-            | loc, OP2 (op, lhs, rhs) -> (
-                let lhs = redexp lhs in
-                let rhs = redexp rhs in
-                match (result lhs, result rhs) with
-                    | Some x, Some y -> (
-                        (loc, match op with
-                            | S_ADD when maxreduce_add (x + y) -> CST (x + y)
-                            | S_MUL when maxreduce_mul (x * y) -> CST (x * y)
-                            | S_SUB when maxreduce_add (x - y) -> CST (x - y)
-                            | _ -> OP2 (op, lhs, rhs)
-                        )
-                    )
-                    | _ -> (loc, OP2 (op, lhs, rhs))
-            )
-            | loc, EIF (cond, etrue, efalse) -> (
-                let cond = redexp cond in
-                match result cond with
-                    | Some 0 -> redexp efalse
-                    | Some _ -> redexp etrue
-                    | None -> loc, EIF (cond, redexp etrue, redexp efalse)
-            )
-    )
-
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
  * *** RAX is last evaluated expression
@@ -190,6 +117,18 @@ let generate_asm decl_list =
             | (CFUN (_, name, _, _)) :: rest -> name :: (scan_toplevel rest)
         in scan_toplevel decl_list
     ) in
+    let universal = [
+        ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
+        ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
+        ("true", Const 1); ("false", Const 0);
+        ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
+        ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
+        ("RAND_MAX", Const 2147483647);
+    ] in
+    let consts = List.filter_map (function
+        | (name, Const k) -> Some (name, k)
+        | _ -> None
+    ) universal in
     let rec gen_code (depth, frame) (label, tagbrk, tagcont, istry) code =
         match snd code with
             | CBLOCK (decl_lst, code_lst) -> (
@@ -198,13 +137,13 @@ let generate_asm decl_list =
                 List.iter (gen_code (depth, frame) (label, tagbrk, tagcont, istry)) code_lst
             )
             | CEXPR expr -> (
-                let expr = redexp expr in
+                let expr = Reduce.redexp consts expr in
                 gen_expr (depth, frame) (label, tagbrk, tagcont) expr
             )
             | CIF (cond, do_true, do_false) -> (
                 let tagbase = sprintf "%d_cond" !label_cnt in
                 incr label_cnt;
-                gen_expr (depth, frame) (label, tagbrk, tagcont) cond;
+                gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts cond);
                 decl_asm prog (TST (Regst RAX, Regst RAX)) "apply cond";
                 decl_asm prog (JEQ (label, tagbase ^ "_false")) "";
                 gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_true;
@@ -222,10 +161,10 @@ let generate_asm decl_list =
                 decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
                 (match finally with
                     | None -> ()
-                    | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) e
+                    | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Reduce.redexp consts e)
                 );
                 decl_asm prog (TAG (label, tagbase ^ "_check")) "";
-                gen_expr (depth, frame) (label, Some tagbase, Some tagbase) cond;
+                gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Reduce.redexp consts cond);
                 decl_asm prog (TST (Regst RAX, Regst RAX)) "";
                 decl_asm prog (JNE (label, tagbase ^ "_start")) "";
                 decl_asm prog (TAG (label, tagbase ^ "_done")) "";
@@ -240,7 +179,7 @@ let generate_asm decl_list =
             | CRETURN (Some ret) -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
                 else (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) ret;
+                    gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts ret);
                     decl_asm prog (JMP (label, "return")) "return";
                 )
             )
@@ -260,7 +199,7 @@ let generate_asm decl_list =
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
                 decl_asm prog NOP "# enter switch";
-                gen_expr (depth, frame) (label, tagbrk, tagcont) e;
+                gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts e);
                 match extract_switch_cases cases with
                     | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
@@ -286,7 +225,7 @@ let generate_asm decl_list =
                     Error.error (Some (fst code)) "wildcard _ exception may not be thrown.\n"
                 );
                 let id = decl_exc prog name in
-                gen_expr (depth, frame) (label, tagbrk, tagcont) value;
+                gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts value);
                 decl_asm prog (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
                 decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
                 decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
@@ -745,14 +684,6 @@ let generate_asm decl_list =
         | None -> ()
         | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
     );
-    let universal = [
-        ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
-        ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
-        ("true", Const 1); ("false", Const 0);
-        ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
-        ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
-        ("RAND_MAX", Const 2147483647);
-    ] in
     let global = get_global_vars decl_list in
     (
         let fmt = decl_str prog "Unhandled exception %s(%d)\n" in
