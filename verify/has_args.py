@@ -1,6 +1,6 @@
 def verify(*argv):
     res = ""
-    argc = len(argv) + 1
+    argc = len(argv)
     if argc > 2:
         res += "I have at least two args: {}, {}\n".format(argv[1], argv[2])
         if (argc > 3):

@@ -18,7 +18,7 @@ def main(argc):
     return x
 
 def verify(*args):
-    return (main(len(args)+1), "", "")
+    return (main(len(args)), "", "")
 
 data = [
     [],

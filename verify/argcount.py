@@ -1,5 +1,5 @@
 def verify(*args):
-    return (len(args), "", "")
+    return (len(args)-1, "", "")
 
 data = [
     [],

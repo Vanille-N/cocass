@@ -7,11 +7,11 @@ def factorial(n):
     return f
 
 def verify(*args):
-    if len(args) != 1:
+    if len(args) != 2:
         return (10, "", "Usage: ./fact <n>\ncalcule et affiche la factorielle de <n>.\n")
     else:
         try:
-            n = int(args[0])
+            n = int(args[1])
         except:
             n = 0
         if n < 0:
