@@ -67,8 +67,8 @@ type program
 (** declare a global integer variable *)
 val decl_int: program -> string -> unit
 
-(** declare a global string *)
-val decl_str: program -> string -> string -> unit
+(** declare a (possibly new) global string *)
+val decl_str: program -> string -> string
 
 (** declare a (possibly new) exception *)
 val decl_exc: program -> string -> string

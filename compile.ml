@@ -174,7 +174,6 @@ let rec redexp e =
 let generate_asm decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
-    let str_count = ref 0 in
     let handler = ".exc_handler" in
     let handler_addr = ".exc_addr" in
     let handler_base = ".exc_base" in
@@ -455,9 +454,7 @@ let generate_asm decl_list =
         )
         | CST value -> decl_asm prog (MOV (Const value, Regst RAX)) (sprintf "load val %d" value);
         | STRING str -> (
-            let name = sprintf ".LC%d" !str_count in
-            incr str_count;
-            decl_str prog name str;
+            let name = decl_str prog str in
             decl_asm prog (LEA (Globl name, Regst RDI)) (sprintf "access %s" name);
             decl_asm prog (MOV (Regst RDI, Regst RAX)) (sprintf "read %s" name);
         )
@@ -757,16 +754,15 @@ let generate_asm decl_list =
         ("RAND_MAX", Const 2147483647);
     ] in
     let global = get_global_vars decl_list in
-    List.iter (gen_decl (global::[universal])) decl_list;
     (
-        decl_str prog ".LCEXC" "Unhandled exception %s(%d)\n";
+        let fmt = decl_str prog "Unhandled exception %s(%d)\n" in
         decl_asm prog (FUN ".exc_handler") "handle uncaught exceptions";
         decl_asm prog NOP " -> exception name is in %rdi";
         decl_asm prog NOP " -> exception parameter is in %rax";
         decl_asm prog (MOV (Regst RAX, Regst RBX)) "save parameter";
         decl_asm prog (MOV (Regst RAX, Regst RCX)) "4th arg is parameter";
         decl_asm prog (MOV (Regst RDI, Regst RDX)) "3rd arg is name";
-        decl_asm prog (LEA (Globl ".LCEXC", Regst RSI)) "2nd arg is format";
+        decl_asm prog (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
         decl_asm prog (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
         decl_asm prog (MOV (Const 0, Regst RAX)) "no args on the stack";
         decl_asm prog (CAL "fprintf") "";
@@ -774,6 +770,7 @@ let generate_asm decl_list =
         decl_asm prog (MOV (Const 60, Regst RAX)) "code for exit";
         decl_asm prog SYS "";
     );
+    List.iter (gen_decl (global::[universal])) decl_list;
     prog
 
 

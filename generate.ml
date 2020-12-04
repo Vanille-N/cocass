@@ -60,26 +60,34 @@ type instruction =
 type program = {
     mutable idata: string list;
     mutable sdata: (string * string) list;
+    mutable scount: int;
     mutable text: (instruction * string) list;
-    mutable excs: (string * string) list;
-    mutable exc_count: int;
+    mutable edata: (string * string) list;
+    mutable ecount: int;
 }
 
 let decl_int prog name =
     prog.idata <- name :: prog.idata
 
-let decl_str prog name value =
-    prog.sdata <- (name, value) :: prog.sdata
+let decl_str prog str =
+    match List.assoc_opt str prog.sdata with
+        | None -> (
+            let str_tag = sprintf ".LC%d" prog.scount in
+            prog.scount <- prog.scount + 1;
+            prog.sdata <- (str, str_tag) :: prog.sdata;
+            str_tag
+        )
+        | Some tag -> tag
 
 let decl_asm prog instr info =
     prog.text <- (instr, info) :: prog.text
 
 let decl_exc prog exc =
-    match List.assoc_opt exc prog.excs with
+    match List.assoc_opt exc prog.edata with
         | None -> (
-            let exc_tag = sprintf ".EX%d" prog.exc_count in
-            prog.exc_count <- prog.exc_count + 1;
-            prog.excs <- (exc, exc_tag) :: prog.excs;
+            let exc_tag = sprintf ".EX%d" prog.ecount in
+            prog.ecount <- prog.ecount + 1;
+            prog.edata <- (exc, exc_tag) :: prog.edata;
             exc_tag
         )
         | Some tag -> tag
@@ -88,9 +96,10 @@ let make_prog () =
     {
         idata = [];
         sdata = [];
+        scount = 0;
         text = [];
-        excs = [];
-        exc_count = 0;
+        edata = [];
+        ecount = 0;
     }
 
 type alignment =
@@ -158,11 +167,11 @@ let generate ((out:out_channel), color) prog =
     let generate_ialign name =
         [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.zero %s8" color_meta color_int)]
     in
-    let generate_salign (name, value) =
-        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped value))]
+    let generate_salign (contents, tag) =
+        [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
     in
-    let generate_ealign (name, value) =
-        [TextLt (color_var ^ value ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped name))]
+    let generate_ealign (contents, tag) =
+        [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
     in
     let generate_talign (instr, info) =
         let fmtinfo = TextLt (
@@ -321,7 +330,7 @@ let generate ((out:out_channel), color) prog =
     let sdata = List.rev prog.sdata in
     let salign = List.map generate_salign sdata in
     List.iter (display_align out [10; 0]) salign;
-    let edata = List.rev prog.excs in
+    let edata = List.rev prog.edata in
     let ealign = List.map generate_ealign edata in
     List.iter (display_align out [10; 0]) ealign;
     fprintf out "\n";
