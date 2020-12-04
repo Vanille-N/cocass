@@ -19,7 +19,8 @@
  *
  *  4. This software is restricted to non-commercial use only.  Commercial
  *     use is subject to a specific license, obtainable from LSV.
- * 
+ *
  *)
 
 let verbose = ref 0
+let reduce_exprs = ref false
