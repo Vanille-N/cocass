@@ -1,36 +1,37 @@
 int main() {
+    int x, y;
     printf("ADDITION ");
-    printf("%d ", 1656 + 4582);
-    printf("%d ", 18 + -78);
-    printf("%d ", -482 + -7569);
-    printf("%d ", 15 + 45 + 689 + 96 + 47 + 45);
+    x = 1656; y = 4582; printf("%d ", x + y);
+    x = 18; y = -78; printf("%d ", x + y);
+    x = -482; y = -7569; printf("%d ", -482 + -7569);
+    x = 45; y = 47; printf("%d ", 15 + x + 689 + 96 + y + 45);
     putchar('\n');
 
     printf("SUBTRACTION ");
-    printf("%d ", 4693 - 7582);
-    printf("%d ", 482 - -15);
-    printf("%d ", -1445 - 4782);
-    printf("%d ", 45 - 5 - -12 - 5);
+    x = 4693; y = 7582; printf("%d ", x - y);
+    x = 482; y = -15; printf("%d ", x - y);
+    x = -1445; y = 4782; printf("%d ", x - y);
+    x = 5; y = -12; printf("%d ", 45 - x - y - 5);
     putchar('\n');
 
     printf("MULTIPLICATION ");
-    printf("%d ", 425 * 736);
-    printf("%d ", 72 * -15);
-    printf("%d ", -452 * -69);
-    printf("%d ", -45 * 5 * 2 * 4 * -7);
+    x = 425; y = 736; printf("%d ", 425 * 736);
+    x = 72; y = -15; printf("%d ", x * y);
+    x = -452; y = -69; printf("%d ", x * y);
+    x = 5; y = 4; printf("%d ", -45 * x * 2 * y * -7);
     putchar('\n');
 
     printf("DIVISION ");
-    printf("%d ", 15266 / 45);
-    printf("%d ", -144443 / 889);
-    printf("%d ", -496854 / -321);
+    x = 15266; y = 45; printf("%d ", x / y);
+    x = -144443; y = 889; printf("%d ", x / y);
+    x = -496854; y = -321; printf("%d ", x / y);
     putchar('\n');
 
     printf("MODULUS ");
-    printf("%d ", 1236546 % 156);
-    printf("%d ", 695816 % 54);
-    printf("%d ", -654 % 52);
-    printf("%d ", 4546986 % -45);
-    printf("%d ", -558 % -54);
+    x = 1236546; y = 156; printf("%d ", x % y);
+    x = 695816; y = 54; printf("%d ", x % y);
+    x = -654; y = 52; printf("%d ", x % y);
+    x = 4546986; y = -45; printf("%d ", x % y);
+    x = -558; y = -54; printf("%d ", x % y);
     putchar('\n');
 }

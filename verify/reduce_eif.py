@@ -1,5 +1,5 @@
 def verify(*args):
-    return (13, "", "")
+    return (0, "42 666 42\n", "")
 
 data = [
     [],

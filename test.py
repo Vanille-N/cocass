@@ -4,26 +4,26 @@ from subprocess import run
 import sys
 
 assets = [
-    ("easy",
+    ("easy", [],
         "ex0", "ex1", "ex2", "add",
         "ret", "scoped_ret",
     ),
-    ("call",
+    ("call", [],
         "argcount", "noreturn", "multicall",
         "has_args", "hello", "argsort",
         "call", "exit", "put", "printglob",
     ),
-    ("calc",
+    ("calc", [],
         "fact", "binops", "bitwise", "cmp",
         "ordre", "incdec", "cmp_order", "shifts",
     ),
-    ("ptr",
+    ("ptr", [],
     ),
-    ("flow",
+    ("flow", [],
         "break", "continue", "count",
     ),
-    ("reduce",
-        "reduce_eif",
+    ("reduce", ["-O"],
+        "reduce_eif", "reduce_monops", "reduce_binops",
     )
 ]
 
@@ -36,8 +36,9 @@ class Module:
             instr = "self.{elem} = d['{elem}']".format(elem=k)
             exec(instr)
 
-def compile(cc, fbase):
-    res = run([cc, "assets/{}.c".format(fbase)], capture_output=True)
+def compile(cc, fbase, more=[]):
+    print("compile: {} assets/{}.c {}".format(cc, fbase, "".join(more)))
+    res = run([cc, "assets/{}.c".format(fbase), *more], capture_output=True)
     success = True
     if res.returncode != 0:
         print("Errored: retcode {}".format(res.returncode))
@@ -88,9 +89,9 @@ def check(fbase):
                 print("        Difference at {}: [{}] vs [{}]".format(*diff))
 
 
-def fulltest(cc, fbase):
+def fulltest(cc, fbase, more=[]):
     print("Running {}:".format(fbase))
-    if compile(cc, fbase):
+    if compile(cc, fbase, more=more):
         check(fbase)
         return True
     return False
@@ -129,16 +130,16 @@ def main():
     if len(args) >= 1:
         for fbase in args:
             if len(fbase) >= 2 and fbase[0:2] == "--":
-                for (category, *tests) in assets:
+                for (category, more_args, *tests) in assets:
                     if category == fbase[2:]:
                         for fbase in tests:
-                            fulltest(cc, fbase)
+                            fulltest(cc, fbase, more=more_args)
             else:
                 fulltest(cc, fbase)
     else:
-        for (category, *tests) in assets:
+        for (category, more_args, *tests) in assets:
             print("\n\n    <<< category: {} >>>\n".format(category))
             for fbase in tests:
-                fulltest(cc, fbase)
+                fulltest(cc, fbase, more=more_args)
 
 main()
