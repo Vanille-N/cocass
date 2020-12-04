@@ -36,30 +36,44 @@ let tag_of_int i = (if i < 0 then "_neg_" else "_pos_") ^ (string_of_int (abs i)
 let extract_switch_cases cases =
     let rec dup = function
         | [] -> None
-        | a :: b :: _ when a = b -> Some a
+        | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
         | _ :: tl -> dup tl
     in
-    let tags = List.map (fun (_, c, _) -> c) cases in
-    let sorted = List.sort compare tags in
+    let tags = List.map (fun (loc, c, _) -> (loc, c)) cases in
+    let sorted = List.sort (fun (_, e1) (_, e2) -> compare e1 e2) tags in
     match dup sorted with
         | Some dup -> Error dup
-        | None -> Ok tags
+        | None -> Ok (List.map snd tags)
 
 let find_duplicate_catch catches =
     let rec dup = function
         | [] -> None
-        | a :: b :: _ when a = b -> Some a
+        | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
         | _ :: tl -> dup tl
     in
     let rec wildcard_is_last = function
-        | [] -> true
-        | "_" :: [] -> true
-        | "_" :: tl -> false
+        | [] -> None
+        | (_, "_") :: [] -> None
+        | (loc, "_") :: tl -> Some loc
         | _ :: tl -> wildcard_is_last tl
     in
-    let tags = List.map (fun (_, e, _, _) -> e) catches in
-    let sorted = List.sort compare tags in
-    if wildcard_is_last tags then dup sorted else Some "_"
+    let tags = List.map (fun (loc, e, _, _) -> (loc, e)) catches in
+    let sorted = List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) tags in
+    match wildcard_is_last tags with
+        | None -> dup sorted
+        | Some loc -> Some (loc, "_")
+
+let find_duplicate_decl decls =
+    let rec dup = function
+        | [] -> None
+        | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
+        | _ :: tl -> dup tl
+    in
+    let names = List.map (function
+        | CDECL (loc, name) -> (loc, name)
+        | CFUN (loc, name, _, _) -> (loc, name)
+    ) decls in
+    dup (List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) names)
 
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
@@ -157,12 +171,14 @@ let generate_asm decl_list =
             )
             | CBREAK -> (
                 match tagbrk with
-                    | None -> Error.error (Some (fst code)) "no loop to break out of. Note that break is not allowed directly inside a try block"
+                    | None when istry -> Error.error (Some (fst code)) "break may not reach outside of try."
+                    | None -> Error.error (Some (fst code)) "no loop to break out of."
                     | Some tagbrk -> decl_asm prog (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
             )
             | CCONTINUE -> (
                 match tagcont with
-                    | None -> Error.error (Some (fst code)) "no loop to continue. Note that continue is not allowed directly inside a try block"
+                    | None when istry -> Error.error (Some (fst code)) "continue may not reach outside of try."
+                    | None -> Error.error (Some (fst code)) "no loop to continue."
                     | Some tagcont -> decl_asm prog (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
             | CSWITCH (e, cases, deflt) -> (
@@ -171,7 +187,7 @@ let generate_asm decl_list =
                 decl_asm prog NOP "# enter switch";
                 gen_expr (depth, frame) (label, tagbrk, tagcont) e;
                 match extract_switch_cases cases with
-                    | Error c -> Error.error (Some (fst code)) (sprintf "duplicate case %d" c)
+                    | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
                         decl_asm prog NOP "# begin jump table";
                         List.iter (fun c ->
@@ -206,8 +222,8 @@ let generate_asm decl_list =
             | CTRY (code, catches, finally) -> (
                 (match find_duplicate_catch catches with
                     | None -> ()
-                    | Some "_" -> Error.error (Some (fst code)) "in next handler: all catch clauses after wildcard _ are unreachable.\n"
-                    | Some e -> Error.error (Some (fst code)) (sprintf "in next handler: duplicate catch. %s is already handled by a previous clause.\n" e)
+                    | Some (loc, "_") -> Error.error (Some loc) "all catch clauses after wildcard _ are unreachable.\n"
+                    | Some (loc, e) -> Error.error (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause.\n" e)
                 );
                 let tagbase = sprintf "%d_try" !label_cnt in
                 incr label_cnt;
@@ -323,6 +339,10 @@ let generate_asm decl_list =
         let n = List.length decls in
         let pos = List.init n (fun i -> Stack (-8*(i+depth))) in
         let names = List.map extract_decl_name decls in
+        (match find_duplicate_decl decls with
+            | None -> ()
+            | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
+        );
         let vars = zip names pos in
         vars
     and store depth reg =
@@ -489,10 +509,10 @@ let generate_asm decl_list =
             List.iteri (fun i (loc, dest) ->
                 match dest with
                     | Stack k -> (
-                        decl_asm prog (MOV (loc, Regst RAX)) (sprintf "%d'th arg" i);
+                        decl_asm prog (MOV (loc, Regst RAX)) (sprintf "arg #%d" i);
                         decl_asm prog (MOV (Regst RAX, dest)) " +";
                     )
-                    | Regst r -> decl_asm prog (MOV (loc, dest)) (sprintf "%d'th arg" (i+1))
+                    | Regst r -> decl_asm prog (MOV (loc, dest)) (sprintf "arg #%d" (i+1))
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
             decl_asm prog (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
@@ -648,6 +668,10 @@ let generate_asm decl_list =
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
+    (match find_duplicate_decl decl_list with
+        | None -> ()
+        | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
+    );
     let universal = [
         ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
         ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
