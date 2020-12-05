@@ -1,7 +1,7 @@
 #ifndef MCC
 #include <stdio.h>
 #include <stdlib.h>
-#define SIZE 8
+#define QSIZE 8
 #endif
 
 int cmp (int* a, int* b) {
@@ -16,7 +16,7 @@ int main() {
     int* arr;
     int i, len;
     len = 5000;
-    arr = malloc(len*SIZE);
+    arr = malloc(len*QSIZE);
     for (i = 0; i < len; i++) {
         arr[i] = rand() % 10000;
     }

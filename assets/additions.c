@@ -1,12 +1,12 @@
 int main() {
     int i, j, k;
-    i = malloc(SIZE*3);
+    i = malloc(QSIZE*3);
     *i = 52;
     printf("%d ?= 52\n", *i);
-    *(i+SIZE) = (*i)++ + 2;
-    printf("%d ?= 53, %d ?= 54\n", *i,  *(i+SIZE));
-    *(i+2*SIZE) = ++(*(i+SIZE)) + 2;
-    printf("%d ?= 53, %d ?= 55, %d ?= 57\n\n", *i, *(i+SIZE), *(i+2*SIZE));
+    *(i+QSIZE) = (*i)++ + 2;
+    printf("%d ?= 53, %d ?= 54\n", *i,  *(i+QSIZE));
+    *(i+2*QSIZE) = ++(*(i+QSIZE)) + 2;
+    printf("%d ?= 53, %d ?= 55, %d ?= 57\n\n", *i, *(i+QSIZE), *(i+2*QSIZE));
 
     k = &i[1];
     printf("%d ?= %d ?= 55\n", i[1], *k);

@@ -1,7 +1,7 @@
 int main() {
     int arr, i;
     i = 0;
-    arr = malloc(3*SIZE);
+    arr = malloc(3*QSIZE);
     arr[i++] = 100;
     arr[i++] = 200;
     arr[i] = arr[0]++;

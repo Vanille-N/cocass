@@ -16,10 +16,8 @@ int main (int argc, char **argv) {
         f = fopen(argv[i], "r");
         while ((c = fgetc(f))!=EOF) {
 	        fputc(c, stdout);
-            // printf(">>> Got %d not %d\n", c, EOF);
-            usleep(1000);
+            // usleep(1000);
         }
-        // printf(">>> Done printing %s\n", argv[i]);
         fclose(f);
     }
     fflush(stdout);

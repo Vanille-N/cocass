@@ -17,7 +17,7 @@ int baz(int x0, int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, 
 int main() {
     i = 0;
     j = 0;
-    k = malloc(6*SIZE);
+    k = malloc(6*QSIZE);
     k[0] = 1000; k[1] = 100; k[2] = 200;
     k[3] = 300; k[4] = 400;
     foo(); i++;
