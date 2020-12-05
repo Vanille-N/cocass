@@ -313,8 +313,8 @@ declaration:
 ;
 
 optional_init_declarator_list :
-    | { [] }
     | init_declarator_list { $1 }
+    | { [] }
 ;
 
 /* Une init_declarator_list est une liste a l'envers de declarator. */
@@ -384,14 +384,14 @@ casekw    : CASE    { getloc () };
 defaultkw : DEFAULT { getloc () };
 
 case :
-    | casekw CONSTANT COLON_CHR
-        { $1, $2, [] }
-    | casekw SUB_CHR CONSTANT COLON_CHR
-        { $1, -$3, [] }
     | casekw CONSTANT COLON_CHR statement_list
         { $1, $2, List.rev $4 }
     | casekw SUB_CHR CONSTANT COLON_CHR statement_list
         { $1, -$3, List.rev $5 }
+    | casekw CONSTANT COLON_CHR
+        { $1, $2, [] }
+    | casekw SUB_CHR CONSTANT COLON_CHR
+        { $1, -$3, [] }
 ;
 
 default :
@@ -401,11 +401,11 @@ default :
 ;
 
 case_list :
-    | default
-        { [], $1 }
     | case case_list {
         let (rest, deflt) = $2 in
         ($1 :: rest, deflt) }
+    | default
+        { [], $1 }
 ;
 
 switch_block : open_block case_list close_block { $2 };
@@ -458,25 +458,33 @@ trykw: TRY { getloc () };
 catchkw: CATCH { getloc () };
 finallykw: FINALLY { getloc () };
 
-finally: finallykw statement
-    { $1, $2 }
-;
+finally_option:
+    | finallykw statement
+        { Some $2 }
+    | { None }
 
-catch: catchkw OPEN_PAREN_CHR identifier identifier CLOSE_PAREN_CHR statement {
-    $1, snd $3, snd $4, $6 }
+catch:
+    | catchkw OPEN_PAREN_CHR identifier CLOSE_PAREN_CHR statement
+        { $1, snd $3, "_", $5 }
+    | catchkw OPEN_PAREN_CHR identifier identifier CLOSE_PAREN_CHR statement
+        { $1, snd $3, snd $4, $6 }
 ;
 
 catch_list:
     | { [] }
-    | catch catch_list
-        { $1 :: $2 }
+    | catch_list catch
+        { $2 :: $1 }
+;
+
+try_catch:
+    | trykw statement catch_list
+        { $1, $2, List.rev $3 }
 ;
 
 handler_statement:
-    | trykw statement catch_list {
-        $1, CTRY ($2, $3, None) }
-    | trykw statement catch_list finally {
-        $1, CTRY ($2, $3, Some (snd $4)) }
+    | try_catch finally_option {
+        let (tryloc, code, catches) = $1 in
+        tryloc, CTRY (code, catches, $2) }
 ;
 
 return   : RETURN   { getloc () };
@@ -493,7 +501,9 @@ jump_statement:
         { $1, CBREAK }
     | continue SEMI_CHR
         { $1, CCONTINUE }
-    | throw identifier OPEN_PAREN_CHR expression CLOSE_PAREN_CHR
+    | throw identifier SEMI_CHR
+        { $1, CTHROW (snd $2, (fst $2, VAR ("NULL"))) }
+    | throw identifier OPEN_PAREN_CHR expression CLOSE_PAREN_CHR SEMI_CHR
         { $1, CTHROW (snd $2, $4) }
 ;
 

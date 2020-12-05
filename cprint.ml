@@ -74,7 +74,7 @@ let print_ast (out, color) code =
             )
             | CIF (cond, code_true, code_false) -> (
                 fprintf out "%scond\n" (offset ^ curr_full ^ color_cond);
-                print_expr_indent (offset ^ color_none ^ curr_empty ^ color_cond) true out (Reduce.redexp [] cond);
+                print_expr_indent (offset ^ curr_empty ^ color_cond) true out (Reduce.redexp [] cond);
                 fprintf out "%swhen true\n" (offset ^ curr_empty ^ color_cond ^ bifurc ^ color_none);
                 print_code_indent (offset ^ curr_empty ^ color_cond ^ cont ^ color_none) false out code_true;
                 fprintf out "%swhen false\n" (offset ^ curr_empty ^ color_cond ^ termin ^ color_none);
@@ -187,7 +187,7 @@ let print_ast (out, color) code =
             )
             | CALL (fname, expr_lst) -> (
                 fprintf out "%scall fn <%s>\n" (offset ^ curr_full ^ color_none) (color_fun ^ fname ^ color_none);
-                print_block print_expr_indent (offset ^ blank ^ color_none) out expr_lst;
+                print_block print_expr_indent (offset ^ curr_empty ^ color_none) out expr_lst;
             )
             | OP1 (op, expr) -> (
                 fprintf out "%scall op <%s>\n" (offset ^ curr_full ^ color_none) (color_fun ^ (mon_op_repr op) ^ color_none);
