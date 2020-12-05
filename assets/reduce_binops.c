@@ -33,4 +33,28 @@ int main() {
     printf("%d ", 4546986 % -45);
     printf("%d ", -558 % -54);
     putchar('\n');
+
+    printf("AND ");
+    printf("%d ", 1236546 & 156);
+    printf("%d ", 695816 & 54);
+    printf("%d ", -654 & 52);
+    printf("%d ", 4546986 & -45);
+    printf("%d ", -558 & -54);
+    putchar('\n');
+
+    printf("XOR ");
+    printf("%d ", 1236546 ^ 156);
+    printf("%d ", 695816 ^ 54);
+    printf("%d ", -654 ^ 52);
+    printf("%d ", 4546986 ^ -45);
+    printf("%d ", -558 ^ -54);
+    putchar('\n');
+
+    printf("OR ");
+    printf("%d ", 1236546 | 156);
+    printf("%d ", 695816 | 54);
+    printf("%d ", -654 | 52);
+    printf("%d ", 4546986 | -45);
+    printf("%d ", -558 | -54);
+    putchar('\n');
 }
