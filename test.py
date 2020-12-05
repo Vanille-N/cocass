@@ -143,6 +143,7 @@ def main():
                                 fulltest(cc, fbase, more=more)
             else:
                 fulltest(cc, fbase)
+                fulltest(cc, fbase, more=['-O'])
     else:
         for (category, more_args, *tests) in assets:
             print("\n\n    <<< category: {} >>>\n".format(category))
