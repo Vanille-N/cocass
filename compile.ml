@@ -33,6 +33,23 @@ let rec is_addr = function
 
 let tag_of_int i = (if i < 0 then "_neg_" else "_pos_") ^ (string_of_int (abs i))
 
+(* a tree to represent a jump table *)
+type case_tree =
+    | Default
+    | Branch of int * case_tree * case_tree
+
+let tree_of_cases arr =
+    let n = Array.length arr in
+    let rec build i j =
+        if i < j then (
+            let midpoint = (i + j) / 2 in
+            Branch (arr.(midpoint), build i midpoint, build (midpoint+1) j)
+        ) else (
+            Default
+        )
+    in
+    build 0 n
+
 let extract_switch_cases cases =
     let rec dup = function
         | [] -> None
@@ -43,7 +60,7 @@ let extract_switch_cases cases =
     let sorted = List.sort (fun (_, e1) (_, e2) -> compare e1 e2) tags in
     match dup sorted with
         | Some dup -> Error dup
-        | None -> Ok (List.map snd tags)
+        | None -> Ok (tree_of_cases (Array.of_list (List.map snd sorted)))
 
 let find_duplicate_catch catches =
     let rec dup = function
@@ -204,10 +221,10 @@ let generate_asm decl_list =
                     | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
                         decl_asm prog NOP "# begin jump table";
-                        List.iter (fun c ->
+                        (* List.iter (fun c ->
                             decl_asm prog (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
                             decl_asm prog (JEQ (label, tagbase ^ (tag_of_int c))) "";
-                        ) vals;
+                        ) vals; *)
                         decl_asm prog (JMP (label, tagbase ^ "_default")) "no match found";
                         decl_asm prog NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
