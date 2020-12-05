@@ -7,8 +7,7 @@ let rec redexp consts e =
     if not !reduce_exprs then (
         e
     ) else (
-        let maxreduce_add e = abs e < 1000000 in
-        let maxreduce_mul e = abs e < 10000 in
+        let maxreduce e = abs e < 1000000 in
         let rec result e = match snd e with
             | CST c -> Some c
             | _ -> None
@@ -62,12 +61,40 @@ let rec redexp consts e =
                 match (result lhs, result rhs) with
                     | Some x, Some y -> (
                         (loc, match op with
-                            | S_ADD when maxreduce_add (x + y) -> CST (x + y)
-                            | S_MUL when maxreduce_mul (x * y) -> CST (x * y)
-                            | S_SUB when maxreduce_add (x - y) -> CST (x - y)
+                            | S_ADD when maxreduce (x + y) -> CST (x + y)
+                            | S_MUL when maxreduce (x * y) -> CST (x * y)
+                            | S_SUB when maxreduce (x - y) -> CST (x - y)
+                            | S_DIV when y = 0 -> (
+                                Error.error (Some loc) "division by zero detected";
+                                OP2 (op, lhs, rhs)
+                            )
+                            | S_DIV -> CST (
+                                if x >= 0 && y > 0 then x / y
+                                else if x > 0 then -(abs x / abs y)
+                                else if y > 0 then -(abs x / abs y)
+                                else abs x / abs y
+                            )
+                            | S_MOD when y = 0 -> (
+                                Error.error (Some loc) "division by zero detected";
+                                OP2 (op, lhs, rhs)
+                            )
+                            | S_MOD -> CST (
+                                x mod abs y
+                            )
                             | S_AND -> CST (x land y)
                             | S_OR -> CST (x lor y)
                             | S_XOR -> CST (x lxor y)
+                            | S_SHL when y < 0 -> (
+                                Error.error (Some loc) "negative shift amount";
+                                OP2 (op, lhs, rhs)
+                            )
+                            | S_SHL when y <= 10 && maxreduce (x lsl y) -> CST (x lsl y)
+                            | S_SHR when y < 0 -> (
+                                Error.error (Some loc) "negative shift amount";
+                                OP2 (op, lhs, rhs)
+                            )
+                            | S_SHR when y <= 10 && maxreduce (x lsr y) -> CST (x lsr y)
+                            | S_SHR -> OP2 (op, lhs, rhs)
                             | _ -> OP2 (op, lhs, rhs)
                         )
                     )
