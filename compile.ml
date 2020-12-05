@@ -225,6 +225,35 @@ let generate_asm decl_list =
                             decl_asm prog (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
                             decl_asm prog (JEQ (label, tagbase ^ (tag_of_int c))) "";
                         ) vals; *)
+                        let rec generate_tree = function
+                            | Default -> decl_asm prog (JMP (label, tagbase ^ "_default")) "";
+                            | Branch (k, Default, Default) -> (
+                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                decl_asm prog (JNE (label, tagbase ^ "_default")) "";
+                            )
+                            | Branch (k, Branch (sm, sml, smr), Default) -> (
+                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                decl_asm prog (JGT (label, tagbase ^ "_default")) "";
+                                generate_tree (Branch (sm, sml, smr));
+                            )
+                            | Branch (k, Default, Branch (gt, gtl, gtr)) -> (
+                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                decl_asm prog (JLT (label, tagbase ^ "_default")) "";
+                                generate_tree (Branch (gt, gtl, gtr));
+                            )
+                            | Branch (k, smaller, greater) -> (
+                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                decl_asm prog (JGT (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
+                                generate_tree smaller;
+                                decl_asm prog (TAG (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
+                                generate_tree greater;
+                            )
+                        in
+                        generate_tree vals;
                         decl_asm prog (JMP (label, tagbase ^ "_default")) "no match found";
                         decl_asm prog NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
