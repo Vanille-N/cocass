@@ -136,11 +136,13 @@ let generate_asm decl_list =
     ) in
     let universal = [
         ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
-        ("SIZE", Const 8); ("EOF", Const (-1)); ("NULL", Const 0);
+        ("EOF", Const (-1)); ("NULL", Const 0);
         ("true", Const 1); ("false", Const 0);
         ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
         ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
         ("RAND_MAX", Const 2147483647);
+        ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
+        ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Hexdc "ff")
     ] in
     let consts = List.filter_map (function
         | (name, Const k) -> Some (name, k)
@@ -431,6 +433,7 @@ let generate_asm decl_list =
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
             | Some (Const k) -> decl_asm prog (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
+            | Some (Hexdc h) -> decl_asm prog (MOV (Hexdc h, Regst RAX)) (sprintf "const val %s = %s" name h)
             | Some (FnPtr f) -> decl_asm prog (LEA (FnPtr f, Regst RAX)) (sprintf "function pointer %s" f)
             | Some loc -> (
                 decl_asm prog (LEA (loc, Regst RDI)) (sprintf "access %s" name);

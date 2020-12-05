@@ -19,6 +19,7 @@ type location =
     | Const of int
     | Globl of string
     | FnPtr of string
+    | Hexdc of string
     | Regst of register
     | Deref of register
     | Index of register * register
@@ -43,6 +44,7 @@ type instruction =
     | JMP of string * string
     | JLE of string * string
     | JLT of string * string
+    | JGT of string * string
     | JEQ of string * string
     | JNE of string * string
     | MOV of location * location
@@ -153,6 +155,10 @@ let generate ((out:out_channel), color) prog =
         ]
         | Const c -> [
             TextRt (sprintf "%s$%d" color_int c);
+            Skip 1
+        ]
+        | Hexdc h -> [
+            TextRt (sprintf "%s$0x%s" color_int h);
             Skip 1
         ]
         | Index (addr, idx) -> [
@@ -266,6 +272,9 @@ let generate ((out:out_channel), color) prog =
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
             | JLT (fn, tag) -> [
                 TextLt (color_instr ^ "    jl ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+            | JGT (fn, tag) -> [
+                TextLt (color_instr ^ "    jg ");
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
             | JEQ (fn, tag) -> [
                 TextLt (color_instr ^ "    je ");
