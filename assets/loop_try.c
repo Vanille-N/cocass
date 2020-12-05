@@ -4,13 +4,13 @@ int foo() {
         try {
             printf("i = %d\n", i);
             switch (i) {
-                case 7: throw Seven(NULL);
-                case 3: throw Three(NULL);
-                case 11: throw Eleven(NULL);
+                case 7: throw Seven; // abbreviation for `throw Seven(NULL)`
+                case 3: throw Three;
+                case 11: throw Eleven;
             }
-        } catch (Three _) {
+        } catch (Three) { // abbreviation for `catch (Three _)`
             printf("Found 3\n");
-        } catch (Seven _) {
+        } catch (Seven) {
             continue; // OK
             // break; // OK
             // return; // OK
