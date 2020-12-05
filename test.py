@@ -10,21 +10,24 @@ assets = [
     ),
     ("call", [[], ["-O"]],
         "argcount", "noreturn", "multicall",
-        "has_args", "hello", "argsort",
-        "call", "exit", "put", "printglob",
+        "has_args", "hello", "argsort", "call",
+        "exit", "put", "printglob", "cat",
     ),
     ("calc", [[], ["-O"]],
         "fact", "binops", "bitwise", "cmp",
         "ordre", "incdec", "cmp_order", "shifts",
     ),
     ("ptr", [[], ["-O"]],
+        "array", "string", "fnptr", "additions",
+        "extended_assign", "multifnptr",
+
     ),
     ("flow", [[], ["-O"]],
         "break", "continue", "count",
     ),
     ("reduce", [[], ["-O"]],
         "reduce_eif", "reduce_monops", "reduce_binops",
-        "reduce_cmp",
+        "reduce_cmp", "big_switch",
     )
 ]
 
@@ -55,9 +58,9 @@ def compare(lt, rt):
     if lt == rt:
         return None
     def context(s, pos, l):
-        return s[max(0, pos-l) : min(len(s), pos+l)]
-    for i in range(len(lt)):
-        if lt[i] != rt[i]:
+        return s[max(0, pos-l) : min(len(s)+1, pos+l)]
+    for i in range(max(len(lt), len(rt))):
+        if i >= len(lt) or i >= len(rt) or lt[i] != rt[i]:
             return (i, context(lt, i, 10), context(rt, i, 10))
 
 def check(fbase):
@@ -95,6 +98,8 @@ def fulltest(cc, fbase, more=[]):
     if compile(cc, fbase, more=more):
         check(fbase)
         return True
+    else:
+        exit(100)
     return False
 
 def main():
@@ -134,7 +139,8 @@ def main():
                 for (category, more_args, *tests) in assets:
                     if category == fbase[2:]:
                         for fbase in tests:
-                            fulltest(cc, fbase, more=more_args)
+                            for more in more_args:
+                                fulltest(cc, fbase, more=more)
             else:
                 fulltest(cc, fbase)
     else:
