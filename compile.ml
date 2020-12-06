@@ -115,14 +115,14 @@ let find_duplicate_decl decls =
  * *** RDI is exception identifier if not NULL
  * <><><> <><> <><><>
  *)
-let generate_asm decl_list =
+let codegen decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
     let handler = ".exc_handler" in
     let handler_addr = ".exc_addr" in
     let handler_base = ".exc_base" in
-    decl_int prog handler_addr;
-    decl_int prog handler_base;
+    prog.int handler_addr;
+    prog.int handler_base;
     let extract_decl_name = function
         | CDECL (_, name) -> name
         | CFUN (_, name, _, _) -> name
@@ -163,123 +163,123 @@ let generate_asm decl_list =
                 let tagbase = sprintf "%d_cond" !label_cnt in
                 incr label_cnt;
                 gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts cond);
-                decl_asm prog (TST (Regst RAX, Regst RAX)) "apply cond";
-                decl_asm prog (JEQ (label, tagbase ^ "_false")) "";
+                prog.asm (TST (Regst RAX, Regst RAX)) "apply cond";
+                prog.asm (JEQ (label, tagbase ^ "_false")) "";
                 gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_true;
-                decl_asm prog (JMP (label, tagbase ^ "_done")) "end case true";
-                decl_asm prog (TAG (label, tagbase ^ "_false")) "begin case false";
+                prog.asm (JMP (label, tagbase ^ "_done")) "end case true";
+                prog.asm (TAG (label, tagbase ^ "_false")) "begin case false";
                 gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_false;
-                decl_asm prog (TAG (label, tagbase ^ "_done")) "end ternary";
+                prog.asm (TAG (label, tagbase ^ "_done")) "end ternary";
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
                 let tagbase = sprintf "%d_loop" !label_cnt in
                 incr label_cnt;
-                if test_at_start then decl_asm prog (JMP (label, tagbase ^ "_check")) "";
-                decl_asm prog (TAG (label, tagbase ^ "_start")) "";
+                if test_at_start then prog.asm (JMP (label, tagbase ^ "_check")) "";
+                prog.asm (TAG (label, tagbase ^ "_start")) "";
                 gen_code (depth, frame) (label, Some tagbase, Some tagbase, istry) body;
-                decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
+                prog.asm (TAG (label, tagbase ^ "_finally")) "";
                 (match finally with
                     | None -> ()
                     | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Reduce.redexp consts e)
                 );
-                decl_asm prog (TAG (label, tagbase ^ "_check")) "";
+                prog.asm (TAG (label, tagbase ^ "_check")) "";
                 gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Reduce.redexp consts cond);
-                decl_asm prog (TST (Regst RAX, Regst RAX)) "";
-                decl_asm prog (JNE (label, tagbase ^ "_start")) "";
-                decl_asm prog (TAG (label, tagbase ^ "_done")) "";
+                prog.asm (TST (Regst RAX, Regst RAX)) "";
+                prog.asm (JNE (label, tagbase ^ "_start")) "";
+                prog.asm (TAG (label, tagbase ^ "_done")) "";
             )
             | CRETURN None -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
                 else (
-                    decl_asm prog (MOV (Const 0, Regst RAX)) "return 0";
-                    decl_asm prog (JMP (label, "return")) " +";
+                    prog.asm (MOV (Const 0, Regst RAX)) "return 0";
+                    prog.asm (JMP (label, "return")) " +";
                 )
             )
             | CRETURN (Some ret) -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
                 else (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts ret);
-                    decl_asm prog (JMP (label, "return")) "return";
+                    prog.asm (JMP (label, "return")) "return";
                 )
             )
             | CBREAK -> (
                 match tagbrk with
                     | None when istry -> Error.error (Some (fst code)) "break may not reach outside of try."
                     | None -> Error.error (Some (fst code)) "no loop to break out of."
-                    | Some tagbrk -> decl_asm prog (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
+                    | Some tagbrk -> prog.asm (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
             )
             | CCONTINUE -> (
                 match tagcont with
                     | None when istry -> Error.error (Some (fst code)) "continue may not reach outside of try."
                     | None -> Error.error (Some (fst code)) "no loop to continue."
-                    | Some tagcont -> decl_asm prog (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
+                    | Some tagcont -> prog.asm (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
             | CSWITCH (e, cases, deflt) -> (
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
-                decl_asm prog NOP "# enter switch";
+                prog.asm NOP "# enter switch";
                 gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts e);
                 match extract_switch_cases cases with
                     | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
-                        decl_asm prog NOP "# begin jump table";
+                        prog.asm NOP "# begin jump table";
                         (* List.iter (fun c ->
-                            decl_asm prog (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
-                            decl_asm prog (JEQ (label, tagbase ^ (tag_of_int c))) "";
+                            prog.asm (CMP (Const c, Regst RAX)) (sprintf "check against %d" c);
+                            prog.asm (JEQ (label, tagbase ^ (tag_of_int c))) "";
                         ) vals; *)
                         let rec generate_tree = function
-                            | Default -> decl_asm prog (JMP (label, tagbase ^ "_default")) "";
+                            | Default -> prog.asm (JMP (label, tagbase ^ "_default")) "";
                             | Branch (k, Default, Default) -> (
-                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
-                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
-                                decl_asm prog (JNE (label, tagbase ^ "_default")) "";
+                                prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                prog.asm (JNE (label, tagbase ^ "_default")) "";
                             )
                             | Branch (k, Branch (sm, sml, smr), Default) -> (
-                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
-                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
-                                decl_asm prog (JGT (label, tagbase ^ "_default")) "";
+                                prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                prog.asm (JGT (label, tagbase ^ "_default")) "";
                                 generate_tree (Branch (sm, sml, smr));
                             )
                             | Branch (k, Default, Branch (gt, gtl, gtr)) -> (
-                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
-                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
-                                decl_asm prog (JLT (label, tagbase ^ "_default")) "";
+                                prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                prog.asm (JLT (label, tagbase ^ "_default")) "";
                                 generate_tree (Branch (gt, gtl, gtr));
                             )
                             | Branch (k, smaller, greater) -> (
-                                decl_asm prog (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
-                                decl_asm prog (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
-                                decl_asm prog (JGT (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
+                                prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
+                                prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
+                                prog.asm (JGT (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
                                 generate_tree smaller;
-                                decl_asm prog (TAG (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
+                                prog.asm (TAG (label, tagbase ^ "_above" ^ (tag_of_int k))) "";
                                 generate_tree greater;
                             )
                         in
                         generate_tree vals;
-                        decl_asm prog (JMP (label, tagbase ^ "_default")) "no match found";
-                        decl_asm prog NOP "# end jump table";
+                        prog.asm (JMP (label, tagbase ^ "_default")) "no match found";
+                        prog.asm NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
-                            decl_asm prog (TAG (label, tagbase ^ (tag_of_int c))) "";
+                            prog.asm (TAG (label, tagbase ^ (tag_of_int c))) "";
                             List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont, istry)) blk;
                         ) cases;
-                        decl_asm prog (TAG (label, tagbase ^ "_default")) "";
+                        prog.asm (TAG (label, tagbase ^ "_default")) "";
                         gen_code (depth, frame) (label, Some tagbase, tagcont, istry) deflt;
-                        decl_asm prog (TAG (label, tagbase ^ "_done")) "";
-                        decl_asm prog NOP "# exit switch";
+                        prog.asm (TAG (label, tagbase ^ "_done")) "";
+                        prog.asm NOP "# exit switch";
                     )
             )
             | CTHROW (name, value) -> (
                 (if name = "_" then
                     Error.error (Some (fst code)) "wildcard _ exception may not be thrown.\n"
                 );
-                let id = decl_exc prog name in
+                let id = prog.exc name in
                 gen_expr (depth, frame) (label, tagbrk, tagcont) (Reduce.redexp consts value);
-                decl_asm prog (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
-                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
-                decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
-                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
-                decl_asm prog (MOV (Deref RSI, Regst RSI)) " +";
-                decl_asm prog (JMP ("", "*%rsi")) "";
+                prog.asm (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "load handler_base";
+                prog.asm (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
+                prog.asm (MOV (Deref RSI, Regst RSI)) " +";
+                prog.asm (JMP ("", "*%rsi")) "";
             )
             | CTRY (code, catches, finally) -> (
                 (match find_duplicate_catch catches with
@@ -290,45 +290,45 @@ let generate_asm decl_list =
                 let tagbase = sprintf "%d_try" !label_cnt in
                 incr label_cnt;
                 (* INIT TRY *)
-                decl_asm prog NOP "# enter try block";
-                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
-                decl_asm prog (MOV (Deref RSI, Regst RAX)) " +";
+                prog.asm NOP "# enter try block";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
+                prog.asm (MOV (Deref RSI, Regst RAX)) " +";
                 store depth RAX;
-                decl_asm prog (LEA (Globl (label ^ "." ^ tagbase ^ "_catch"), Regst RAX)) "new handler addr";
-                decl_asm prog (MOV (Regst RAX, Deref RSI)) " +";
-                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "save previous handler base";
-                decl_asm prog (MOV (Deref RSI, Regst RAX)) " +";
+                prog.asm (LEA (Globl (label ^ "." ^ tagbase ^ "_catch"), Regst RAX)) "new handler addr";
+                prog.asm (MOV (Regst RAX, Deref RSI)) " +";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "save previous handler base";
+                prog.asm (MOV (Deref RSI, Regst RAX)) " +";
                 store (depth+1) RAX;
-                decl_asm prog (MOV (Regst RBP, Deref RSI)) "new handler base";
+                prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
                 (* BEGIN TRY *)
                 gen_code (depth+2, frame) (label, None, None, true) code;
                 (* END TRY *)
-                decl_asm prog NOP "# try block exited normally, remove handler";
-                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
+                prog.asm NOP "# try block exited normally, remove handler";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "";
                 retrieve (depth+1) RCX;
-                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
-                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "";
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
                 retrieve depth RCX;
-                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
-                decl_asm prog (MOV (Const 0, Regst RDI)) "no unhandled exception remains";
-                decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                prog.asm (MOV (Const 0, Regst RDI)) "no unhandled exception remains";
+                prog.asm (JMP (label, tagbase ^ "_finally")) "";
                 (* BEGIN CATCH *)
-                decl_asm prog (TAG (label, tagbase ^ "_catch")) "try block aborted, remove handler";
-                decl_asm prog NOP " -> exception name is in %rdi";
-                decl_asm prog NOP " -> exception parameter is in %rax";
-                decl_asm prog (MOV (Regst RBP, Regst RSP)) "";
-                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "";
+                prog.asm (TAG (label, tagbase ^ "_catch")) "try block aborted, remove handler";
+                prog.asm NOP " -> exception name is in %rdi";
+                prog.asm NOP " -> exception parameter is in %rax";
+                prog.asm (MOV (Regst RBP, Regst RSP)) "";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "";
                 retrieve (depth+1) RCX;
-                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
-                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "";
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
                 retrieve depth RCX;
-                decl_asm prog (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
                 List.iter (fun (_, name, bind, handle) -> (
                     if name <> "_" then (
-                        let id = decl_exc prog name in
-                        decl_asm prog (LEA (Globl id, Regst RSI)) "exception name";
-                        decl_asm prog (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
-                        decl_asm prog (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
+                        let id = prog.exc name in
+                        prog.asm (LEA (Globl id, Regst RSI)) "exception name";
+                        prog.asm (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
+                        prog.asm (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
                         if bind <> "_" then (
                             store depth RAX;
                             gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont, istry) handle;
@@ -336,24 +336,24 @@ let generate_asm decl_list =
                             (* _ does not induce a variable binding *)
                             gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
                         );
-                        decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
-                        decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
-                        decl_asm prog (TAG (label, tagbase ^ "_not" ^ id)) "";
+                        prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
+                        prog.asm (JMP (label, tagbase ^ "_finally")) "";
+                        prog.asm (TAG (label, tagbase ^ "_not" ^ id)) "";
                     ) else (
                         (* _ matches any exception *)
-                        decl_asm prog NOP "# wildcard exception";
+                        prog.asm NOP "# wildcard exception";
                         if bind <> "_" then (
                             Error.error (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
                         ) else (
                             (* _ does not induce a variable binding *)
                             gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
                         );
-                        decl_asm prog (MOV (Const 0, Regst RDI)) "mark as handled";
-                        decl_asm prog (JMP (label, tagbase ^ "_finally")) "";
+                        prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
+                        prog.asm (JMP (label, tagbase ^ "_finally")) "";
                     )
                 )) catches;
                 (* BEGIN FINALLY *)
-                decl_asm prog (TAG (label, tagbase ^ "_finally")) "";
+                prog.asm (TAG (label, tagbase ^ "_finally")) "";
                 store depth RAX;
                 store (depth+1) RDI;
                 (match finally with
@@ -362,25 +362,25 @@ let generate_asm decl_list =
                 );
                 (* MAYBE RETHROW *)
                 retrieve (depth+1) RDI;
-                decl_asm prog (CMP (Const 0, Regst RDI)) "check if exception was handled";
-                decl_asm prog (JEQ (label, tagbase ^ "_end")) "done with the try block";
+                prog.asm (CMP (Const 0, Regst RDI)) "check if exception was handled";
+                prog.asm (JEQ (label, tagbase ^ "_end")) "done with the try block";
                 retrieve depth RAX;
-                decl_asm prog NOP "# no matching catch found, rethrow";
-                decl_asm prog (LEA (Globl handler_base, Regst RSI)) "load handler_base";
-                decl_asm prog (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
-                decl_asm prog (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
-                decl_asm prog (MOV (Deref RSI, Regst RSI)) " +";
-                decl_asm prog (JMP ("", "*%rsi")) "";
-                decl_asm prog (TAG (label, tagbase ^ "_end")) "";
+                prog.asm NOP "# no matching catch found, rethrow";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "load handler_base";
+                prog.asm (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
+                prog.asm (MOV (Deref RSI, Regst RSI)) " +";
+                prog.asm (JMP ("", "*%rsi")) "";
+                prog.asm (TAG (label, tagbase ^ "_end")) "";
             )
     and enter_stackframe () =
-        decl_asm prog (PSH (Regst RBP)) "enter stackframe";
-        decl_asm prog (MOV (Regst RSP, Regst RBP)) " +";
+        prog.asm (PSH (Regst RBP)) "enter stackframe";
+        prog.asm (MOV (Regst RSP, Regst RBP)) " +";
     and leave_stackframe fname =
-        decl_asm prog (XOR (Regst RAX, Regst RAX)) "set to 0";
-        decl_asm prog (TAG (fname, "return")) "leave stackframe";
-        decl_asm prog (POP (Regst RBP)) " +";
-        decl_asm prog RET ""
+        prog.asm (XOR (Regst RAX, Regst RAX)) "set to 0";
+        prog.asm (TAG (fname, "return")) "leave stackframe";
+        prog.asm (POP (Regst RBP)) " +";
+        prog.asm RET ""
     and stack_args decs =
         let n = List.length decs in
         let stacked = List.init (max 0 (n-6)) (fun i -> Stack (8*(i+2))) in
@@ -388,12 +388,12 @@ let generate_asm decl_list =
         let names = List.map extract_decl_name decs in
         let regged = List.mapi (fun i (loc, name) ->
             let newloc = Stack (-(i+1)*8) in
-            decl_asm prog (MOV (Regst loc, newloc)) (sprintf "store %s" name);
+            prog.asm (MOV (Regst loc, newloc)) (sprintf "store %s" name);
             newloc
         ) (zip regged names) in
         let vars = zip names (regged @ stacked) in
         List.iter (fun (name, loc) -> match loc with
-            | Stack k when k > 0 -> decl_asm prog NOP (sprintf "%s is at RBP+%d" name k)
+            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d" name k)
             | _ -> ()
         ) vars;
         vars
@@ -408,23 +408,23 @@ let generate_asm decl_list =
         let vars = zip names pos in
         vars
     and store depth reg =
-        decl_asm prog (MOV (Regst reg, Stack (-depth*8))) "store"
+        prog.asm (MOV (Regst reg, Stack (-depth*8))) "store"
     and retrieve depth reg =
-        decl_asm prog (MOV (Stack (-depth*8), Regst reg)) "retrieve"
+        prog.asm (MOV (Stack (-depth*8), Regst reg)) "retrieve"
     and gen_decl frame = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
             label_cnt := 0;
-            decl_asm prog (FUN name) "toplevel function";
+            prog.asm (FUN name) "toplevel function";
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
             (if name = "main" then (* setup exception handler *) (
-                decl_asm prog (LEA (FnPtr handler, Regst RAX)) "init exception handler";
-                decl_asm prog (LEA (Globl handler_addr, Regst RDI)) " +";
-                decl_asm prog (MOV (Regst RAX, Deref RDI)) " +";
-                decl_asm prog (LEA (Globl handler_base, Regst RDI)) " +";
-                decl_asm prog (MOV (Regst RBP, Deref RDI)) " +";
+                prog.asm (LEA (FnPtr handler, Regst RAX)) "init exception handler";
+                prog.asm (LEA (Globl handler_addr, Regst RDI)) " +";
+                prog.asm (MOV (Regst RAX, Deref RDI)) " +";
+                prog.asm (LEA (Globl handler_base, Regst RDI)) " +";
+                prog.asm (MOV (Regst RBP, Deref RDI)) " +";
             ));
             gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
             leave_stackframe name;
@@ -432,27 +432,27 @@ let generate_asm decl_list =
     and gen_expr (depth, frame) (label, tagbrk, tagcont) expr = match snd expr with
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
-            | Some (Const k) -> decl_asm prog (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
-            | Some (Hexdc h) -> decl_asm prog (MOV (Hexdc h, Regst RAX)) (sprintf "const val %s = %s" name h)
-            | Some (FnPtr f) -> decl_asm prog (LEA (FnPtr f, Regst RAX)) (sprintf "function pointer %s" f)
+            | Some (Const k) -> prog.asm (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
+            | Some (Hexdc h) -> prog.asm (MOV (Hexdc h, Regst RAX)) (sprintf "const val %s = %s" name h)
+            | Some (FnPtr f) -> prog.asm (LEA (FnPtr f, Regst RAX)) (sprintf "function pointer %s" f)
             | Some loc -> (
-                decl_asm prog (LEA (loc, Regst RDI)) (sprintf "access %s" name);
-                decl_asm prog (MOV (Deref RDI, Regst RAX)) (sprintf "read %s" name);
+                prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
+                prog.asm (MOV (Deref RDI, Regst RAX)) (sprintf "read %s" name);
             )
         )
-        | CST value -> decl_asm prog (MOV (Const value, Regst RAX)) (sprintf "load val %d" value);
+        | CST value -> prog.asm (MOV (Const value, Regst RAX)) (sprintf "load val %d" value);
         | STRING str -> (
-            let name = decl_str prog str in
-            decl_asm prog (LEA (Globl name, Regst RDI)) (sprintf "access %s" name);
-            decl_asm prog (MOV (Regst RDI, Regst RAX)) (sprintf "read %s" name);
+            let name = prog.str str in
+            prog.asm (LEA (Globl name, Regst RDI)) (sprintf "access %s" name);
+            prog.asm (MOV (Regst RDI, Regst RAX)) (sprintf "read %s" name);
         )
         | SET_VAR (name, value) -> (
             gen_expr (depth, frame) (label, tagbrk, tagcont) value;
             match assoc name frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                 | Some loc when is_addr loc -> (
-                    decl_asm prog (LEA (loc, Regst RDI)) (sprintf "access %s" name);
-                    decl_asm prog (MOV (Regst RAX, Deref RDI)) (sprintf "write %s" name);
+                    prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
+                    prog.asm (MOV (Regst RAX, Deref RDI)) (sprintf "write %s" name);
                 )
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
@@ -464,9 +464,9 @@ let generate_asm decl_list =
                     store depth RAX;
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) value;
                     retrieve (depth) RCX;
-                    decl_asm prog (MOV (loc, Regst RDI)) "access array";
-                    decl_asm prog (LEA (Index (RDI, RCX), Regst RDI)) " +";
-                    decl_asm prog (MOV (Regst RAX, Deref RDI)) " +";
+                    prog.asm (MOV (loc, Regst RDI)) "access array";
+                    prog.asm (LEA (Index (RDI, RCX), Regst RDI)) " +";
+                    prog.asm (MOV (Regst RAX, Deref RDI)) " +";
                 )
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
@@ -475,7 +475,7 @@ let generate_asm decl_list =
             store depth RAX;
             gen_expr (depth+1, frame) (label, tagbrk, tagcont) value;
             retrieve depth RDI;
-            decl_asm prog (MOV (Regst RAX, Deref RDI)) "write to deref";
+            prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
         )
         | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
             let (op, value) = (match snd expr with
@@ -483,7 +483,7 @@ let generate_asm decl_list =
                     (match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
-                            decl_asm prog (LEA (loc, Regst RDI)) (sprintf "access %s" name);
+                            prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
                     ); (op, value)
@@ -493,15 +493,15 @@ let generate_asm decl_list =
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
                             gen_expr (depth, frame) (label, tagbrk, tagcont) idx;
-                            decl_asm prog (MOV (loc, Regst RDI)) "access array";
-                            decl_asm prog (LEA (Index (RDI, RAX), Regst RDI)) " +";
+                            prog.asm (MOV (loc, Regst RDI)) "access array";
+                            prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
                     ); (op, value)
                 )
                 | OPSET_DEREF (op, addr, value) -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) addr;
-                    decl_asm prog (MOV (Regst RAX, Regst RDI)) "load address";
+                    prog.asm (MOV (Regst RAX, Regst RDI)) "load address";
                     (op, value)
                 )
                 | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*"
@@ -513,40 +513,40 @@ let generate_asm decl_list =
             (match op with
                 | S_ADD | S_SUB | S_AND | S_OR | S_XOR -> (
                     (match op with
-                        | S_ADD -> decl_asm prog (ADD (Regst RAX, Deref RDI)) "in-place add"
-                        | S_SUB -> decl_asm prog (SUB (Regst RAX, Deref RDI)) "in-place sub"
-                        | S_AND -> decl_asm prog (AND (Regst RAX, Deref RDI)) "in-place and"
-                        | S_OR -> decl_asm prog (IOR (Regst RAX, Deref RDI)) "in-place incl. or"
-                        | S_XOR -> decl_asm prog (XOR (Regst RAX, Deref RDI)) "in-place excl. or"
+                        | S_ADD -> prog.asm (ADD (Regst RAX, Deref RDI)) "in-place add"
+                        | S_SUB -> prog.asm (SUB (Regst RAX, Deref RDI)) "in-place sub"
+                        | S_AND -> prog.asm (AND (Regst RAX, Deref RDI)) "in-place and"
+                        | S_OR -> prog.asm (IOR (Regst RAX, Deref RDI)) "in-place incl. or"
+                        | S_XOR -> prog.asm (XOR (Regst RAX, Deref RDI)) "in-place excl. or"
                         | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*::S_ADD|..."
                     );
-                    decl_asm prog (MOV (Deref RDI, Regst RAX)) " + load final value";
+                    prog.asm (MOV (Deref RDI, Regst RAX)) " + load final value";
                 )
                 | S_MUL -> (
-                    decl_asm prog NOP "extended mul";
-                    decl_asm prog (MOV (Deref RDI, Regst RCX)) " + load current value";
-                    decl_asm prog (MUL (Regst RCX)) " + calculate";
-                    decl_asm prog (MOV (Regst RAX, Deref RDI)) " + store final value";
+                    prog.asm NOP "extended mul";
+                    prog.asm (MOV (Deref RDI, Regst RCX)) " + load current value";
+                    prog.asm (MUL (Regst RCX)) " + calculate";
+                    prog.asm (MOV (Regst RAX, Deref RDI)) " + store final value";
                 )
                 | S_MOD | S_DIV -> (
-                    decl_asm prog NOP "extended div";
-                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + move divisor";
-                    decl_asm prog (MOV (Deref RDI, Regst RAX)) " + load dividend";
-                    decl_asm prog QTO " +";
-                    decl_asm prog (DIV (Regst RCX)) " + calculate";
+                    prog.asm NOP "extended div";
+                    prog.asm (MOV (Regst RAX, Regst RCX)) " + move divisor";
+                    prog.asm (MOV (Deref RDI, Regst RAX)) " + load dividend";
+                    prog.asm QTO " +";
+                    prog.asm (DIV (Regst RCX)) " + calculate";
                     (if op = S_MOD then
-                        decl_asm prog (MOV (Regst RDX, Regst RAX)) " + select mod"
+                        prog.asm (MOV (Regst RDX, Regst RAX)) " + select mod"
                     );
-                    decl_asm prog (MOV (Regst RAX, Deref RDI)) " + store final value";
+                    prog.asm (MOV (Regst RAX, Deref RDI)) " + store final value";
                 )
                 | S_SHL | S_SHR -> (
-                    decl_asm prog NOP "in-place shift";
-                    decl_asm prog (MOV (Regst RAX, Regst RCX)) " + shift amount";
+                    prog.asm NOP "in-place shift";
+                    prog.asm (MOV (Regst RAX, Regst RCX)) " + shift amount";
                     (if op = S_SHL
-                        then decl_asm prog (SHL (Regst CL, Deref RDI)) " + calculate shl"
-                        else decl_asm prog (SHR (Regst CL, Deref RDI)) " + calculate shr"
+                        then prog.asm (SHL (Regst CL, Deref RDI)) " + calculate shl"
+                        else prog.asm (SHR (Regst CL, Deref RDI)) " + calculate shr"
                     );
-                    decl_asm prog (MOV (Deref RDI, Regst RAX)) " + load final value";
+                    prog.asm (MOV (Deref RDI, Regst RAX)) " + load final value";
                 )
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
             );
@@ -570,52 +570,52 @@ let generate_asm decl_list =
             List.iteri (fun i (loc, dest) ->
                 match dest with
                     | Stack k -> (
-                        decl_asm prog (MOV (loc, Regst RAX)) (sprintf "arg #%d" i);
-                        decl_asm prog (MOV (Regst RAX, dest)) " +";
+                        prog.asm (MOV (loc, Regst RAX)) (sprintf "arg #%d" i);
+                        prog.asm (MOV (Regst RAX, dest)) " +";
                     )
-                    | Regst r -> decl_asm prog (MOV (loc, dest)) (sprintf "arg #%d" (i+1))
+                    | Regst r -> prog.asm (MOV (loc, dest)) (sprintf "arg #%d" (i+1))
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
             ) moves;
-            decl_asm prog (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
-            decl_asm prog (MOV (Const nb_stacked, Regst RAX)) (sprintf "varargs: %d on the stack" nb_stacked);
+            prog.asm (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
+            prog.asm (MOV (Const nb_stacked, Regst RAX)) (sprintf "varargs: %d on the stack" nb_stacked);
             (match assoc fname frame with
-                | None | Some (FnPtr _) -> decl_asm prog (CAL fname) " +"
+                | None | Some (FnPtr _) -> prog.asm (CAL fname) " +"
                 | Some loc -> (
-                    decl_asm prog (MOV (loc, Regst R10)) "function pointer";
-                    decl_asm prog (CAL "*%r10") " +";
+                    prog.asm (MOV (loc, Regst R10)) "function pointer";
+                    prog.asm (CAL "*%r10") " +";
                 )
             );
-            decl_asm prog (MOV (Regst RBP, Regst RSP)) " +";
+            prog.asm (MOV (Regst RBP, Regst RSP)) " +";
             if not (List.mem fname whitelist_longret)
-            then decl_asm prog LTQ "";
+            then prog.asm LTQ "";
         )
         | OP1 (op, expr) -> (
             gen_expr (depth, frame) (label, tagbrk, tagcont) expr;
             match op with
-                | M_MINUS -> decl_asm prog (NEG (Regst RAX)) "negative"
-                | M_NOT -> decl_asm prog (NOT (Regst RAX)) "bitwise not"
+                | M_MINUS -> prog.asm (NEG (Regst RAX)) "negative"
+                | M_NOT -> prog.asm (NOT (Regst RAX)) "bitwise not"
                 | M_POST_INC -> if is_lvalue (snd expr)
-                    then decl_asm prog (INC (Deref RDI)) "incr (post)"
+                    then prog.asm (INC (Deref RDI)) "incr (post)"
                     else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
                 | M_POST_DEC -> if is_lvalue (snd expr)
-                    then decl_asm prog (DEC (Deref RDI)) "decr (post)"
+                    then prog.asm (DEC (Deref RDI)) "decr (post)"
                     else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
                 | M_PRE_INC -> if is_lvalue (snd expr)
                     then (
-                        decl_asm prog (INC (Deref RDI)) "incr (pre)";
-                        decl_asm prog (INC (Regst RAX)) " +";
+                        prog.asm (INC (Deref RDI)) "incr (pre)";
+                        prog.asm (INC (Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
                 | M_PRE_DEC -> if is_lvalue (snd expr)
                     then (
-                        decl_asm prog (DEC (Deref RDI)) "decr (pre)";
-                        decl_asm prog (DEC (Regst RAX)) " +";
+                        prog.asm (DEC (Deref RDI)) "decr (pre)";
+                        prog.asm (DEC (Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
                 | M_DEREF -> (
-                    decl_asm prog (MOV (Regst RAX, Regst RDI)) "deref";
-                    decl_asm prog (MOV (Deref RAX, Regst RAX)) " +";
+                    prog.asm (MOV (Regst RAX, Regst RDI)) "deref";
+                    prog.asm (MOV (Deref RAX, Regst RAX)) " +";
                 )
                 | M_ADDR -> if is_lvalue (snd expr)
-                    then decl_asm prog (MOV (Regst RDI, Regst RAX)) "indir"
+                    then prog.asm (MOV (Regst RDI, Regst RAX)) "indir"
                     else Error.error (Some (fst expr)) "indirection needs an lvalue.\n"
         )
         | OP2 (op, lhs, rhs) -> (
@@ -625,18 +625,18 @@ let generate_asm decl_list =
                     store depth RAX;
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
                     retrieve depth RCX;
-                    decl_asm prog (MUL (Regst RCX)) "mul";
+                    prog.asm (MUL (Regst RCX)) "mul";
                 )
                 | S_MOD | S_DIV -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) lhs;
                     store depth RAX;
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
-                    decl_asm prog (MOV (Regst RAX, Regst RCX)) "";
+                    prog.asm (MOV (Regst RAX, Regst RCX)) "";
                     retrieve depth RAX;
-                    decl_asm prog QTO "";
-                    decl_asm prog (DIV (Regst RCX)) "div/mod";
+                    prog.asm QTO "";
+                    prog.asm (DIV (Regst RCX)) "div/mod";
                     (if op = S_MOD then
-                        decl_asm prog (MOV (Regst RDX, Regst RAX)) " -> mod"
+                        prog.asm (MOV (Regst RDX, Regst RAX)) " -> mod"
                     );
                 )
                 | S_ADD | S_SUB -> (
@@ -645,9 +645,9 @@ let generate_asm decl_list =
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
                     retrieve depth RCX;
                     (if op = S_SUB then
-                        decl_asm prog (NEG (Regst RAX)) "neg -> sub";
+                        prog.asm (NEG (Regst RAX)) "neg -> sub";
                     );
-                    decl_asm prog (ADD (Regst RCX, Regst RAX)) "add";
+                    prog.asm (ADD (Regst RCX, Regst RAX)) "add";
                 )
                 | S_INDEX -> (
                     if is_lvalue (snd lhs) then (
@@ -655,8 +655,8 @@ let generate_asm decl_list =
                         store depth RAX;
                         gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
                         retrieve depth RCX;
-                        decl_asm prog (LEA (Index (RCX, RAX), Regst RDI)) "";
-                        decl_asm prog (MOV (Deref RDI, Regst RAX)) "";
+                        prog.asm (LEA (Index (RCX, RAX), Regst RDI)) "";
+                        prog.asm (MOV (Deref RDI, Regst RAX)) "";
                     ) else (
                         Error.error (Some (fst expr)) "index requires an lvalue.\n"
                     )
@@ -665,11 +665,11 @@ let generate_asm decl_list =
                     gen_expr (depth, frame) (label, tagbrk, tagcont) lhs;
                     store depth RAX;
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
-                    decl_asm prog (MOV (Regst RAX, Regst RCX)) "";
+                    prog.asm (MOV (Regst RAX, Regst RCX)) "";
                     retrieve depth RAX;
                     (if op = S_SHL
-                        then decl_asm prog (SHL (Regst CL, Regst RAX)) ""
-                        else decl_asm prog (SHR (Regst CL, Regst RAX)) ""
+                        then prog.asm (SHL (Regst CL, Regst RAX)) ""
+                        else prog.asm (SHR (Regst CL, Regst RAX)) ""
                     );
                 )
                 | S_AND | S_OR | S_XOR -> (
@@ -678,9 +678,9 @@ let generate_asm decl_list =
                     gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
                     retrieve depth RCX;
                     (match op with
-                        | S_AND -> decl_asm prog (AND (Regst RCX, Regst RAX)) "and"
-                        | S_OR -> decl_asm prog (IOR (Regst RCX, Regst RAX)) "incl. or"
-                        | S_XOR -> decl_asm prog (XOR (Regst RCX, Regst RAX)) "excl. or"
+                        | S_AND -> prog.asm (AND (Regst RCX, Regst RAX)) "and"
+                        | S_OR -> prog.asm (IOR (Regst RCX, Regst RAX)) "incl. or"
+                        | S_XOR -> prog.asm (XOR (Regst RCX, Regst RAX)) "excl. or"
                         | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OP2::S_AND|..."
                     );
                 )
@@ -690,7 +690,7 @@ let generate_asm decl_list =
             store depth RAX;
             gen_expr (depth+1, frame) (label, tagbrk, tagcont) rhs;
             retrieve depth RCX;
-            decl_asm prog (CMP (Regst RAX, Regst RCX)) "compare";
+            prog.asm (CMP (Regst RAX, Regst RCX)) "compare";
             let tagbase = sprintf "%d_cmp" !label_cnt in
             incr label_cnt;
             let (jump_instr, case_nojump, comment) = (match op with
@@ -700,24 +700,24 @@ let generate_asm decl_list =
                 | C_GT -> (JLE (label, tagbase), 1, "case ! >")
                 | C_GE -> (JLT (label, tagbase), 1, "case ! >=")
             ) in
-            decl_asm prog jump_instr comment;
-            decl_asm prog (MOV (Const case_nojump, Regst RAX)) " +";
-            decl_asm prog (JMP (label, tagbase ^ "_done")) " +";
-            decl_asm prog (TAG (label, tagbase)) " +";
-            decl_asm prog (MOV (Const (1-case_nojump), Regst RAX)) " +";
-            decl_asm prog (TAG (label, tagbase ^ "_done")) " +";
+            prog.asm jump_instr comment;
+            prog.asm (MOV (Const case_nojump, Regst RAX)) " +";
+            prog.asm (JMP (label, tagbase ^ "_done")) " +";
+            prog.asm (TAG (label, tagbase)) " +";
+            prog.asm (MOV (Const (1-case_nojump), Regst RAX)) " +";
+            prog.asm (TAG (label, tagbase ^ "_done")) " +";
         )
         | EIF (cond, expr_true, expr_false) -> (
             let tagbase = sprintf "%d_tern" !label_cnt in
             incr label_cnt;
             gen_expr (depth, frame) (label, tagbrk, tagcont) cond;
-            decl_asm prog (TST (Regst RAX, Regst RAX)) "apply ternary";
-            decl_asm prog (JEQ (label, tagbase ^ "_false")) "";
+            prog.asm (TST (Regst RAX, Regst RAX)) "apply ternary";
+            prog.asm (JEQ (label, tagbase ^ "_false")) "";
             gen_expr (depth, frame) (label, tagbrk, tagcont) expr_true;
-            decl_asm prog (JMP (label, tagbase ^ "_done")) "end case true";
-            decl_asm prog (TAG (label, tagbase ^ "_false")) "begin case false";
+            prog.asm (JMP (label, tagbase ^ "_done")) "end case true";
+            prog.asm (TAG (label, tagbase ^ "_false")) "begin case false";
             gen_expr (depth, frame) (label, tagbrk, tagcont) expr_false;
-            decl_asm prog (TAG (label, tagbase ^ "_done")) "end ternary";
+            prog.asm (TAG (label, tagbase ^ "_done")) "end ternary";
         )
         | ESEQ exprs -> List.iter (gen_expr (depth, frame) (label, tagbrk, tagcont)) exprs
     in
@@ -725,7 +725,7 @@ let generate_asm decl_list =
         | [] -> []
         | (CFUN (_, name, _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
         | (CDECL (_, name)) :: tl -> (
-            decl_int prog name;
+            prog.int name;
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
@@ -735,29 +735,29 @@ let generate_asm decl_list =
     );
     let global = get_global_vars decl_list in
     (
-        let fmt = decl_str prog "Unhandled exception %s(%d)\n" in
-        decl_asm prog (FUN ".exc_handler") "handle uncaught exceptions";
-        decl_asm prog NOP " -> exception name is in %rdi";
-        decl_asm prog NOP " -> exception parameter is in %rax";
-        decl_asm prog (MOV (Regst RAX, Regst RBX)) "save parameter";
-        decl_asm prog (MOV (Regst RAX, Regst RCX)) "4th arg is parameter";
-        decl_asm prog (MOV (Regst RDI, Regst RDX)) "3rd arg is name";
-        decl_asm prog (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
-        decl_asm prog (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
-        decl_asm prog (MOV (Const 0, Regst RAX)) "no args on the stack";
-        decl_asm prog (CAL "fprintf") "";
-        decl_asm prog (MOV (Regst RBX, Regst RDI)) "value";
-        decl_asm prog (MOV (Const 60, Regst RAX)) "code for exit";
-        decl_asm prog SYS "";
+        let fmt = prog.str "Unhandled exception %s(%d)\n" in
+        prog.asm (FUN ".exc_handler") "handle uncaught exceptions";
+        prog.asm NOP " -> exception name is in %rdi";
+        prog.asm NOP " -> exception parameter is in %rax";
+        prog.asm (MOV (Regst RAX, Regst RBX)) "save parameter";
+        prog.asm (MOV (Regst RAX, Regst RCX)) "4th arg is parameter";
+        prog.asm (MOV (Regst RDI, Regst RDX)) "3rd arg is name";
+        prog.asm (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
+        prog.asm (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
+        prog.asm (MOV (Const 0, Regst RAX)) "no args on the stack";
+        prog.asm (CAL "fprintf") "";
+        prog.asm (MOV (Regst RBX, Regst RDI)) "value";
+        prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
+        prog.asm SYS "";
     );
     List.iter (gen_decl (global::[universal])) decl_list;
     prog
 
 
 let compile (out, color) decl_list =
-    let instructions = generate_asm decl_list in
+    let prog = codegen decl_list in
     if !Error.error_count = 0 then
-        generate (out, color) instructions
+        prog.gen (out, color)
     else (
         Error.flush_error ();
         printf "%d errors were found, no assembler generated.\n" !Error.error_count;

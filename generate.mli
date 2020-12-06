@@ -64,22 +64,13 @@ type instruction =
     | TST of location * location (** calc flags for binary bitwise and, used for cmp to zero *)
 
 (** a list of global declarations and assembler instructions *)
-type program
-
-(** declare a global integer variable *)
-val decl_int: program -> string -> unit
-
-(** declare a (possibly new) global string *)
-val decl_str: program -> string -> string
-
-(** declare a (possibly new) exception *)
-val decl_exc: program -> string -> string
-
-(** add a new instruction *)
-val decl_asm: program -> instruction -> string -> unit
+type program = {
+    int: string -> unit; (** declare a global integer variable *)
+    str: string -> string; (** declare a (possibly new) global string *)
+    exc: string -> string; (** declare a (possibly new) exception *)
+    asm: instruction -> string -> unit; (** add a new instruction *)
+    gen: (out_channel * bool) -> unit; (** dump formatted assembler *)
+}
 
 (** empty program *)
 val make_prog: unit -> program
-
-(** dump formatted assembler *)
-val generate: (out_channel * bool) -> program -> unit
