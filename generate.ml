@@ -59,59 +59,13 @@ type instruction =
     | CMP of location * location
     | TST of location * location
 
-type program = {
-    mutable idata: string list;
-    mutable sdata: (string * string) list;
-    mutable scount: int;
-    mutable text: (instruction * string) list;
-    mutable edata: (string * string) list;
-    mutable ecount: int;
-}
-
-let decl_int prog name =
-    prog.idata <- name :: prog.idata
-
-let decl_str prog str =
-    match List.assoc_opt str prog.sdata with
-        | None -> (
-            let str_tag = sprintf ".LC%d" prog.scount in
-            prog.scount <- prog.scount + 1;
-            prog.sdata <- (str, str_tag) :: prog.sdata;
-            str_tag
-        )
-        | Some tag -> tag
-
-let decl_asm prog instr info =
-    prog.text <- (instr, info) :: prog.text
-
-let decl_exc prog exc =
-    match List.assoc_opt exc prog.edata with
-        | None -> (
-            let exc_tag = sprintf ".EX%d" prog.ecount in
-            prog.ecount <- prog.ecount + 1;
-            prog.edata <- (exc, exc_tag) :: prog.edata;
-            exc_tag
-        )
-        | Some tag -> tag
-
-let make_prog () =
-    {
-        idata = [];
-        sdata = [];
-        scount = 0;
-        text = [];
-        edata = [];
-        ecount = 0;
-    }
-
 type alignment =
     | TextRt of string
     | TextLt of string
     | Node of alignment list
     | Skip of int
 
-
-let generate ((out:out_channel), color) prog =
+let generate (ints, strs, excs, text) ((out:out_channel), color) =
     let color_reg = if color then Pigment.purple else "" in
     let color_int = if color then Pigment.blue else "" in
     let color_meta = if color then Pigment.reset else "" in
@@ -333,18 +287,64 @@ let generate ((out:out_channel), color) prog =
     in
     fprintf out "    %s.data\n" color_meta;
     fprintf out "    %s.align %s8\n" color_meta color_int;
-    let idata = List.rev prog.idata in
-    let ialign = List.map generate_ialign idata in
+    let ialign = List.map generate_ialign ints in
     List.iter (display_align out [10; 0]) ialign;
-    let sdata = List.rev prog.sdata in
-    let salign = List.map generate_salign sdata in
+    let salign = List.map generate_salign strs in
     List.iter (display_align out [10; 0]) salign;
-    let edata = List.rev prog.edata in
-    let ealign = List.map generate_ealign edata in
+    let ealign = List.map generate_ealign excs in
     List.iter (display_align out [10; 0]) ealign;
     fprintf out "\n";
     fprintf out "    %s.global %smain\n" color_meta color_tag;
     fprintf out "    %s.text" color_meta;
-    let tdata = List.rev prog.text in
-    let talign = List.map generate_talign tdata in
+    let talign = List.map generate_talign text in
     List.iter (display_align out [9; 12; 0; 0; 12; 7; 0]) talign;
+
+
+type program = {
+    int: string -> unit;
+    str: string -> string;
+    exc: string -> string;
+    asm: instruction -> string -> unit;
+    gen: (out_channel * bool) -> unit;
+}
+
+let make_prog () =
+    let ints = ref [] in
+    let strs = ref [] in
+    let str_cnt = ref 0 in
+    let excs = ref [] in
+    let exc_cnt = ref 0 in
+    let text = ref [] in
+    let int name =
+        ints := name :: !ints
+    in
+    let str value =
+        match List.assoc_opt value !strs with
+            | None -> (
+                let tag = sprintf ".LC%d" !str_cnt in
+                incr str_cnt;
+                strs := (value, tag) :: !strs;
+                tag
+            )
+            | Some tag -> tag
+    in
+    let asm instr info =
+        text := (instr, info) :: !text
+    in
+    let exc e =
+        match List.assoc_opt e !excs with
+            | None -> (
+                let tag = sprintf ".EX%d" !exc_cnt in
+                incr exc_cnt;
+                excs := (e, tag) :: !excs;
+                tag
+            )
+            | Some tag -> tag
+    in
+    {
+        str = str;
+        asm = asm;
+        int = int;
+        exc = exc;
+        gen = fun writer -> generate (List.rev !ints, List.rev !strs, List.rev !excs, List.rev !text) writer;
+    }
