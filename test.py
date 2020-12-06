@@ -31,7 +31,9 @@ assets = [
     ("reduce", [[], ["-O"]],
         "reduce_eif", "reduce_monops", "reduce_binops",
         "reduce_cmp", "big_switch",
-    )
+    ),
+    ("except", [[], ["-O"]],
+    ),
 ]
 
 class Module:
