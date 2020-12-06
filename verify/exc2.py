@@ -13,7 +13,7 @@ def verify(*args):
         return (10, "", "Usage: ./exc1 <n>\ncalcule a quelle iteration une suite mysterieuse termine, en partant de <n>.\n")
     n = int(args[1])
     if n < 0:
-        return (0, "", "Pas trouvé...\n" + always)
+        return (0, "", "Pas trouve...\n" + always)
     if n == 0:
         return (0, "", always + "Unhandled exception Zero(0)\n")
     else:
@@ -26,5 +26,6 @@ data = [
     ["5"],
     ["521"],
     ["6521"],
+    ["-52"],
     ["foo", "bar"],
 ]
