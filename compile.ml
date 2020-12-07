@@ -675,9 +675,14 @@ let codegen decl_list =
             match op with
                 | S_MUL -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
-                    store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
-                    retrieve depth RCX;
+                    if is_single_step rhs then (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
+                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                    ) else (
+                        store depth RAX;
+                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        retrieve depth RCX;
+                    );
                     prog.asm (MUL (Regst RCX)) "mul";
                 )
                 | S_MOD | S_DIV -> (
@@ -694,9 +699,14 @@ let codegen decl_list =
                 )
                 | S_ADD | S_SUB -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
-                    store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
-                    retrieve depth RCX;
+                    if is_single_step rhs then (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
+                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                    ) else (
+                        store depth RAX;
+                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        retrieve depth RCX;
+                    );
                     (if op = S_SUB then
                         prog.asm (NEG (Regst RAX)) "neg -> sub";
                     );
@@ -705,9 +715,14 @@ let codegen decl_list =
                 | S_INDEX -> (
                     if is_lvalue (snd lhs) then (
                         gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
-                        store depth RAX;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
-                        retrieve depth RCX;
+                        if is_single_step rhs then (
+                            prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
+                            gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                        ) else (
+                            store depth RAX;
+                            gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                            retrieve depth RCX;
+                        );
                         if with_addr then (
                             prog.asm (LEA (Index (RCX, RAX), Regst RDI)) "index";
                             prog.asm (MOV (Deref RDI, Regst RAX)) " +";
@@ -731,9 +746,14 @@ let codegen decl_list =
                 )
                 | S_AND | S_OR | S_XOR -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
-                    store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
-                    retrieve depth RCX;
+                    if is_single_step rhs then (
+                        store depth RAX;
+                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        retrieve depth RCX;
+                    ) else (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
+                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                    );
                     (match op with
                         | S_AND -> prog.asm (AND (Regst RCX, Regst RAX)) "and"
                         | S_OR -> prog.asm (IOR (Regst RCX, Regst RAX)) "incl. or"
@@ -744,9 +764,14 @@ let codegen decl_list =
         )
         | CMP (op, lhs, rhs) -> (
             gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
-            store depth RAX;
-            gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
-            retrieve depth RCX;
+            if is_single_step rhs then (
+                prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+            ) else (
+                store depth RAX;
+                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                retrieve depth RCX;
+            );
             prog.asm (CMP (Regst RAX, Regst RCX)) "compare";
             let tagbase = sprintf "%d_cmp" !label_cnt in
             incr label_cnt;
