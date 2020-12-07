@@ -416,6 +416,10 @@ let codegen decl_list =
         | CFUN (_, name, decs, code) -> (
             label_cnt := 0;
             prog.asm (FUN name) "toplevel function";
+            (match find_duplicate_decl decs with
+                | None -> ()
+                | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
+            );
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in

@@ -1,4 +1,4 @@
-int main() {
+int main(int argc, int** argc) {
     int i;
     int j;
     int i;
