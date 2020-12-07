@@ -1,5 +1,5 @@
 int main() {
-    int arr, i;
+    int arr, i, k;
     i = 0;
     arr = malloc(3*QSIZE);
     arr[i++] = 100;
@@ -9,5 +9,8 @@ int main() {
     fprintf(stdout, "arr[2] = %d ?= 101; ", arr[2]);
     fprintf(stdout, "arr[1] = %d ?= 200; ", arr[1]);
     fprintf(stdout, "arr[0] = %d ?= 101; ", arr[0]);
+    k = &arr[1];
+    (*k)++;
+    fprintf(stdout, "arr[1] = %d ?= %d ?= 201; ", arr[1], *k);
     fflush(stdout);
 }
