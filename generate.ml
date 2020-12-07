@@ -299,7 +299,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
     fprintf out "    %s.global %smain\n" color_meta color_tag;
     fprintf out "    %s.text" color_meta;
     let talign = List.map generate_talign text in
-    List.iter (display_align out [9; 12; 0; 0; 12; 7; 0]) talign;
+    List.iter (display_align out [9; 16; 0; 0; 16; 7; 0]) talign;
 
 
 type program = {

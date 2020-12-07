@@ -275,10 +275,8 @@ let codegen decl_list =
                 let id = prog.exc name in
                 gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts value);
                 prog.asm (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
-                prog.asm (LEA (Globl handler_base, Regst RSI)) "load handler_base";
-                prog.asm (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
-                prog.asm (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
-                prog.asm (MOV (Deref RSI, Regst RSI)) " +";
+                prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
+                prog.asm (MOV (Globl handler_addr, Regst RSI)) "restore stackframe for handler";
                 prog.asm (JMP ("", "*%rsi")) "";
             )
             | CTRY (code, catches, finally) -> (
@@ -366,10 +364,8 @@ let codegen decl_list =
                 prog.asm (JEQ (label, tagbase ^ "_end")) "done with the try block";
                 retrieve depth RAX;
                 prog.asm NOP "# no matching catch found, rethrow";
-                prog.asm (LEA (Globl handler_base, Regst RSI)) "load handler_base";
-                prog.asm (MOV (Deref RSI, Regst RBP)) "restore base pointer for handler";
-                prog.asm (LEA (Globl handler_addr, Regst RSI)) "load handler_addr";
-                prog.asm (MOV (Deref RSI, Regst RSI)) " +";
+                prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
+                prog.asm (MOV (Globl handler_addr, Regst RSI)) "load handler address";
                 prog.asm (JMP ("", "*%rsi")) "";
                 prog.asm (TAG (label, tagbase ^ "_end")) "";
             )
