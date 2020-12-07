@@ -407,6 +407,11 @@ let codegen decl_list =
         prog.asm (MOV (Regst reg, Stack (-depth*8))) "store"
     and retrieve depth reg =
         prog.asm (MOV (Stack (-depth*8), Regst reg)) "retrieve"
+    and is_single_step = function
+        | (_, VAR _) -> true
+        | (_, CST _) -> true
+        | (_, STRING _) -> true
+        | _ -> false
     and gen_decl frame = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
@@ -485,9 +490,15 @@ let codegen decl_list =
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" arr)
                 | Some loc when is_addr loc -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
-                    store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
-                    retrieve (depth) RCX;
+                    if is_single_step value then (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "store index";
+                        gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+                    ) else (
+                        store depth RAX;
+                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                        retrieve (depth) RCX;
+                    );
+                    (* idx is in rcx, value is in rax *)
                     if with_addr then (
                         prog.asm (MOV (loc, Regst RDI)) "access array";
                         prog.asm (LEA (Index (RDI, RCX), Regst RDI)) " +";
@@ -501,9 +512,14 @@ let codegen decl_list =
         )
         | SET_DEREF (dest, value) -> (
             gen_expr (depth, frame) (label, tagbrk, tagcont) false dest;
-            store depth RAX;
-            gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
-            retrieve depth RDI;
+            if is_single_step value then (
+                prog.asm (MOV (Regst RAX, Regst RDI)) "save destination";
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+            ) else (
+                store depth RAX;
+                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                retrieve depth RDI;
+            );
             prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
         )
         | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
@@ -536,9 +552,13 @@ let codegen decl_list =
                 | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*"
             ) in
             (* The address of our expression is in RDI *)
-            store depth RDI;
-            gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
-            retrieve depth RDI;
+            if is_single_step value then (
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+            ) else (
+                store depth RDI;
+                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                retrieve depth RDI;
+            );
             (match op with
                 | S_ADD | S_SUB | S_AND | S_OR | S_XOR -> (
                     (match op with
