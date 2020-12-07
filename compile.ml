@@ -740,8 +740,11 @@ let codegen decl_list =
         prog.asm NOP " -> exception name is in %rdi";
         prog.asm NOP " -> exception parameter is in %rax";
         prog.asm (MOV (Regst RAX, Regst RBX)) "save parameter";
-        prog.asm (MOV (Regst RAX, Regst RCX)) "4th arg is parameter";
-        prog.asm (MOV (Regst RDI, Regst RDX)) "3rd arg is name";
+        prog.asm (MOV (Regst RDI, Regst R12)) "save name";
+        prog.asm (MOV (Globl "stdout", Regst RDI)) "1st arg is stdout";
+        prog.asm (CAL "fflush") "flush output before error";
+        prog.asm (MOV (Regst RBX, Regst RCX)) "4th arg is parameter";
+        prog.asm (MOV (Regst R12, Regst RDX)) "3rd arg is name";
         prog.asm (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
         prog.asm (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
         prog.asm (MOV (Const 0, Regst RAX)) "no args on the stack";
