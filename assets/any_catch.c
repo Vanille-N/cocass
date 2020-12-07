@@ -1,6 +1,6 @@
-int main() {
+int main(int argc, char** argv) {
     int i;
-    i = 2;
+    i = atoi(argv[1]);
     try {
         switch (i) {
             case 0: throw Zero(NULL);
@@ -11,5 +11,7 @@ int main() {
         printf("Zero\n");
     } catch (_ _) {
         printf("Something else\n");
+    } finally {
+        printf("Exit.\n");
     }
 }
