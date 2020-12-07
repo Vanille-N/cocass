@@ -3,8 +3,8 @@ int foo() {
     try {
         for (i = 0; i < 10; i++) {
             if (i == 5) {
-                break; // OK
-                // continue; // OK
+                // break; // OK
+                continue; // OK
                 // return; // KO
                 // return 1; // KO
             }
