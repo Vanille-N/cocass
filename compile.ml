@@ -8,6 +8,13 @@ let rec zip a b = match (a, b) with
     | (hdl::tll, hdr::tlr) -> (hdl,hdr) :: (zip tll tlr)
     | _ -> []
 
+let any fn lst =
+    let rec aux = function
+        | [] -> false
+        | hd :: tl when fn hd -> true
+        | _ :: tl -> aux tl
+    in aux lst
+
 let rec truncate n lst =
     if lst = [] then []
     else if n = 0 then []
@@ -121,6 +128,23 @@ let codegen decl_list =
     let handler = ".exc_handler" in
     let handler_addr = ".exc_addr" in
     let handler_base = ".exc_base" in
+    let needs_exceptions = (
+        let rec aux_decl = function
+            | CDECL _ -> false
+            | CFUN (_, _, _, code) -> aux_code (snd code)
+        and aux_code = function
+            | CBLOCK (_, code) -> any aux_code (List.map snd code)
+            | CTHROW _ -> true
+            | CBREAK -> false
+            | CCONTINUE -> false
+            | CEXPR _ -> false
+            | CIF (_, code_true, code_false) -> aux_code (snd code_true) || aux_code (snd code_false)
+            | CRETURN _ -> false
+            | CWHILE (_, code, _, _) -> aux_code (snd code)
+            | CSWITCH (_, cases, deflt) -> any (fun (_, _, c) -> any aux_code (List.map snd c)) cases || aux_code (snd deflt)
+            | CTRY (body, catches, finally) -> aux_code (snd body) || any (fun (_, _, _, c) -> aux_code (snd c)) catches || (match finally with None -> true | Some (_, c) -> aux_code c)
+        in any aux_decl decl_list
+    ) in
     prog.int handler_addr;
     prog.int handler_base;
     let extract_decl_name = function
