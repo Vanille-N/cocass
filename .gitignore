@@ -1,5 +1,6 @@
-assets/*
-!assets/*.c
+assets/**/*
+!assets/**/
+!assets/**/*.c
 failures/*
 !failures/*.c
 

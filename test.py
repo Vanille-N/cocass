@@ -33,6 +33,9 @@ assets = [
         "reduce_cmp", "big_switch",
     ),
     ("except", [[], ["-O"]],
+        "exc1", "exc2", "exc3", "except",
+        "loop_try", "try_loop",
+        "try_switch", "any_catch",
     ),
 ]
 
@@ -145,7 +148,7 @@ def main():
                     if category == fbase[2:]:
                         for fbase in tests:
                             for more in more_args:
-                                fulltest(cc, fbase, more=more)
+                                fulltest(cc, category + '/' + fbase, more=more)
             else:
                 fulltest(cc, fbase)
                 fulltest(cc, fbase, more=['-O'])
@@ -154,6 +157,6 @@ def main():
             print("\n\n    <<< category: {} >>>\n".format(category))
             for fbase in tests:
                 for more in more_args:
-                    fulltest(cc, fbase, more=more)
+                    fulltest(cc, category + '/' + fbase, more=more)
 
 main()
