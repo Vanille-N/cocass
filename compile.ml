@@ -601,7 +601,45 @@ let codegen decl_list =
             );
         )
         | CALL (fname, expr_lst) -> (
-            List.iteri (fun i e ->
+            let nb_args = List.length expr_lst in
+            let nb_in_reg = min 6 nb_args in
+            let nb_on_stk = nb_args - nb_in_reg in
+            let reg_dests = truncate nb_in_reg (List.map (fun r -> Regst r) [RDI;RSI;RDX;RCX;R08;R09]) in
+            let (nb_nontrivial, expr_nontrivial) = (
+                let nb_nontrivial = ref 0 in
+                let lst = List.map (fun e ->
+                    if is_single_step e then (-1, e, false)
+                    else (incr nb_nontrivial; (!nb_nontrivial, e, true))
+                ) expr_lst
+                in (!nb_nontrivial, lst)
+            ) in
+            let nbvars = depth + nb_nontrivial + nb_on_stk in
+            let offset = nbvars + (nbvars mod 2) in
+            let stk_dests = List.init nb_on_stk (fun i -> Stack (-(offset-i)*8)) in
+            let dests = reg_dests @ stk_dests in
+            (* calculate all nontrivial parameters *)
+            List.iter (fun (i, e, is_nontrivial) ->
+                if is_nontrivial then (
+                    gen_expr (depth+i, frame) (label, tagbrk, tagcont) false e;
+                    store (depth+i) RAX;
+                )
+            ) expr_nontrivial;
+            (* now load all nontrivial and calculate all trivial *)
+            List.iteri (fun j ((i, e, is_nontrivial), dest) ->
+                if is_nontrivial then (
+                    match dest with
+                        | Stack k -> (
+                            retrieve (depth+i) RAX;
+                            prog.asm (MOV (Regst RAX, dest)) (sprintf "nontrivial arg %d (#%d)" i (j+1));
+                        )
+                        | Regst r -> retrieve (depth+i) r;
+                        | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
+                ) else (
+                    gen_expr (depth+nb_nontrivial, frame) (label, tagbrk, tagcont) false e;
+                    prog.asm (MOV (Regst RAX, dest)) (sprintf "trivial argument #%d" (j+1));
+                )
+            ) (zip expr_nontrivial dests);
+            (* List.iteri (fun i e ->
                 gen_expr (depth+i, frame) (label, tagbrk, tagcont) false e;
                 store (depth+i) RAX;
             ) expr_lst;
@@ -624,9 +662,9 @@ let codegen decl_list =
                     )
                     | Regst r -> prog.asm (MOV (loc, dest)) (sprintf "arg #%d" (i+1))
                     | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
-            ) moves;
+            ) moves; *)
             prog.asm (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
-            prog.asm (MOV (Const nb_stacked, Regst RAX)) (sprintf "varargs: %d on the stack" nb_stacked);
+            prog.asm (MOV (Const nb_on_stk, Regst RAX)) (sprintf "varargs: %d on the stack" nb_on_stk);
             (match assoc fname frame with
                 | None | Some (FnPtr _) -> prog.asm (CAL fname) " +"
                 | Some loc -> (
