@@ -11,6 +11,7 @@ type register =
     | R08
     | R09
     | R10
+    | R12
     | RIP
 
 (** Any way to refer to an assembler variable / value *)

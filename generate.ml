@@ -12,6 +12,7 @@ type register =
     | R08
     | R09
     | R10
+    | R12
     | RIP
 
 type location =
@@ -87,6 +88,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
                 | R08 -> "%r8"
                 | R09 -> "%r9"
                 | R10 -> "%r10"
+                | R12 -> "%r12"
                 | RIP -> "%rip"
             )
     in
