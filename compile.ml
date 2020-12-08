@@ -4,10 +4,14 @@ open Genlab
 open Generate
 open Printf
 
+(* utils *)
+
+(* zip two lists together *)
 let rec zip a b = match (a, b) with
     | (hdl::tll, hdr::tlr) -> (hdl,hdr) :: (zip tll tlr)
     | _ -> []
 
+(* find if any item satisfies the condition *)
 let any fn lst =
     let rec aux = function
         | [] -> false
@@ -15,11 +19,13 @@ let any fn lst =
         | _ :: tl -> aux tl
     in aux lst
 
+(* select n first items of lst *)
 let rec truncate n lst =
     if lst = [] then []
     else if n = 0 then []
     else (List.hd lst) :: (truncate (n-1) (List.tl lst))
 
+(* List.assoc_opt rewritten for ('a * 'b) list list *)
 let assoc x ll =
     let rec aux = function
         | [] -> None
@@ -28,12 +34,14 @@ let assoc x ll =
         | (_::l)::ll -> aux (l::ll)
     in aux ll
 
+(* is expression assignable to ? *)
 let rec is_lvalue = function
     | VAR _ -> true
     | OP2 (S_INDEX, lhs, _) -> is_lvalue (snd lhs)
     | OP1 (M_DEREF, _) -> true
     | _ -> false
 
+(* is location assignable to ? *)
 let rec is_addr = function
     | Const _ | FnPtr _ -> false
     | _ -> true
@@ -46,6 +54,7 @@ type case_tree =
     | Terminal of int
     | Branch of int * case_tree * case_tree
 
+(* dichotomy on cases *)
 let tree_of_cases arr =
     let n = Array.length arr in
     let rec build i j =
@@ -60,6 +69,7 @@ let tree_of_cases arr =
     in
     build 0 n
 
+(* get cases from switch statement *)
 let extract_switch_cases cases =
     let rec dup = function
         | [] -> None
@@ -72,6 +82,7 @@ let extract_switch_cases cases =
         | Some dup -> Error dup
         | None -> Ok (tree_of_cases (Array.of_list (List.map snd sorted)))
 
+(* detect useless catch *)
 let find_duplicate_catch catches =
     let rec dup = function
         | [] -> None
@@ -90,6 +101,7 @@ let find_duplicate_catch catches =
         | None -> dup sorted
         | Some loc -> Some (loc, "_")
 
+(* detect conflicting declaration *)
 let find_duplicate_decl decls =
     let rec dup = function
         | [] -> None
@@ -101,6 +113,55 @@ let find_duplicate_decl decls =
         | CFUN (loc, name, _, _) -> (loc, name)
     ) decls in
     dup (List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) names)
+
+(* determine if expression is trivial *)
+let is_single_step = function
+    | (_, VAR _) -> true
+    | (_, CST _) -> true
+    | (_, STRING _) -> true
+    | _ -> false
+
+(* detect use of throw to determine if exception handler is needed *)
+let needs_exceptions decl_list =
+    let rec aux_decl = function
+        | CDECL _ -> false
+        | CFUN (_, _, _, code) -> aux_code (snd code)
+    and aux_code = function
+        | CBLOCK (_, code) -> any aux_code (List.map snd code)
+        | CTHROW _ -> true
+        | CBREAK -> false
+        | CCONTINUE -> false
+        | CEXPR _ -> false
+        | CIF (_, code_true, code_false) -> aux_code (snd code_true) || aux_code (snd code_false)
+        | CRETURN _ -> false
+        | CWHILE (_, code, _, _) -> aux_code (snd code)
+        | CSWITCH (_, cases, deflt) -> any (fun (_, _, c) -> any aux_code (List.map snd c)) cases || aux_code (snd deflt)
+        | CTRY (body, catches, finally) -> aux_code (snd body) || any (fun (_, _, _, c) -> aux_code (snd c)) catches || (match finally with None -> true | Some (_, c) -> aux_code c)
+    in any aux_decl decl_list
+
+(* get declaration name from var_declaration *)
+let extract_decl_name = function
+    | CDECL (_, name) -> name
+    | CFUN (_, name, _, _) -> name
+
+(* predefined variables *)
+let universal = [
+    ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
+    ("EOF", Const (-1)); ("NULL", Const 0);
+    ("true", Const 1); ("false", Const 0);
+    ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
+    ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
+    ("RAND_MAX", Const 2147483647);
+    ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
+    ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Hexdc "ff");
+    ("BYTE", Const 255);
+]
+
+(* those of the predefined variables that are decimal constant values *)
+let consts = List.filter_map (function
+    | (name, Const k) -> Some (name, k)
+    | _ -> None
+) universal
 
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
@@ -119,8 +180,8 @@ let find_duplicate_decl decls =
  * *** R09 is 6'th argument
  *
  * Regarding exceptions:
- * *** .exc_addr(%rip) is current handler address
- * *** .exc_base(%rip) is current handler base pointer
+ * *** .eaddr(%rip) is current handler address
+ * *** .ebase(%rip) is current handler base pointer
  * *** RAX is exception parameter
  * *** RDI is exception identifier if not NULL
  * <><><> <><> <><><>
@@ -128,55 +189,53 @@ let find_duplicate_decl decls =
 let codegen decl_list =
     let label_cnt = ref 0 in
     let prog = make_prog () in
-    let handler = ".exc_handler" in
-    let handler_addr = ".exc_addr" in
-    let handler_base = ".exc_base" in
-    let needs_exceptions = (
-        let rec aux_decl = function
-            | CDECL _ -> false
-            | CFUN (_, _, _, code) -> aux_code (snd code)
-        and aux_code = function
-            | CBLOCK (_, code) -> any aux_code (List.map snd code)
-            | CTHROW _ -> true
-            | CBREAK -> false
-            | CCONTINUE -> false
-            | CEXPR _ -> false
-            | CIF (_, code_true, code_false) -> aux_code (snd code_true) || aux_code (snd code_false)
-            | CRETURN _ -> false
-            | CWHILE (_, code, _, _) -> aux_code (snd code)
-            | CSWITCH (_, cases, deflt) -> any (fun (_, _, c) -> any aux_code (List.map snd c)) cases || aux_code (snd deflt)
-            | CTRY (body, catches, finally) -> aux_code (snd body) || any (fun (_, _, _, c) -> aux_code (snd c)) catches || (match finally with None -> true | Some (_, c) -> aux_code c)
-        in any aux_decl decl_list
-    ) in
+    let handler = ".ehandler" in
+    let handler_addr = ".eaddr" in
+    let handler_base = ".ebase" in
+    let needs_exceptions = needs_exceptions decl_list in
     if needs_exceptions then (
         prog.int handler_addr;
         prog.int handler_base;
     );
-    let extract_decl_name = function
-        | CDECL (_, name) -> name
-        | CFUN (_, name, _, _) -> name
+    let enter_stackframe () =
+        prog.asm (PSH (Regst RBP)) "enter stackframe";
+        prog.asm (MOV (Regst RSP, Regst RBP)) " +";
+    and leave_stackframe fname =
+        prog.asm (XOR (Regst RAX, Regst RAX)) "set to 0";
+        prog.asm (TAG (fname, "return")) "leave stackframe";
+        prog.asm (POP (Regst RBP)) " +";
+        prog.asm RET ""
+    and stack_args decs =
+        let n = List.length decs in
+        let stacked = List.init (max 0 (n-6)) (fun i -> Stack (8*(i+2))) in
+        let regged = truncate (min 6 n) [RDI; RSI; RDX; RCX; R08; R09] in
+        let names = List.map extract_decl_name decs in
+        let regged = List.mapi (fun i (loc, name) ->
+            let newloc = Stack (-(i+1)*8) in
+            prog.asm (MOV (Regst loc, newloc)) (sprintf "store %s" name);
+            newloc
+        ) (zip regged names) in
+        let vars = zip names (regged @ stacked) in
+        List.iter (fun (name, loc) -> match loc with
+            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d" name k)
+            | _ -> ()
+        ) vars;
+        vars
+    and make_scope depth decls =
+        let n = List.length decls in
+        let pos = List.init n (fun i -> Stack (-8*(i+depth))) in
+        let names = List.map extract_decl_name decls in
+        (match find_duplicate_decl decls with
+            | None -> ()
+            | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
+        );
+        let vars = zip names pos in
+        vars
+    and store depth reg =
+        prog.asm (MOV (Regst reg, Stack (-depth*8))) "store"
+    and retrieve depth reg =
+        prog.asm (MOV (Stack (-depth*8), Regst reg)) "retrieve"
     in
-    let whitelist_longret = (
-        let rec scan_toplevel = function
-            | [] -> ["malloc"; "fopen"; "atol"; "strtol"; "labs"]
-            | (CDECL _) :: rest -> scan_toplevel rest
-            | (CFUN (_, name, _, _)) :: rest -> name :: (scan_toplevel rest)
-        in scan_toplevel decl_list
-    ) in
-    let universal = [
-        ("stdin", Globl "stdin"); ("stdout", Globl "stdout"); ("stderr", Globl "stderr");
-        ("EOF", Const (-1)); ("NULL", Const 0);
-        ("true", Const 1); ("false", Const 0);
-        ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
-        ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
-        ("RAND_MAX", Const 2147483647);
-        ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
-        ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Hexdc "ff")
-    ] in
-    let consts = List.filter_map (function
-        | (name, Const k) -> Some (name, k)
-        | _ -> None
-    ) universal in
     let rec gen_code (depth, frame) (label, tagbrk, tagcont, istry) code =
         match snd code with
             | CBLOCK (decl_lst, code_lst) -> (
@@ -407,49 +466,6 @@ let codegen decl_list =
                     prog.asm (TAG (label, tagbase ^ "_end")) "";
                 )
             )
-    and enter_stackframe () =
-        prog.asm (PSH (Regst RBP)) "enter stackframe";
-        prog.asm (MOV (Regst RSP, Regst RBP)) " +";
-    and leave_stackframe fname =
-        prog.asm (XOR (Regst RAX, Regst RAX)) "set to 0";
-        prog.asm (TAG (fname, "return")) "leave stackframe";
-        prog.asm (POP (Regst RBP)) " +";
-        prog.asm RET ""
-    and stack_args decs =
-        let n = List.length decs in
-        let stacked = List.init (max 0 (n-6)) (fun i -> Stack (8*(i+2))) in
-        let regged = truncate (min 6 n) [RDI; RSI; RDX; RCX; R08; R09] in
-        let names = List.map extract_decl_name decs in
-        let regged = List.mapi (fun i (loc, name) ->
-            let newloc = Stack (-(i+1)*8) in
-            prog.asm (MOV (Regst loc, newloc)) (sprintf "store %s" name);
-            newloc
-        ) (zip regged names) in
-        let vars = zip names (regged @ stacked) in
-        List.iter (fun (name, loc) -> match loc with
-            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d" name k)
-            | _ -> ()
-        ) vars;
-        vars
-    and make_scope depth decls =
-        let n = List.length decls in
-        let pos = List.init n (fun i -> Stack (-8*(i+depth))) in
-        let names = List.map extract_decl_name decls in
-        (match find_duplicate_decl decls with
-            | None -> ()
-            | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
-        );
-        let vars = zip names pos in
-        vars
-    and store depth reg =
-        prog.asm (MOV (Regst reg, Stack (-depth*8))) "store"
-    and retrieve depth reg =
-        prog.asm (MOV (Stack (-depth*8), Regst reg)) "retrieve"
-    and is_single_step = function
-        | (_, VAR _) -> true
-        | (_, CST _) -> true
-        | (_, STRING _) -> true
-        | _ -> false
     and gen_decl frame = function
         | CDECL (_, name) -> ()
         | CFUN (_, name, decs, code) -> (
@@ -677,30 +693,6 @@ let codegen decl_list =
                     prog.asm (MOV (Regst RAX, dest)) (sprintf "trivial argument #%d" (j+1));
                 )
             ) (zip expr_nontrivial dests);
-            (* List.iteri (fun i e ->
-                gen_expr (depth+i, frame) (label, tagbrk, tagcont) false e;
-                store (depth+i) RAX;
-            ) expr_lst;
-            let nb_args = List.length expr_lst in
-            let nb_regged = min 6 nb_args in
-            let nb_stacked = max 0 (nb_args-6) in
-            let reg_dests = truncate nb_regged [RDI; RSI; RDX; RCX; R08; R09] in
-            let reg_dests = List.map (fun r -> Regst r) reg_dests in
-            let nbvars = depth + nb_args + nb_stacked in
-            let offset = nbvars + (nbvars mod 2) in
-            let stack_dests = List.init nb_stacked (fun i -> Stack (-(offset-i)*8)) in
-            let dests = reg_dests @ stack_dests in
-            let locs = List.init nb_args (fun i -> Stack (-(depth+i)*8)) in
-            let moves = zip locs dests in
-            List.iteri (fun i (loc, dest) ->
-                match dest with
-                    | Stack k -> (
-                        prog.asm (MOV (loc, Regst RAX)) (sprintf "arg #%d" i);
-                        prog.asm (MOV (Regst RAX, dest)) " +";
-                    )
-                    | Regst r -> prog.asm (MOV (loc, dest)) (sprintf "arg #%d" (i+1))
-                    | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
-            ) moves; *)
             prog.asm (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
             prog.asm (MOV (Const nb_on_stk, Regst RAX)) (sprintf "varargs: %d on the stack" nb_on_stk);
             (match assoc fname frame with
@@ -711,8 +703,10 @@ let codegen decl_list =
                 )
             );
             prog.asm (MOV (Regst RBP, Regst RSP)) " +";
-            if not (List.mem fname whitelist_longret)
-            then prog.asm LTQ "";
+            (match List.assoc_opt fname descriptors with
+                | Some (_, false) | None -> prog.asm LTQ ""
+                | _ -> ()
+            );
         )
         | OP1 (op, expr) -> (
             let need_addr = match op with
@@ -895,7 +889,7 @@ let codegen decl_list =
     let global = get_global_vars decl_list in
     if needs_exceptions then (
         let fmt = prog.str "Unhandled exception %s(%d)\n" in
-        prog.asm (FUN ".exc_handler") "handle uncaught exceptions";
+        prog.asm (FUN handler) "handle uncaught exceptions";
         prog.asm NOP " -> exception name is in %rdi";
         prog.asm NOP " -> exception parameter is in %rax";
         prog.asm (MOV (Regst RAX, Regst RBX)) "save parameter";
