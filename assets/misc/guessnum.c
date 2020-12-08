@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#define SIZE 8
+#define QSIZE 8
 #define int long
 #endif
 
@@ -15,8 +15,8 @@ int choose() {
 
 int strindex(char* str, int index) {
     int base, loc, val;
-    base = index / SIZE;
-    loc = index % SIZE;
+    base = index / QSIZE;
+    loc = index % QSIZE;
     val = str[base];
     while (loc--) {
         val = val / 256;
@@ -56,7 +56,7 @@ int compare(int guess, int real) {
 int play() {
     int real, found;
     int* guess;
-    guess = malloc(SIZE);
+    guess = malloc(QSIZE);
     real = choose();
     found = false;
     printf("I want to make you guess a number.\n");
