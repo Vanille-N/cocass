@@ -15,10 +15,6 @@ let any fn lst =
         | _ :: tl -> aux tl
     in aux lst
 
-let unwrap = function
-    | Some x -> x
-    | None -> failwith "cannot unwrap empty option"
-
 let rec truncate n lst =
     if lst = [] then []
     else if n = 0 then []
@@ -93,14 +89,6 @@ let find_duplicate_catch catches =
     match wildcard_is_last tags with
         | None -> dup sorted
         | Some loc -> Some (loc, "_")
-
-let other_reg forbidden =
-    let rec aux = function
-        | [] -> failwith "No more registers available"
-        | hd :: _ when not (List.mem (Some hd) forbidden) -> hd
-        | _ :: tl -> aux tl
-    in
-    aux [RAX;RCX;RDX;RDI;RSI;R08;R09;R10]
 
 let find_duplicate_decl decls =
     let rec dup = function
@@ -198,12 +186,12 @@ let codegen decl_list =
             )
             | CEXPR expr -> (
                 let expr = Reduce.redexp consts expr in
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) expr
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false expr
             )
             | CIF (cond, do_true, do_false) -> (
                 let tagbase = sprintf "%d_cond" !label_cnt in
                 incr label_cnt;
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) (Reduce.redexp consts cond);
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "apply cond";
                 prog.asm (JEQ (label, tagbase ^ "_false")) "";
                 gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_true;
@@ -221,10 +209,10 @@ let codegen decl_list =
                 prog.asm (TAG (label, tagbase ^ "_finally")) "";
                 (match finally with
                     | None -> ()
-                    | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Some RAX, None) (Reduce.redexp consts e)
+                    | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts e)
                 );
                 prog.asm (TAG (label, tagbase ^ "_check")) "";
-                gen_expr (depth, frame) (label, Some tagbase, Some tagbase) (Some RAX, None) (Reduce.redexp consts cond);
+                gen_expr (depth, frame) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "";
                 prog.asm (JNE (label, tagbase ^ "_start")) "";
                 prog.asm (TAG (label, tagbase ^ "_done")) "";
@@ -239,7 +227,7 @@ let codegen decl_list =
             | CRETURN (Some ret) -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
                 else (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) (Reduce.redexp consts ret);
+                    gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts ret);
                     prog.asm (JMP (label, "return")) "return";
                 )
             )
@@ -259,7 +247,7 @@ let codegen decl_list =
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
                 prog.asm NOP "# enter switch";
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) (Reduce.redexp consts e);
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts e);
                 match extract_switch_cases cases with
                     | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
@@ -315,7 +303,7 @@ let codegen decl_list =
                     Error.error (Some (fst code)) "wildcard _ exception may not be thrown.\n"
                 );
                 let id = prog.exc name in
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) (Reduce.redexp consts value);
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts value);
                 prog.asm (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
                 prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
                 prog.asm (MOV (Globl handler_addr, Regst RSI)) "restore stackframe for handler";
@@ -484,59 +472,54 @@ let codegen decl_list =
             gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
             leave_stackframe name;
         )
-    and gen_expr (depth, frame) (label, tagbrk, tagcont) (loc_res, loc_addr) expr = match snd expr with
+    and gen_expr (depth, frame) (label, tagbrk, tagcont) with_addr expr = match snd expr with
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
             | Some (Const k) -> (
-                match (loc_res, loc_addr) with
-                    | _, Some _ -> Error.error (Some (fst expr)) "constant value has no address.\n"
-                    | Some a, _ -> prog.asm (MOV (Const k, Regst a)) (sprintf "const val %s = %d" name k)
-                    | _ -> failwith "unreachable @ codegen::gen_expr::VAR::Const::_"
+                if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+                else prog.asm (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
             )
             | Some (Hexdc h) -> (
-                match (loc_res, loc_addr) with
-                    | _, Some _ -> Error.error (Some (fst expr)) "constant value has no address.\n"
-                    | Some a, _ -> prog.asm (MOV (Hexdc h, Regst a)) (sprintf "const val %s = 0x%s" name h)
-                    | _ -> failwith "unreachable @ codegen::gen_expr::VAR::Const::_"
+                if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+                else prog.asm (MOV (Hexdc h, Regst RAX)) (sprintf "const val %s = %s" name h)
             )
             | Some (FnPtr f) -> (
-                if loc_res <> None then prog.asm (LEA (FnPtr f, Regst (unwrap loc_res))) (sprintf "function pointer %s" f);
-                if loc_addr <> None then prog.asm (LEA (FnPtr f, Regst (unwrap loc_addr))) (sprintf "function pointer %s" f);
+                prog.asm (LEA (FnPtr f, Regst RAX)) (sprintf "function pointer %s" f);
+                if with_addr then prog.asm (MOV (Regst RAX, Regst RDI)) " +"
             )
             | Some loc -> (
-                match (loc_res, loc_addr) with
-                    | None, Some a -> prog.asm (LEA (loc, Regst a)) (sprintf "access %s" name)
-                    | Some r, None -> prog.asm (MOV (loc, Regst r)) (sprintf "read %s" name)
-                    | Some r, Some a -> (
-                        prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
-                        prog.asm (MOV (Deref RDI, Regst RAX)) (sprintf "read %s" name);
-                    )
-                    | _ -> failwith "unreachable @ codegen::gen_expr::VAR::loc::_"
+                if with_addr then (
+                    prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
+                    prog.asm (MOV (Deref RDI, Regst RAX)) (sprintf "read %s" name);
+                ) else (
+                    prog.asm (MOV (loc, Regst RAX)) (sprintf "read %s" name)
+                )
             )
         )
-        | CST k -> (
-            match (loc_res, loc_addr) with
-                | _, Some _ -> Error.error (Some (fst expr)) "constant value has no address.\n"
-                | Some a, _ -> prog.asm (MOV (Const k, Regst a)) (sprintf "const val %d" k)
-                | _ -> failwith "unreachable @ codegen::gen_expr::VAR::Const::_"
+        | CST value -> (
+            if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+            else prog.asm (MOV (Const value, Regst RAX)) (sprintf "load val %d" value)
         )
         | STRING str -> (
             let name = prog.str str in
-            if loc_res <> None then prog.asm (LEA (Globl name, Regst (unwrap loc_res))) (sprintf "access %s" name);
-            if loc_addr <> None then prog.asm (LEA (Globl name, Regst (unwrap loc_addr))) (sprintf "read %s" name);
+            if with_addr then (
+                prog.asm (LEA (Globl name, Regst RDI)) (sprintf "access %s" name);
+                prog.asm (MOV (Regst RDI, Regst RAX)) (sprintf "read %s" name);
+            ) else (
+                prog.asm (LEA (Globl name, Regst RAX)) (sprintf "read %s" name)
+            )
         )
         | SET_VAR (name, value) -> (
-            let loc_res = match loc_res with None -> other_reg [loc_addr] | Some r -> r in
-            gen_expr (depth, frame) (label, tagbrk, tagcont) (Some loc_res, None) value;
+            gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
             match assoc name frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                 | Some loc when is_addr loc -> (
-                    match loc_addr with
-                        | None -> prog.asm (MOV (Regst loc_res, loc)) (sprintf "write %s" name)
-                        | Some r -> (
-                            prog.asm (LEA (loc, Regst r)) (sprintf "access %s" name);
-                            prog.asm (MOV (Regst loc_res, Deref r)) (sprintf "write %s" name);
-                        )
+                    if with_addr then (
+                        prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
+                        prog.asm (MOV (Regst RAX, Deref RDI)) (sprintf "write %s" name);
+                    ) else (
+                        prog.asm (MOV (Regst RAX, loc)) (sprintf "write %s" name)
+                    )
                 )
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
@@ -544,114 +527,98 @@ let codegen decl_list =
             match assoc arr frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" arr)
                 | Some loc when is_addr loc -> (
-                    let reg_val = other_reg [loc_res; loc_addr] in
-                    let reg_idx = other_reg [loc_res; loc_addr; Some reg_val] in
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_idx, None) idx;
+                    gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
                     if is_single_step value then (
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_val, None) value;
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "store index";
+                        gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
                     ) else (
-                        store depth reg_idx;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) (Some reg_val, None) value;
-                        retrieve (depth) reg_idx;
+                        store depth RAX;
+                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                        retrieve (depth) RCX;
                     );
-                    (* idx is in reg_idx, value is in reg_val *)
-                    match loc_addr with
-                        | None -> (
-                            let reg_arr = other_reg [loc_res; Some reg_val; Some reg_idx] in
-                            prog.asm (MOV (loc, Regst reg_arr)) "access array";
-                            prog.asm (MOV (Regst reg_val, Index (reg_arr, reg_idx))) " +";
-                        )
-                        | Some reg_arr -> (
-                            prog.asm (MOV (loc, Regst reg_arr)) "access array";
-                            prog.asm (LEA (Index (reg_arr, reg_idx), Regst reg_arr)) " +";
-                            prog.asm (MOV (Regst reg_val, Deref reg_arr)) " +";
-                        )
+                    (* idx is in rcx, value is in rax *)
+                    if with_addr then (
+                        prog.asm (MOV (loc, Regst RDI)) "access array";
+                        prog.asm (LEA (Index (RDI, RCX), Regst RDI)) " +";
+                        prog.asm (MOV (Regst RAX, Deref RDI)) " +";
+                    ) else (
+                        prog.asm (MOV (loc, Regst RDI)) "access array";
+                        prog.asm (MOV (Regst RAX, Index (RDI, RCX))) " +";
+                    )
                 )
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
         )
         | SET_DEREF (dest, value) -> (
-            let reg_addr = match loc_addr with None -> other_reg [loc_res] | Some r -> r in
-            let reg_val = match loc_res with None -> other_reg [loc_addr] | Some r -> r in
-            gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_addr, None) dest;
+            gen_expr (depth, frame) (label, tagbrk, tagcont) false dest;
             if is_single_step value then (
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_val, None) value;
+                prog.asm (MOV (Regst RAX, Regst RDI)) "save destination";
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
             ) else (
-                store depth reg_addr;
-                gen_expr (depth+1, frame) (label, tagbrk, tagcont) (Some reg_val, None) value;
-                retrieve depth reg_addr;
+                store depth RAX;
+                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                retrieve depth RDI;
             );
-            prog.asm (MOV (Regst reg_val, Deref reg_addr)) "write to deref";
+            prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
         )
         | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
-            let reg_addr = match loc_addr with None -> other_reg [loc_res] | Some r -> r in
-            let reg_val = match loc_res with None -> other_reg [loc_addr] | Some r -> r in
             let (op, value) = (match snd expr with
                 | OPSET_VAR (op, name, value) -> (
                     (match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
-                            prog.asm (LEA (loc, Regst reg_addr)) (sprintf "access %s" name);
+                            prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
                     ); (op, value)
                 )
                 | OPSET_ARRAY (op, name, idx, value) -> (
-                    let reg_tmp = other_reg [reg_val; reg_addr; loc_res; loc_addr] in
                     (match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
-                            gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_tmp, None) idx;
-                            prog.asm (MOV (loc, Regst reg_addr)) "access array";
-                            prog.asm (LEA (Index (reg_addr, reg_tmp), Regst reg_addr)) " +";
+                            gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
+                            prog.asm (MOV (loc, Regst RDI)) "access array";
+                            prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
                     ); (op, value)
                 )
                 | OPSET_DEREF (op, addr, value) -> (
-                    let reg_tmp = other_reg [reg_val; reg_addr; loc_res; loc_addr] in
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) (Some reg_tmp, None) addr;
-                    prog.asm (MOV (Regst reg_tmp, Regst reg_addr)) "load value as address";
+                    gen_expr (depth, frame) (label, tagbrk, tagcont) false addr;
+                    prog.asm (MOV (Regst RAX, Regst RDI)) "load value as address";
                     (op, value)
                 )
                 | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*"
             ) in
-            (* The address of our expression is in reg_addr *)
-            let reg_tmp = if reg_addr = RAX then (
-                (* free up RAX for calculations *)
-                prog.asm (MOV (Regst RAX, Regst R10)) "move address to safe location";
-                R10
-            ) else reg_addr in
+            (* The address of our expression is in RDI *)
             if is_single_step value then (
-                gen_expr (depth, frame) (label, tagbrk, tagcont) (Some RAX, None) value;
+                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
             ) else (
-                store depth reg_addr;
-                gen_expr (depth+1, frame) (label, tagbrk, tagcont) (Some RAX, None) value;
-                retrieve depth reg_addr;
+                store depth RDI;
+                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                retrieve depth RDI;
             );
             (match op with
                 | S_ADD | S_SUB | S_AND | S_OR | S_XOR -> (
                     (match op with
-                        | S_ADD -> prog.asm (ADD (Regst RAX, Deref reg_tmp)) "in-place add"
-                        | S_SUB -> prog.asm (SUB (Regst RAX, Deref reg_tmp)) "in-place sub"
-                        | S_AND -> prog.asm (AND (Regst RAX, Deref reg_tmp)) "in-place and"
-                        | S_OR -> prog.asm (IOR (Regst RAX, Deref reg_tmp)) "in-place incl. or"
-                        | S_XOR -> prog.asm (XOR (Regst RAX, Deref reg_tmp)) "in-place excl. or"
+                        | S_ADD -> prog.asm (ADD (Regst RAX, Deref RDI)) "in-place add"
+                        | S_SUB -> prog.asm (SUB (Regst RAX, Deref RDI)) "in-place sub"
+                        | S_AND -> prog.asm (AND (Regst RAX, Deref RDI)) "in-place and"
+                        | S_OR -> prog.asm (IOR (Regst RAX, Deref RDI)) "in-place incl. or"
+                        | S_XOR -> prog.asm (XOR (Regst RAX, Deref RDI)) "in-place excl. or"
                         | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*::S_ADD|..."
                     );
-                    prog.asm (MOV (Deref reg_tmp, Regst reg_val)) " + load final value";
-                    prog.asm (MOV (Regst reg_tmp, Regst reg_addr)) " + load address to actual target";
+                    prog.asm (MOV (Deref RDI, Regst RAX)) " + load final value";
                 )
                 | S_MUL -> (
                     prog.asm NOP "extended mul";
-                    let free = other_reg [Some reg_tmp; Some reg_val] in
-                    prog.asm (MOV (Deref reg_tmp, Regst free)) " + load current value";
-                    prog.asm (MUL (Regst free, Regst reg_val)) " + calculate";
-                    prog.asm (MOV (Regst reg_val, Deref reg_tmp)) " + store final value";
+                    prog.asm (MOV (Deref RDI, Regst RCX)) " + load current value";
+                    prog.asm (MUL (Regst RCX)) " + calculate";
+                    prog.asm (MOV (Regst RAX, Deref RDI)) " + store final value";
                 )
                 | S_MOD | S_DIV -> (
                     prog.asm NOP "extended div";
                     prog.asm (MOV (Regst RAX, Regst RCX)) " + move divisor";
-                    prog.asm (MOV (Deref reg_tmp, Regst RAX)) " + load dividend";
+                    prog.asm (MOV (Deref RDI, Regst RAX)) " + load dividend";
                     prog.asm QTO " +";
                     prog.asm (DIV (Regst RCX)) " + calculate";
                     (if op = S_MOD then
