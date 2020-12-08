@@ -118,8 +118,8 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
             Skip 1
         ]
         | Index (addr, idx) -> [
-            TextLt (sprintf "%s(%s%s,%s%s,8)" color_int (regname addr) color_int (regname idx) color_int);
-            Skip 1
+            TextRt (sprintf "%s(%s%s,%s%s" color_int (regname addr) color_int (regname idx) color_int);
+            TextLt ",8)"
         ]
         | FnPtr f -> [
             TextRt (sprintf "%s%s(%s" color_int f (regname RIP));

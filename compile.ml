@@ -43,12 +43,15 @@ let tag_of_int i = (if i < 0 then "_neg_" else "_pos_") ^ (string_of_int (abs i)
 (* a tree to represent a jump table *)
 type case_tree =
     | Default
+    | Terminal of int
     | Branch of int * case_tree * case_tree
 
 let tree_of_cases arr =
     let n = Array.length arr in
     let rec build i j =
-        if i < j then (
+        if i+1 = j && i > 0 && j < n && arr.(i-1) + 2 = arr.(i+1) then (
+            Terminal arr.(i)
+        ) else if i < j then (
             let midpoint = (i + j) / 2 in
             Branch (arr.(midpoint), build i midpoint, build (midpoint+1) j)
         ) else (
@@ -255,22 +258,23 @@ let codegen decl_list =
                         ) vals; *)
                         let rec generate_tree = function
                             | Default -> prog.asm (JMP (label, tagbase ^ "_default")) "";
+                            | Terminal k -> prog.asm (JMP (label, tagbase ^ (tag_of_int k))) (sprintf "has to be %d" k);
                             | Branch (k, Default, Default) -> (
                                 prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
                                 prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
                                 prog.asm (JNE (label, tagbase ^ "_default")) "";
                             )
-                            | Branch (k, Branch (sm, sml, smr), Default) -> (
+                            | Branch (k, smaller, Default) -> (
                                 prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
                                 prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
                                 prog.asm (JGT (label, tagbase ^ "_default")) "";
-                                generate_tree (Branch (sm, sml, smr));
+                                generate_tree smaller;
                             )
-                            | Branch (k, Default, Branch (gt, gtl, gtr)) -> (
+                            | Branch (k, Default, greater) -> (
                                 prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
                                 prog.asm (JEQ (label, tagbase ^ (tag_of_int k))) "  -> match";
                                 prog.asm (JLT (label, tagbase ^ "_default")) "";
-                                generate_tree (Branch (gt, gtl, gtr));
+                                generate_tree greater;
                             )
                             | Branch (k, smaller, greater) -> (
                                 prog.asm (CMP (Const k, Regst RAX)) (sprintf "check against %d" k);
