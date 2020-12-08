@@ -74,6 +74,8 @@ def compare(lt, rt):
 
 def check(fbase):
     module = Module("verify/{}.py".format(fbase))
+    ok = 0
+    ko = 0
     for d in module.data:
         prog = "./assets/{}".format(fbase)
         res = run([prog, *d], capture_output=True)
@@ -82,8 +84,10 @@ def check(fbase):
         expect_out, expect_err = bytes(expect_out, 'UTF-8'), bytes(expect_err, 'UTF-8')
         if expect_code == code and expect_err == err and expect_out == out:
             print("    \x1b[32m[OK]\x1b[0m {}".format(d))
+            ok += 1
         else:
             print("    \x1b[31m[KO]\x1b[0m {}".format(d))
+            ko += 1
             if expect_code != code:
                 print("        \x1b[33mWrong code:")
                 print("              \x1b[32m[{}]".format(expect_code))
@@ -100,13 +104,14 @@ def check(fbase):
                 print("              \x1b[32m[{}]".format(expect_err))
                 print("              \x1b[31m[{}]\x1b[0m".format(err))
                 print("        Difference at {}: [{}] vs [{}]".format(*diff))
+    return (ok, ko)
 
 
 def fulltest(cc, fbase, more=[]):
     print("Checking {}:".format(fbase))
     if compile(cc, fbase, more=more):
-        check(fbase)
-        return True
+        ok, ko = check(fbase)
+        return (ok, ko)
     else:
         exit(100)
     return False
@@ -142,22 +147,40 @@ def main():
     cc = "./mcc"
     args = sys.argv[1:]
 
+    nb_files = 0
+    nb_tests = 0
+    nb_error = 0
+
     if len(args) >= 1:
         for fbase in args:
             if len(fbase) >= 2 and fbase[0:2] == "--":
                 for (category, more_args, *tests) in assets:
                     if category == fbase[2:]:
                         for fbase in tests:
+                            nb_files += 1
                             for more in more_args:
-                                fulltest(cc, category + '/' + fbase, more=more)
+                                ok, ko = fulltest(cc, category + '/' + fbase, more=more)
+                                nb_error += ko
+                                nb_tests += ok
             else:
-                fulltest(cc, fbase)
-                fulltest(cc, fbase, more=['-O'])
+                nb_files += 1
+                ok, ko = fulltest(cc, fbase)
+                nb_error += ko
+                nb_tests += ok
+                ok, ko = fulltest(cc, fbase, more=['-O'])
+                nb_error += ko
+                nb_tests += ok
     else:
         for (category, more_args, *tests) in assets:
             print("\n\n    <<< category: {} >>>\n".format(category))
             for fbase in tests:
+                nb_files += 1
                 for more in more_args:
-                    fulltest(cc, category + '/' + fbase, more=more)
+                    ok, ko = fulltest(cc, category + '/' + fbase, more=more)
+                    nb_tests += ok
+                    nb_error += ko
+    print()
+    print("Ran {} successful tests on {} test files".format(nb_tests, nb_files))
+    print("{} errors".format(nb_error))
 
 main()
