@@ -74,7 +74,7 @@ let rec redexp consts e =
                             | S_MUL when maxreduce (x * y) -> CST (x * y)
                             | S_SUB when maxreduce (x - y) -> CST (x - y)
                             | S_DIV when y = 0 -> (
-                                Error.error (Some loc) "division by zero detected";
+                                Error.warning (Some loc) "division by zero detected";
                                 OP2 (op, lhs, rhs)
                             )
                             | S_DIV -> CST (
@@ -84,7 +84,7 @@ let rec redexp consts e =
                                 else abs x / abs y
                             )
                             | S_MOD when y = 0 -> (
-                                Error.error (Some loc) "division by zero detected";
+                                Error.warning (Some loc) "division by zero detected";
                                 OP2 (op, lhs, rhs)
                             )
                             | S_MOD -> CST (
@@ -94,12 +94,12 @@ let rec redexp consts e =
                             | S_OR -> CST (x lor y)
                             | S_XOR -> CST (x lxor y)
                             | S_SHL when y < 0 -> (
-                                Error.error (Some loc) "negative shift amount";
+                                Error.warning (Some loc) "negative shift amount";
                                 OP2 (op, lhs, rhs)
                             )
                             | S_SHL when y <= 10 && maxreduce (x lsl y) -> CST (x lsl y)
                             | S_SHR when y < 0 -> (
-                                Error.error (Some loc) "negative shift amount";
+                                Error.warning (Some loc) "negative shift amount";
                                 OP2 (op, lhs, rhs)
                             )
                             | S_SHR when y <= 10 && maxreduce (x lsr y) -> CST (x lsr y)

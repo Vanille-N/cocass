@@ -455,7 +455,7 @@ let codegen decl_list =
             )
             | CTHROW (name, value) -> (
                 (if name = "_" then
-                    Error.error (Some (fst code)) "wildcard _ exception may not be thrown.\n"
+                    Error.error (Some (fst code)) "wildcard _ exception may not be thrown."
                 );
                 let id = prog.exc name in
                 gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts value);
@@ -474,8 +474,8 @@ let codegen decl_list =
                 ) else (
                     (match find_duplicate_catch catches with
                         | None -> ()
-                        | Some (loc, "_") -> Error.error (Some loc) "all catch clauses after wildcard _ are unreachable.\n"
-                        | Some (loc, e) -> Error.error (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause.\n" e)
+                        | Some (loc, "_") -> Error.warning (Some loc) "all catch clauses after wildcard _ are unreachable."
+                        | Some (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause." e)
                     );
                     let tagbase = sprintf "%d_try" !label_cnt in
                     incr label_cnt;
@@ -533,7 +533,7 @@ let codegen decl_list =
                             (* _ matches any exception *)
                             prog.asm NOP "# wildcard exception";
                             if bind <> "_" then (
-                                Error.error (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
+                                Error.warning (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
                             ) else (
                                 (* _ does not induce a variable binding *)
                                 gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
@@ -586,13 +586,13 @@ let codegen decl_list =
         )
     and gen_expr (depth, frame) (label, tagbrk, tagcont) with_addr expr = match snd expr with
         | VAR name -> (match assoc name frame with
-            | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s.\n" name)
+            | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s." name)
             | Some (Const k) -> (
-                if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+                if with_addr then Error.error (Some (fst expr)) "constant value has no address."
                 else prog.asm (MOV (Const k, Regst RAX)) (sprintf "const val %s = %d" name k)
             )
             | Some (Hexdc h) -> (
-                if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+                if with_addr then Error.error (Some (fst expr)) "constant value has no address."
                 else prog.asm (MOV (Hexdc h, Regst RAX)) (sprintf "const val %s = %s" name h)
             )
             | Some (FnPtr f) -> (
@@ -609,7 +609,7 @@ let codegen decl_list =
             )
         )
         | CST value -> (
-            if with_addr then Error.error (Some (fst expr)) "constant value has no address.\n"
+            if with_addr then Error.error (Some (fst expr)) "constant value has no address."
             else prog.asm (MOV (Const value, Regst RAX)) (sprintf "load val %d" value)
         )
         | STRING str -> (
@@ -633,11 +633,11 @@ let codegen decl_list =
                         prog.asm (MOV (Regst RAX, loc)) (sprintf "write %s" name)
                     )
                 )
-                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
+                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
         )
         | SET_ARRAY (arr, idx, value) -> (
             match assoc arr frame with
-                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" arr)
+                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s." arr)
                 | Some loc when is_addr loc -> (
                     gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
                     if is_single_step value then (
@@ -658,7 +658,7 @@ let codegen decl_list =
                         prog.asm (MOV (Regst RAX, Index (RDI, RCX))) " +";
                     )
                 )
-                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
+                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
         )
         | SET_DEREF (dest, value) -> (
             gen_expr (depth, frame) (label, tagbrk, tagcont) false dest;
@@ -680,7 +680,7 @@ let codegen decl_list =
                         | Some loc when is_addr loc -> (
                             prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
                         )
-                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
+                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
                     ); (op, value)
                 )
                 | OPSET_ARRAY (op, name, idx, value) -> (
@@ -691,7 +691,7 @@ let codegen decl_list =
                             prog.asm (MOV (loc, Regst RDI)) "access array";
                             prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
                         )
-                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign.\n"
+                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
                     ); (op, value)
                 )
                 | OPSET_DEREF (op, addr, value) -> (
@@ -747,7 +747,7 @@ let codegen decl_list =
                     );
                     prog.asm (MOV (Deref RDI, Regst RAX)) " + load final value";
                 )
-                | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign.\n"
+                | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign."
             );
         )
         | CALL (fname, expr_lst) -> (
@@ -756,7 +756,7 @@ let codegen decl_list =
                 | None | Some (FnPtr _) -> (
                     match List.assoc_opt fname descriptors with
                         | Some (n, _) when not (satisfies n nb_args) -> Error.warning (Some (fst expr)) (sprintf "%s has the wrong arity: expected %s, got %d" fname (str_of_arity n) nb_args)
-                        | None -> Error.warning (Some (fst expr)) (sprintf "unknown function %s, are you sure about the spelling ?" fname)
+                        | None -> Error.warning (Some (fst expr)) (sprintf "unknown function %s" fname)
                         | _ -> ()
                 )
                 | _ -> ()
@@ -824,27 +824,27 @@ let codegen decl_list =
                 | M_NOT -> prog.asm (NOT (Regst RAX)) "bitwise not"
                 | M_POST_INC -> if is_lvalue (snd expr)
                     then prog.asm (INC (Deref RDI)) "incr (post)"
-                    else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
+                    else Error.error (Some (fst expr)) "increment needs an lvalue."
                 | M_POST_DEC -> if is_lvalue (snd expr)
                     then prog.asm (DEC (Deref RDI)) "decr (post)"
-                    else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
+                    else Error.error (Some (fst expr)) "decrement needs an lvalue."
                 | M_PRE_INC -> if is_lvalue (snd expr)
                     then (
                         prog.asm (INC (Deref RDI)) "incr (pre)";
                         prog.asm (INC (Regst RAX)) " +";
-                    ) else Error.error (Some (fst expr)) "increment needs an lvalue.\n"
+                    ) else Error.error (Some (fst expr)) "increment needs an lvalue."
                 | M_PRE_DEC -> if is_lvalue (snd expr)
                     then (
                         prog.asm (DEC (Deref RDI)) "decr (pre)";
                         prog.asm (DEC (Regst RAX)) " +";
-                    ) else Error.error (Some (fst expr)) "decrement needs an lvalue.\n"
+                    ) else Error.error (Some (fst expr)) "decrement needs an lvalue."
                 | M_DEREF -> (
                     prog.asm (MOV (Regst RAX, Regst RDI)) "deref";
                     prog.asm (MOV (Deref RAX, Regst RAX)) " +";
                 )
                 | M_ADDR -> if is_lvalue (snd expr)
                     then prog.asm (MOV (Regst RDI, Regst RAX)) "indir"
-                    else Error.error (Some (fst expr)) "indirection needs an lvalue.\n"
+                    else Error.error (Some (fst expr)) "indirection needs an lvalue."
         )
         | OP2 (op, lhs, rhs) -> (
             match op with
@@ -905,7 +905,7 @@ let codegen decl_list =
                             prog.asm (MOV (Index (RCX, RAX), Regst RAX)) "index";
                         )
                     ) else (
-                        Error.error (Some (fst expr)) "index requires an lvalue.\n"
+                        Error.error (Some (fst expr)) "index requires an lvalue."
                     )
                 )
                 | S_SHL | S_SHR -> (

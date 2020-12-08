@@ -19,7 +19,7 @@
  *
  *  4. This software is restricted to non-commercial use only.  Commercial
  *     use is subject to a specific license, obtainable from LSV.
- * 
+ *
  *)
 
 type locator = string * int * int * int * int
@@ -76,17 +76,19 @@ let error_count = ref 0
 let error_count_max = 10000
 
 let fatal loc msg =
-  warning loc msg; exit 10
+    warning loc msg;
+    exit 10
 
 let flush_error () =
   if !error_count>=error_count_max then
     fatal None "Too many errors: quit"
 
 let error loc msg =
-  error_count := !error_count + 1;
-  warning loc msg;
-  if !error_count>=error_count_max then
-    fatal loc "Too many errors: quit"
+    error_count := !error_count + 1;
+    prerr_string "FATAL ERROR: ";
+    warning loc msg;
+    if !error_count>=error_count_max then
+        fatal loc "Too many errors: quit"
 
 let gensym_count = ref 0
 let gensym prefix =
