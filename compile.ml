@@ -157,6 +157,58 @@ let universal = [
     ("BYTE", Const 255);
 ]
 
+type arity =
+    | Exact of int
+    | More of int
+    | Fewer of int
+    | Any
+
+(* arity, returns long ? *)
+type fn_descriptor = arity * bool
+
+let stdlib = [
+    ("malloc", (Exact 1, true));
+    ("fopen", (Exact 2, true));
+    ("atol", (Exact 1, true));
+    ("strtol", (Exact 1, true));
+    ("labs", (Exact 1, true));
+    ("printf", (More 1, false));
+    ("isdigit", (Exact 1, false));
+    ("fprintf", (More 2, false));
+    ("strcmp", (Exact 2, false));
+    ("qsort", (Exact 4, false));
+    ("putchar", (Exact 1, false));
+    ("fflush", (Exact 1, false));
+    ("exit", (Exact 1, false));
+    ("fputc", (Exact 2, false));
+    ("fgetc", (Exact 1, false));
+    ("fclose", (Exact 1, false));
+    ("free", (Exact 1, false));
+    ("strcpy", (Exact 2, false));
+    ("atoi", (Exact 1, false));
+    ("strlen", (Exact 1, false));
+]
+let defined_functions decl_lst =
+    let rec aux = function
+        | [] -> stdlib
+        | (CFUN (_, name, params, _)) :: tl -> (name, (Exact (List.length params), true)) :: aux tl
+        | _ :: tl -> aux tl
+    in
+    aux decl_lst
+
+let satisfies ar n =
+    match ar with
+        | Any -> true
+        | Exact i -> i = n
+        | Fewer i -> i >= n
+        | More i -> i <= n
+
+let str_of_arity = function
+    | Any -> "any"
+    | Exact i -> sprintf "exactly %d" i
+    | Fewer i -> sprintf "at most %d" i
+    | More i -> sprintf "at least %d" i
+
 (* those of the predefined variables that are decimal constant values *)
 let consts = List.filter_map (function
     | (name, Const k) -> Some (name, k)
@@ -197,6 +249,7 @@ let codegen decl_list =
         prog.int handler_addr;
         prog.int handler_base;
     );
+    let descriptors = defined_functions decl_list in
     let enter_stackframe () =
         prog.asm (PSH (Regst RBP)) "enter stackframe";
         prog.asm (MOV (Regst RSP, Regst RBP)) " +";
@@ -656,6 +709,15 @@ let codegen decl_list =
         )
         | CALL (fname, expr_lst) -> (
             let nb_args = List.length expr_lst in
+            (match assoc fname frame with
+                | None | Some (FnPtr _) -> (
+                    match List.assoc_opt fname descriptors with
+                        | Some (n, _) when not (satisfies n nb_args) -> Error.warning (Some (fst expr)) (sprintf "%s has the wrong arity: expected %s, got %d" fname (str_of_arity n) nb_args)
+                        | None -> Error.warning (Some (fst expr)) (sprintf "unknown function %s, are you sure about the spelling ?" fname)
+                        | _ -> ()
+                )
+                | _ -> ()
+            );
             let nb_in_reg = min 6 nb_args in
             let nb_on_stk = nb_args - nb_in_reg in
             let reg_dests = truncate nb_in_reg (List.map (fun r -> Regst r) [RDI;RSI;RDX;RCX;R08;R09]) in
