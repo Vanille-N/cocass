@@ -54,7 +54,7 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
      *)
 
 type cmp_op = C_LT | C_LE | C_EQ
-    | C_GT | C_GE
+    | C_GT | C_GE | C_NE
    (** Les opérations de comparaison:
      * C_LT (less than): <;
      * C_LE (less than or equal to): <=;
@@ -198,6 +198,7 @@ let cmp_text = function
     | C_GE -> ">="
     | C_LT -> "<"
     | C_LE -> "<="
+    | C_NE -> "!="
 
 let fin_op_text = function
     | S_INDEX -> "]"

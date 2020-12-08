@@ -36,6 +36,7 @@ let cmp_op_repr = function
     | C_EQ -> "EQ"
     | C_GT -> "GT"
     | C_GE -> "GE"
+    | C_NE -> "NE"
 
 let rec print_block printer offset out lst =
     match lst with

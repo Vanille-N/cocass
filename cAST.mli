@@ -28,13 +28,14 @@ type bin_op = S_MUL | S_DIV | S_MOD | S_ADD | S_SUB | S_INDEX
      *)
 
 type cmp_op = C_LT | C_LE | C_EQ
-    | C_GT | C_GE
+    | C_GT | C_GE | C_NE
    (** Les opérations de comparaison:
      * C_LT (less than): <;
      * C_LE (less than or equal to): <=;
      * C_EQ (equal): ==.
      * C_GT (greater than): >;
      * C_GE (greater than or equal to): >=;
+     * C_NE (not equal): !=;
      *)
 
 type loc_expr = Error.locator * expr

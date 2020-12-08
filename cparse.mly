@@ -206,12 +206,8 @@ equality_expression:
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
         CMP (C_EQ, $1, $3) }
     | equality_expression NE_OP relational_expression {
-        let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
-        loc, EIF (
-            (loc, CMP (C_EQ, $1, $3)),
-            (loc, CST 0),
-            (loc, CST 1)
-        ) }
+        sup_locator (loc_of_expr $1) (loc_of_expr $3),
+        CMP (C_NE, $1, $3) }
 ;
 
 and_expression:
