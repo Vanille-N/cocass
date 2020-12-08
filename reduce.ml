@@ -2,6 +2,14 @@ open CAST
 
 let reduce_exprs = ref false
 
+let cmp_rev = function
+    | C_NE -> C_EQ
+    | C_EQ -> C_NE
+    | C_GT -> C_LE
+    | C_LE -> C_GT
+    | C_GE -> C_LT
+    | C_LT -> C_GE
+
 (* reduce expressions *)
 let rec redexp consts e =
     if not !reduce_exprs then (
@@ -39,6 +47,7 @@ let rec redexp consts e =
                             | C_LE -> if x <= y then 1 else 0
                             | C_GT -> if x > y then 1 else 0
                             | C_LT -> if x < y then 1 else 0
+                            | C_NE -> if x <> y then 1 else 0
                         ))
                     )
                     | _ -> (loc, CMP (op, lhs, rhs))
@@ -101,10 +110,14 @@ let rec redexp consts e =
                     | _ -> (loc, OP2 (op, lhs, rhs))
             )
             | loc, EIF (cond, etrue, efalse) -> (
-                let cond = redexp consts cond in
-                match result cond with
-                    | Some 0 -> redexp consts efalse
-                    | Some _ -> redexp consts etrue
-                    | None -> loc, EIF (cond, redexp consts etrue, redexp consts efalse)
+                match (cond, etrue, efalse) with
+                    | (_, CMP (op, lt, rt)), (_, CST 0), (_, CST 1) -> redexp consts (loc, CMP (cmp_rev op, lt, rt))
+                    | _ -> (
+                        let cond = redexp consts cond in
+                        match result cond with
+                            | Some 0 -> redexp consts efalse
+                            | Some _ -> redexp consts etrue
+                            | None -> loc, EIF (cond, redexp consts etrue, redexp consts efalse)
+                    )
             )
     )
