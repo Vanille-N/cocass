@@ -329,7 +329,7 @@ let codegen decl_list =
         ) (zip regged names) in
         let vars = zip names (regged @ stacked) in
         List.iter (fun (name, loc) -> match loc with
-            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d" name k)
+            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d*8" name k)
             | _ -> ()
         ) vars;
         vars
@@ -361,6 +361,16 @@ let codegen decl_list =
                 gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false expr
             )
             | CIF (cond, do_true, do_false) -> (
+                (* structure::if
+                 *
+                 *        begin
+                 *        test cond
+                 *        jump false ──────┐
+                 *        exec do_true     │
+                 *        jump ────────────│──┐
+                 *        exec do_false <──┘  │
+                 *        end <───────────────┘
+                 *)
                 let tagbase = sprintf "%d_cond" !label_cnt in
                 incr label_cnt;
                 gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false (Reduce.redexp consts cond);
@@ -373,6 +383,18 @@ let codegen decl_list =
                 prog.asm (TAG (label, tagbase ^ "_done")) "end ternary";
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
+                (* structure::while
+                 *
+                 *        begin
+                 *        jump? ──────────┐    (not for do-while)
+                 *        exec body <─────│─┐
+                 *  ┌──── | (break)       │ │
+                 *  │ ┌── | (continue)    │ │
+                 *  │ └─> exec finally    │ │
+                 *  │     test cond <─────┘ │
+                 *  │     jump true ────────┘
+                 *  └───> end
+                 *)
                 let tagbase = sprintf "%d_loop" !label_cnt in
                 incr label_cnt;
                 if test_at_start then prog.asm (JMP (label, tagbase ^ "_check")) ""; (* do-while doesn't *)
@@ -416,6 +438,25 @@ let codegen decl_list =
                     | Some tagcont -> prog.asm (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
             )
             | CSWITCH (e, cases, deflt) -> (
+                (* structure::switch
+                 *
+                 *          begin
+                 *          calc e
+                 *          ...                              ─┐
+                 *          case k <───────────────────┐      │
+                 *          | compare k                │      │
+                 *          | jump equal ────┐         │      ├─ jump table
+                 *          | jump greater ──│─(k'>k)──┤      │  (binary search tree)
+                 *          | jump smaller ──│─(k'<k)──┘      │
+                 *          ...              │               ─┘
+                 *          not found ───────│──┐
+                 *          ...              │  │            ─┐
+                 *      └─> exec k <─────────┘  │             │
+                 *   ┌───── | (break)           │             ├─ execution
+                 *   │  └─> ...                 │             │  (fallthrough)
+                 *   │  └─> exec default <──────┘            ─┘
+                 *   └────> end
+                 *)
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
                 prog.asm NOP "# enter switch";
@@ -479,6 +520,23 @@ let codegen decl_list =
                 prog.asm (JMP ("", "*%rsi")) "";
             )
             | CTRY (code, catches, finally) -> (
+                (* structure::try
+                 *
+                 *          begin
+                 *          add handler          ─┐
+                 *          exec body             ├─ try block
+                 *   ┌───── | (throw)             │
+                 *   │      del handler ────┐    ─┘
+                 *   ├────> ... ────────────┤    ─┐
+                 *   ├────> catch E         │     │
+                 *   │      | del handler   │     ├─ handler
+                 *   │      | exec catch ───┤     │
+                 *   └────> ... ────────────┤    ─┘
+                 *          finally <───────┘    ─┬─ closing
+                 *      <── | rethrow?           ─┘
+                 *          end
+                 *
+                 *)
                 if not needs_exceptions then (
                     (* when nothing can be thrown, a try block is just a normal block
                      * break, return, continue are still forbidden for consistency *)
@@ -592,11 +650,14 @@ let codegen decl_list =
                     (* variadic *)
                     if name = "main" then Error.error (Some loc) "main may not be variadic";
                     (* Mess with the stack a bit for future convenience :
-                     * ...[ 9][ 8][ 7][ret][free ...]
-                     *                    ^ rsp
+                     *
+                     *  [RDI:arg1] [RSI:arg2] [RDX:arg3] [RCX:arg4] [R08:arg5] [R09:arg6]
+                     *     ...|arg9|arg8|arg7|addr| (free) ...
+                     *                            ^ RSP
                      * becomes
-                     * ...[ 9][ 8][ 7][ 6][ 5][ 4][ 3][ 2][ 1][ret][base][locals ...]
-                     *                                                  ^ rsp = rbp
+                     *
+                     *     ...|arg9|arg8|arg7|arg6|arg5|arg4|arg3|arg2|arg1|addr|base| (locals) ...
+                     *                                                               ^ RSP=RBP
                      *)
                     prog.asm (MOV (Regst RBP, Regst R11)) "save base pointer";
                     prog.asm (SUB (Const (7*8), Regst RSP)) "move frame";
@@ -618,11 +679,14 @@ let codegen decl_list =
                 | _ -> (
                     (* normal case: non-variadic *)
                     (* Argument positioning:
-                     * ...[ 9][ 8][ 7][ret][free ...]
-                     *                    ^ rsp
+                     *
+                     *  [RDI:arg1] [RSI:arg2] [RDX:arg3] [RCX:arg4] [R08:arg5] [R09:arg6]
+                     *     ...|arg9|arg8|arg7|addr| (free) ...
+                     *                            ^ RSP
                      * becomes
-                     * ...[ 9][ 8][ 7][ret][base][ 1][ 2][ 3][ 4][ 5][ 6][locals ...]
-                     *                          ^ rsp = rbp
+                     *
+                     *     ...|arg9|arg8|arg7|addr|base|arg1|arg2|arg3|arg4|arg5|arg6| (locals) ...
+                     *                                 ^ RSP=RBP
                      *)
                     let nb_args = min 6 (List.length decs) in
                     enter_stackframe ();
@@ -640,17 +704,6 @@ let codegen decl_list =
                     gen_code (nb_args+1, args :: frame, None) (name, None, None, false) code;
                     leave_stackframe name;
                 )
-            (* when variadic
-             * - save return address
-             * - write arguments (make sure they are in the right order)
-             * - re-put return address
-             * - update rbp, rsp
-             * - continue as normal
-             *)
-            (* va_init will just create a pointer to the base of the frame
-             * then va_arg will increment that pointer
-             * NOTE: check cases with both more and fewer than 6 arguments
-             *)
         )
     and gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) with_addr expr = match snd expr with
         | VAR name -> (match assoc name frame with
@@ -846,6 +899,12 @@ let codegen decl_list =
                 | _ -> Error.error (Some (fst expr)) "va_arg expects exactly one argument"
         )
         | CALL (fname, expr_lst) -> (
+            (* Argument positioning
+             *
+             *  [RDI:arg1] [RSI:arg2] [RDX:arg3] [RCX:arg4] [R08:arg5] [R09:arg6]
+             *     ...|addr|base| (locals) (temp) ...|arg9|arg8|arg7|addr| (free) ...
+             *                  ^ RBP                                    ^RSP
+             *)
             let nb_args = List.length expr_lst in
             (match assoc fname frame with
                 | None | Some (FnPtr _) -> (
@@ -1094,16 +1153,19 @@ let codegen decl_list =
         prog.asm (FUN handler) "handle uncaught exceptions";
         prog.asm NOP " -> exception name is in %rdi";
         prog.asm NOP " -> exception parameter is in %rax";
+        (* flush stdout *)
         prog.asm (MOV (Regst RAX, Regst RBX)) "save parameter";
         prog.asm (MOV (Regst RDI, Regst R12)) "save name";
         prog.asm (MOV (Globl "stdout", Regst RDI)) "1st arg is stdout";
         prog.asm (CAL "fflush") "flush output before error";
+        (* print error *)
         prog.asm (MOV (Regst RBX, Regst RCX)) "4th arg is parameter";
         prog.asm (MOV (Regst R12, Regst RDX)) "3rd arg is name";
         prog.asm (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
         prog.asm (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
         prog.asm (MOV (Const 0, Regst RAX)) "no args on the stack";
         prog.asm (CAL "fprintf") "";
+        (* exit *)
         prog.asm (MOV (Regst RBX, Regst RDI)) "value";
         prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
         prog.asm SYS "";
