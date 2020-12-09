@@ -814,6 +814,13 @@ let codegen decl_list =
                 | Some _ -> ()
                 | None -> Error.error (Some (fst expr)) "cannot use va_arg in non-variadic function"
             );
+            match args with
+                | [e] -> (
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) true e;
+                    prog.asm (MOV (Index (RBP, RAX), Regst RAX)) "load va";
+                    prog.asm (INC (Deref RDI)) "prepare for next va";
+                )
+                | _ -> Error.error (Some (fst expr)) "va_arg expects exactly one argument"
         )
         | CALL (fname, expr_lst) -> (
             let nb_args = List.length expr_lst in
