@@ -569,18 +569,34 @@ let codegen decl_list =
             )
     and gen_decl frame = function
         | CDECL (_, name) -> ()
-        | CFUN (_, name, decs, code) -> (
+        | CFUN (loc, name, decs, code) -> (
             label_cnt := 0;
             prog.asm (FUN name) "toplevel function";
+            (match find_duplicate_decl decs with
+                | None -> ()
+                | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
+            );
             match decs with
-                | CDECL (_, "...") :: fixed -> ( (* variadic *)
-                    ()
+                | CDECL (_, "...") :: fixed -> (
+                    (* variadic *)
+                    if name = "main" then Error.error (Some loc) "main may not be variadic";
+                    prog.asm (MOV (Regst RBP, Regst R11)) "save base pointer";
+                    prog.asm (SUB (Const (7*8), Regst RSP)) "move frame";
+                    prog.asm (MOV (Regst RSP, Regst RBP)) " +";
+                    prog.asm (MOV (Stack (7*8), Regst R10)) "save return address";
+                    List.iteri (fun i r ->
+                        prog.asm (MOV (Regst r, Stack (8*(i+2)))) "reg -> stack";
+                    ) [RDI;RSI;RDX;RCX;R08;R09];
+                    prog.asm (MOV (Regst R10, Stack 8)) "put back return address";
+                    prog.asm (MOV (Regst R11, Stack 0)) "save previous base pointer";
+                    let args = List.mapi (fun i dec -> match dec with
+                        | CDECL (_, name) -> (name, Stack (8*(i+2)))
+                        | _ -> failwith "unreachable @ codegen::gen_decl::CDECL...::_"
+                    ) fixed in
+                    gen_code (1, args :: frame) (name, None, None, false) code;
+                    leave_stackframe name;
                 )
                 | _ -> (
-                    (match find_duplicate_decl decs with
-                        | None -> ()
-                        | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
-                    );
                     (* normal case: non-variadic *)
                     let nb_args = min 6 (List.length decs) in
                     enter_stackframe ();

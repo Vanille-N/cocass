@@ -11,6 +11,7 @@ type register =
     | R08
     | R09
     | R10
+    | R11
     | R12
     | RIP
 
