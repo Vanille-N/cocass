@@ -3,8 +3,8 @@
 
 int foo() {
     int* ap;
-    va_init(ap);
-    // va_init(101);
-    // va_init(ap, ap);
+    va_start(ap);
+    // va_start(101);
+    // va_start(ap, ap);
     va_arg(ap);
 }

@@ -4,18 +4,17 @@
 #endif
 
 int max(int count, ...) {
-    va_list ap;
+    int* ap;
     int best, j, arg;
-    va_start(ap, count);
+    va_start(ap);
     for (j = 0; j < count; j++) {
-        arg = va_arg(ap, int);
+        arg = va_arg(ap);
         if (j > 0) {
             best = (best > arg) ? best : arg;
         } else {
             best = arg;
         }
     }
-    va_end(ap);
     return best;
 }
 
