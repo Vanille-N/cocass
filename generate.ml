@@ -96,7 +96,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
     in
     let locate = function
         | Stack k -> [
-            TextRt (sprintf "%s%d(%s" color_int k (regname RBP));
+            TextRt (sprintf "%s%d(%s" color_int (8*k) (regname RBP));
             TextLt (color_int ^ ")")
         ]
         | Globl v -> [
