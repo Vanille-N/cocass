@@ -238,6 +238,7 @@ let stdlib = [
 let defined_functions decl_lst =
     let rec aux = function
         | [] -> stdlib
+        | (CFUN (_, name, CDECL (_,"...") :: fixed, _)) :: tl -> (name, (More (List.length fixed), false)) :: aux tl
         | (CFUN (_, name, params, _)) :: tl -> (name, (Exact (List.length params), false)) :: aux tl
         | _ :: tl -> aux tl
     in
@@ -571,23 +572,29 @@ let codegen decl_list =
         | CFUN (_, name, decs, code) -> (
             label_cnt := 0;
             prog.asm (FUN name) "toplevel function";
-            (match find_duplicate_decl decs with
-                | None -> ()
-                | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
-            );
-            (* normal case: non-variadic *)
-            let nb_args = min 6 (List.length decs) in
-            enter_stackframe ();
-            let args = stack_args decs in
-            (if needs_exceptions && name = "main" then (* setup exception handler *) (
-                prog.asm (LEA (FnPtr handler, Regst RAX)) "init exception handler";
-                prog.asm (LEA (Globl handler_addr, Regst RDI)) " +";
-                prog.asm (MOV (Regst RAX, Deref RDI)) " +";
-                prog.asm (LEA (Globl handler_base, Regst RDI)) " +";
-                prog.asm (MOV (Regst RBP, Deref RDI)) " +";
-            ));
-            gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
-            leave_stackframe name;
+            match decs with
+                | CDECL (_, "...") :: fixed -> ( (* variadic *)
+                    ()
+                )
+                | _ -> (
+                    (match find_duplicate_decl decs with
+                        | None -> ()
+                        | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
+                    );
+                    (* normal case: non-variadic *)
+                    let nb_args = min 6 (List.length decs) in
+                    enter_stackframe ();
+                    let args = stack_args decs in
+                    (if needs_exceptions && name = "main" then (* setup exception handler *) (
+                        prog.asm (LEA (FnPtr handler, Regst RAX)) "init exception handler";
+                        prog.asm (LEA (Globl handler_addr, Regst RDI)) " +";
+                        prog.asm (MOV (Regst RAX, Deref RDI)) " +";
+                        prog.asm (LEA (Globl handler_base, Regst RDI)) " +";
+                        prog.asm (MOV (Regst RBP, Deref RDI)) " +";
+                    ));
+                    gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
+                    leave_stackframe name;
+                )
             (* when variadic
              * - save return address
              * - write arguments (make sure they are in the right order)

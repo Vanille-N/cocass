@@ -502,7 +502,7 @@ jump_statement:
     | continue SEMI_CHR
         { $1, CCONTINUE }
     | throw identifier SEMI_CHR
-        { $1, CTHROW (snd $2, (fst $2, VAR ("NULL"))) }
+        { $1, CTHROW (snd $2, (fst $2, VAR "NULL")) }
     | throw identifier OPEN_PAREN_CHR expression CLOSE_PAREN_CHR SEMI_CHR
         { $1, CTHROW (snd $2, $4) }
 ;
@@ -528,9 +528,11 @@ parameter_list:
         { $3 :: $1 }
 ;
 
+ellipsis: ELLIPSIS { CDECL (getloc (), "...") }
+
 parameter_type_list:
     | parameter_list { List.rev $1}
-    | parameter_list COMMA_CHR ELLIPSIS { List.rev $1 }
+    | parameter_list COMMA_CHR ellipsis { $3 :: List.rev $1 }
 ;
 
 parameter_declarator:
