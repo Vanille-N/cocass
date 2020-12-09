@@ -337,27 +337,27 @@ let codegen decl_list =
     and retrieve depth reg =
         prog.asm (MOV (Stack (-depth*8), Regst reg)) "retrieve"
     in
-    let rec gen_code (depth, frame) (label, tagbrk, tagcont, istry) code =
+    let rec gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) code =
         match snd code with
             | CBLOCK (decl_lst, code_lst) -> (
                 let frame = (make_scope depth decl_lst) :: frame in
                 let depth = depth + List.length decl_lst in
-                List.iter (gen_code (depth, frame) (label, tagbrk, tagcont, istry)) code_lst
+                List.iter (gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry)) code_lst
             )
             | CEXPR expr -> (
                 let expr = Reduce.redexp consts expr in
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false expr
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false expr
             )
             | CIF (cond, do_true, do_false) -> (
                 let tagbase = sprintf "%d_cond" !label_cnt in
                 incr label_cnt;
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts cond);
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "apply cond";
                 prog.asm (JEQ (label, tagbase ^ "_false")) "";
-                gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_true;
+                gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) do_true;
                 prog.asm (JMP (label, tagbase ^ "_done")) "end case true";
                 prog.asm (TAG (label, tagbase ^ "_false")) "begin case false";
-                gen_code (depth, frame) (label, tagbrk, tagcont, istry) do_false;
+                gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) do_false;
                 prog.asm (TAG (label, tagbase ^ "_done")) "end ternary";
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
@@ -365,14 +365,14 @@ let codegen decl_list =
                 incr label_cnt;
                 if test_at_start then prog.asm (JMP (label, tagbase ^ "_check")) "";
                 prog.asm (TAG (label, tagbase ^ "_start")) "";
-                gen_code (depth, frame) (label, Some tagbase, Some tagbase, istry) body;
+                gen_code (depth, frame, va_depth) (label, Some tagbase, Some tagbase, istry) body;
                 prog.asm (TAG (label, tagbase ^ "_finally")) "";
                 (match finally with
                     | None -> ()
-                    | Some e -> gen_expr (depth, frame) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts e)
+                    | Some e -> gen_expr (depth, frame, va_depth) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts e)
                 );
                 prog.asm (TAG (label, tagbase ^ "_check")) "";
-                gen_expr (depth, frame) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts cond);
+                gen_expr (depth, frame, va_depth) (label, Some tagbase, Some tagbase) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "";
                 prog.asm (JNE (label, tagbase ^ "_start")) "";
                 prog.asm (TAG (label, tagbase ^ "_done")) "";
@@ -387,7 +387,7 @@ let codegen decl_list =
             | CRETURN (Some ret) -> (
                 if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
                 else (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts ret);
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false (Reduce.redexp consts ret);
                     prog.asm (JMP (label, "return")) "return";
                 )
             )
@@ -407,7 +407,7 @@ let codegen decl_list =
                 let tagbase = sprintf "%d_switch" !label_cnt in
                 incr label_cnt;
                 prog.asm NOP "# enter switch";
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts e);
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false (Reduce.redexp consts e);
                 match extract_switch_cases cases with
                     | Error (loc, c) -> Error.error (Some loc) (sprintf "duplicate case %d" c)
                     | Ok vals -> (
@@ -450,10 +450,10 @@ let codegen decl_list =
                         prog.asm NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
                             prog.asm (TAG (label, tagbase ^ (tag_of_int c))) "";
-                            List.iter (gen_code (depth, frame) (label, Some tagbase, tagcont, istry)) blk;
+                            List.iter (gen_code (depth, frame, va_depth) (label, Some tagbase, tagcont, istry)) blk;
                         ) cases;
                         prog.asm (TAG (label, tagbase ^ "_default")) "";
-                        gen_code (depth, frame) (label, Some tagbase, tagcont, istry) deflt;
+                        gen_code (depth, frame, va_depth) (label, Some tagbase, tagcont, istry) deflt;
                         prog.asm (TAG (label, tagbase ^ "_done")) "";
                         prog.asm NOP "# exit switch";
                     )
@@ -463,7 +463,7 @@ let codegen decl_list =
                     Error.error (Some (fst code)) "wildcard _ exception may not be thrown."
                 );
                 let id = prog.exc name in
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false (Reduce.redexp consts value);
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false (Reduce.redexp consts value);
                 prog.asm (LEA (Globl id, Regst RDI)) (sprintf "id for exception %s" name);
                 prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
                 prog.asm (MOV (Globl handler_addr, Regst RSI)) "restore stackframe for handler";
@@ -471,10 +471,10 @@ let codegen decl_list =
             )
             | CTRY (code, catches, finally) -> (
                 if not needs_exceptions then (
-                    gen_code (depth+2, frame) (label, None, None, true) code;
+                    gen_code (depth+2, frame, va_depth) (label, None, None, true) code;
                     (match finally with
                         | None -> ()
-                        | Some code -> gen_code (depth+2, frame) (label, tagbrk, tagcont, istry) code
+                        | Some code -> gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) code
                     );
                 ) else (
                     (match find_duplicate_catch catches with
@@ -496,7 +496,7 @@ let codegen decl_list =
                     store (depth+1) RAX;
                     prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
                     (* BEGIN TRY *)
-                    gen_code (depth+2, frame) (label, None, None, true) code;
+                    gen_code (depth+2, frame, va_depth) (label, None, None, true) code;
                     (* END TRY *)
                     prog.asm NOP "# try block exited normally, remove handler";
                     prog.asm (LEA (Globl handler_base, Regst RSI)) "";
@@ -526,10 +526,10 @@ let codegen decl_list =
                             prog.asm (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
                             if bind <> "_" then (
                                 store depth RAX;
-                                gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame) (label, tagbrk, tagcont, istry) handle;
+                                gen_code (depth+1, [(bind, Stack (-depth*8))] :: frame, va_depth) (label, tagbrk, tagcont, istry) handle;
                             ) else (
                                 (* _ does not induce a variable binding *)
-                                gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
+                                gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) handle;
                             );
                             prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
                             prog.asm (JMP (label, tagbase ^ "_finally")) "";
@@ -541,7 +541,7 @@ let codegen decl_list =
                                 Error.warning (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
                             ) else (
                                 (* _ does not induce a variable binding *)
-                                gen_code (depth, frame) (label, tagbrk, tagcont, istry) handle;
+                                gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) handle;
                             );
                             prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
                             prog.asm (JMP (label, tagbase ^ "_finally")) "";
@@ -553,7 +553,7 @@ let codegen decl_list =
                     store (depth+1) RDI;
                     (match finally with
                         | None -> ()
-                        | Some code -> gen_code (depth+2, frame) (label, tagbrk, tagcont, istry) code
+                        | Some code -> gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) code
                     );
                     (* MAYBE RETHROW *)
                     retrieve (depth+1) RDI;
@@ -587,13 +587,14 @@ let codegen decl_list =
                     List.iteri (fun i r ->
                         prog.asm (MOV (Regst r, Stack (8*(i+2)))) "reg -> stack";
                     ) [RDI;RSI;RDX;RCX;R08;R09];
+                    let nb_fixed = min 6 (List.length fixed) in
                     prog.asm (MOV (Regst R10, Stack 8)) "put back return address";
                     prog.asm (MOV (Regst R11, Stack 0)) "save previous base pointer";
                     let args = List.mapi (fun i dec -> match dec with
                         | CDECL (_, name) -> (name, Stack (8*(i+2)))
                         | _ -> failwith "unreachable @ codegen::gen_decl::CDECL...::_"
                     ) fixed in
-                    gen_code (1, args :: frame) (name, None, None, false) code;
+                    gen_code (1, args :: frame, Some nb_fixed) (name, None, None, false) code;
                     leave_stackframe name;
                 )
                 | _ -> (
@@ -601,6 +602,9 @@ let codegen decl_list =
                     let nb_args = min 6 (List.length decs) in
                     enter_stackframe ();
                     let args = stack_args decs in
+                    (if name = "main" && List.length decs > 2 then
+                        Error.error (Some loc) "main takes at most two arguments"
+                    );
                     (if needs_exceptions && name = "main" then (* setup exception handler *) (
                         prog.asm (LEA (FnPtr handler, Regst RAX)) "init exception handler";
                         prog.asm (LEA (Globl handler_addr, Regst RDI)) " +";
@@ -608,7 +612,7 @@ let codegen decl_list =
                         prog.asm (LEA (Globl handler_base, Regst RDI)) " +";
                         prog.asm (MOV (Regst RBP, Deref RDI)) " +";
                     ));
-                    gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
+                    gen_code (nb_args+1, args :: frame, None) (name, None, None, false) code;
                     leave_stackframe name;
                 )
             (* when variadic
@@ -623,7 +627,7 @@ let codegen decl_list =
              * NOTE: check cases with both more and fewer than 6 arguments
              *)
         )
-    and gen_expr (depth, frame) (label, tagbrk, tagcont) with_addr expr = match snd expr with
+    and gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) with_addr expr = match snd expr with
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s." name)
             | Some (Const k) -> (
@@ -661,7 +665,7 @@ let codegen decl_list =
             )
         )
         | SET_VAR (name, value) -> (
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
             match assoc name frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                 | Some loc when is_addr loc -> (
@@ -678,13 +682,13 @@ let codegen decl_list =
             match assoc arr frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s." arr)
                 | Some loc when is_addr loc -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false idx;
                     if is_single_step value then (
                         prog.asm (MOV (Regst RAX, Regst RCX)) "store index";
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
                     ) else (
                         store depth RAX;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
                         retrieve (depth) RCX;
                     );
                     (* idx is in rcx, value is in rax *)
@@ -700,13 +704,13 @@ let codegen decl_list =
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
         )
         | SET_DEREF (dest, value) -> (
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false dest;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false dest;
             if is_single_step value then (
                 prog.asm (MOV (Regst RAX, Regst RDI)) "save destination";
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
             ) else (
                 store depth RAX;
-                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
                 retrieve depth RDI;
             );
             prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
@@ -726,7 +730,7 @@ let codegen decl_list =
                     (match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
-                            gen_expr (depth, frame) (label, tagbrk, tagcont) false idx;
+                            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false idx;
                             prog.asm (MOV (loc, Regst RDI)) "access array";
                             prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
                         )
@@ -734,7 +738,7 @@ let codegen decl_list =
                     ); (op, value)
                 )
                 | OPSET_DEREF (op, addr, value) -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false addr;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false addr;
                     prog.asm (MOV (Regst RAX, Regst RDI)) "load value as address";
                     (op, value)
                 )
@@ -742,10 +746,10 @@ let codegen decl_list =
             ) in
             (* The address of our expression is in RDI *)
             if is_single_step value then (
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false value;
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
             ) else (
                 store depth RDI;
-                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false value;
+                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
                 retrieve depth RDI;
             );
             (match op with
@@ -818,7 +822,7 @@ let codegen decl_list =
             (* calculate all nontrivial parameters *)
             List.iter (fun (i, e, is_nontrivial) ->
                 if is_nontrivial then (
-                    gen_expr (depth+i, frame) (label, tagbrk, tagcont) false e;
+                    gen_expr (depth+i, frame, va_depth) (label, tagbrk, tagcont) false e;
                     store (depth+i) RAX;
                 )
             ) expr_nontrivial;
@@ -833,7 +837,7 @@ let codegen decl_list =
                         | Regst r -> retrieve (depth+i) r;
                         | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
                 ) else (
-                    gen_expr (depth+nb_nontrivial, frame) (label, tagbrk, tagcont) false e;
+                    gen_expr (depth+nb_nontrivial, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (MOV (Regst RAX, dest)) (sprintf "trivial argument #%d" (j+1));
                 )
             ) (zip expr_nontrivial dests);
@@ -858,7 +862,7 @@ let codegen decl_list =
                 | M_PRE_DEC | M_PRE_INC | M_POST_DEC | M_POST_INC | M_ADDR -> true
                 | _ -> false
             in
-            gen_expr (depth, frame) (label, tagbrk, tagcont) (need_addr || with_addr) expr;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) (need_addr || with_addr) expr;
             match op with
                 | M_MINUS -> prog.asm (NEG (Regst RAX)) "negative"
                 | M_NOT -> prog.asm (NOT (Regst RAX)) "bitwise not"
@@ -889,21 +893,21 @@ let codegen decl_list =
         | OP2 (op, lhs, rhs) -> (
             match op with
                 | S_MUL -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     if is_single_step rhs then (
                         prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     ) else (
                         store depth RAX;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                         retrieve depth RCX;
                     );
                     prog.asm (MUL (Regst RCX)) "mul";
                 )
                 | S_MOD | S_DIV -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     prog.asm (MOV (Regst RAX, Regst RCX)) "";
                     retrieve depth RAX;
                     prog.asm QTO "";
@@ -913,13 +917,13 @@ let codegen decl_list =
                     );
                 )
                 | S_ADD | S_SUB -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     if is_single_step rhs then (
                         prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     ) else (
                         store depth RAX;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                         retrieve depth RCX;
                     );
                     (if op = S_SUB then
@@ -929,13 +933,13 @@ let codegen decl_list =
                 )
                 | S_INDEX -> (
                     if is_lvalue (snd lhs) then (
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                         if is_single_step rhs then (
                             prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                            gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                         ) else (
                             store depth RAX;
-                            gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                             retrieve depth RCX;
                         );
                         if with_addr then (
@@ -949,9 +953,9 @@ let codegen decl_list =
                     )
                 )
                 | S_SHL | S_SHR -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     store depth RAX;
-                    gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     prog.asm (MOV (Regst RAX, Regst RCX)) "";
                     retrieve depth RAX;
                     (if op = S_SHL
@@ -960,14 +964,14 @@ let codegen decl_list =
                     );
                 )
                 | S_AND | S_OR | S_XOR -> (
-                    gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     if is_single_step rhs then (
                         store depth RAX;
-                        gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                         retrieve depth RCX;
                     ) else (
                         prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     );
                     (match op with
                         | S_AND -> prog.asm (AND (Regst RCX, Regst RAX)) "and"
@@ -978,13 +982,13 @@ let codegen decl_list =
                 )
         )
         | CMP (op, lhs, rhs) -> (
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false lhs;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
             if is_single_step rhs then (
                 prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                gen_expr (depth, frame) (label, tagbrk, tagcont) false rhs;
+                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
             ) else (
                 store depth RAX;
-                gen_expr (depth+1, frame) (label, tagbrk, tagcont) false rhs;
+                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                 retrieve depth RCX;
             );
             prog.asm (CMP (Regst RAX, Regst RCX)) "compare";
@@ -1008,16 +1012,16 @@ let codegen decl_list =
         | EIF (cond, expr_true, expr_false) -> (
             let tagbase = sprintf "%d_tern" !label_cnt in
             incr label_cnt;
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false cond;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false cond;
             prog.asm (TST (Regst RAX, Regst RAX)) "apply ternary";
             prog.asm (JEQ (label, tagbase ^ "_false")) "";
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false expr_true;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false expr_true;
             prog.asm (JMP (label, tagbase ^ "_done")) "end case true";
             prog.asm (TAG (label, tagbase ^ "_false")) "begin case false";
-            gen_expr (depth, frame) (label, tagbrk, tagcont) false expr_false;
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false expr_false;
             prog.asm (TAG (label, tagbase ^ "_done")) "end ternary";
         )
-        | ESEQ exprs -> List.iter (gen_expr (depth, frame) (label, tagbrk, tagcont) false) exprs
+        | ESEQ exprs -> List.iter (gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false) exprs
     in
     let rec get_global_vars = function
         | [] -> []
