@@ -109,6 +109,10 @@ let find_duplicate_decl decls =
         | _ :: tl -> dup tl
     in
     let names = List.map (function
+        | CFUN (loc, "va_init", _, _) -> (Error.error (Some loc) "va_init is a reserved name"; (loc, "va_init"))
+        | CFUN (loc, "va_arg", _, _) -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
+        | CDECL (loc, "va_init") -> (Error.error (Some loc) "va_init is a reserved name"; (loc, "va_init"))
+        | CDECL (loc, "va_arg") -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
         | CDECL (loc, name) -> (loc, name)
         | CFUN (loc, name, _, _) -> (loc, name)
     ) decls in
@@ -791,6 +795,24 @@ let codegen decl_list =
                     prog.asm (MOV (Deref RDI, Regst RAX)) " + load final value";
                 )
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign."
+            );
+        )
+        | CALL ("va_init", args) -> (
+            let d = (match va_depth with
+                | Some d -> d
+                | None -> (Error.error (Some (fst expr)) "cannot init va in non-variadic function"; 0)
+            ) in
+            match args with
+                | [e] -> (
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) true e;
+                    prog.asm (MOV (Const d, Deref RDI)) "init va";
+                )
+                | _ -> Error.error (Some (fst expr)) "va_init expects exactly one argument"
+        )
+        | CALL ("va_arg", args) -> (
+            (match va_depth with
+                | Some _ -> ()
+                | None -> Error.error (Some (fst expr)) "cannot use va_arg in non-variadic function"
             );
         )
         | CALL (fname, expr_lst) -> (

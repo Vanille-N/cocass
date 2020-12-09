@@ -172,7 +172,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
             | MOV (s, d) -> [
-                TextLt (color_instr ^ "    mov ");
+                TextLt (color_instr ^ "    movq ");
                 Node (locate s); TextLt ", ";
                 Node (locate d); fmtinfo]
             | LEA (s, d) -> [
