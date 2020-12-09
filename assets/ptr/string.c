@@ -1,13 +1,13 @@
 int strget(char* str, int index) {
     return *(str+index) % 256;
 }
-int strset(char* str, int index, int newval) {
+void strset(char* str, int index, int newval) {
     int val, arr;
     arr = str + index;
     *(str+index) = (*(str+index) & (~255)) + (newval % 256);
 }
 
-int* fmt;
+char* fmt;
 
 int check(char* str) {
     int len, i, val;

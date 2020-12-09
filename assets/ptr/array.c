@@ -1,5 +1,6 @@
 int main() {
-    int arr, i, k;
+    int i, k;
+    long* arr;
     i = 0;
     arr = malloc(3*QSIZE);
     arr[i++] = 100;

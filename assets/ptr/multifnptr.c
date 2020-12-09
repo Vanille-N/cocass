@@ -1,7 +1,7 @@
-int apply0(int fn) { return fn(); }
-int apply1(int fn, int x) { return fn(x); }
-int apply2(int fn, int x, int y) { return fn(x, y); }
-int apply1bis(int fn, int x) { return apply1(fn, x); }
+int apply0(int fn()) { return fn(); }
+int apply1(int fn(), int x) { return fn(x); }
+int apply2(int fn(), int x, int y) { return fn(x, y); }
+int apply1bis(int fn(), int x) { return apply1(fn, x); }
 
 int foo0() { return 42; }
 int bar0() { return 666; }

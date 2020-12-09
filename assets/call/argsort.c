@@ -1,4 +1,4 @@
-int cmp(char** a, char** b) {
+int cmp(void* a, void* b) {
     return strcmp(*a, *b);
 }
 
