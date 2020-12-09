@@ -151,6 +151,7 @@ let universal = [
     ("true", Const 1); ("false", Const 0);
     ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
     ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
+    ("STDIN_FILENO", Const 0); ("STDOUT_FILENO", Const 1); ("STDERR_FILENO", Const 2);
     ("RAND_MAX", Const 2147483647);
     ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
     ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Hexdc "ff");
@@ -163,78 +164,81 @@ type arity =
     | Fewer of int
     | Any
 
-(* arity, returns long ? *)
+(* arity, needs conversion ? *)
 type fn_descriptor = arity * bool
 
 let stdlib = [
-    ("abs", (Exact 1, false));
-    ("atoi", (Exact 1, false));
-    ("atol", (Exact 1, true));
+    ("abs", (Exact 1, true));
+    ("atoi", (Exact 1, true));
+    ("atol", (Exact 1, false));
     ("bsearch", (Exact 5, false));
     ("exit", (Exact 1, false));
     ("fclose", (Exact 1, false));
-    ("feof", (Exact 1, false));
+    ("feof", (Exact 1, true));
     ("fflush", (Exact 1, false));
-    ("fgetc", (Exact 1, false));
-    ("fgets", (Exact 3, true));
-    ("fopen", (Exact 2, true));
+    ("fgetc", (Exact 1, true));
+    ("fgets", (Exact 3, false));
+    ("fopen", (Exact 2, false));
+    ("fork", (Exact 0, true));
     ("fprintf", (More 2, false));
     ("fputc", (Exact 2, false));
     ("fputs", (Exact 2, false));
     ("free", (Exact 1, false));
     ("fscanf", (More 2, false));
-    ("getc", (Exact 1, false));
-    ("getchar", (Exact 0, false));
-    ("getenv", (Exact 1, true));
-    ("gets", (Exact 1, true));
-    ("isalnum", (Exact 1, false));
-    ("isalpha", (Exact 1, false));
-    ("isascii", (Exact 1, false));
-    ("isblank", (Exact 1, false));
-    ("iscntrl", (Exact 1, false));
-    ("isdigit", (Exact 1, false));
-    ("isgraph", (Exact 1, false));
-    ("islower", (Exact 1, false));
-    ("isprint", (Exact 1, false));
-    ("ispunct", (Exact 1, false));
-    ("isspace", (Exact 1, false));
-    ("isupper", (Exact 1, false));
-    ("isxdigit", (Exact 1, false));
-    ("labs", (Exact 1, true));
-    ("malloc", (Exact 1, true));
-    ("memchr", (Exact 3, true));
-    ("memcmp", (Exact 3, false));
-    ("memcpy", (Exact 3, true));
-    ("memmove", (Exact 3, true));
-    ("memset", (Exact 3, true));
+    ("getc", (Exact 1, true));
+    ("getchar", (Exact 0, true));
+    ("getenv", (Exact 1, false));
+    ("getpid", (Exact 0, true));
+    ("gets", (Exact 1, false));
+    ("isalnum", (Exact 1, true));
+    ("isalpha", (Exact 1, true));
+    ("isascii", (Exact 1, true));
+    ("isblank", (Exact 1, true));
+    ("iscntrl", (Exact 1, true));
+    ("isdigit", (Exact 1, true));
+    ("isgraph", (Exact 1, true));
+    ("islower", (Exact 1, true));
+    ("isprint", (Exact 1, true));
+    ("ispunct", (Exact 1, true));
+    ("isspace", (Exact 1, true));
+    ("isupper", (Exact 1, true));
+    ("isxdigit", (Exact 1, true));
+    ("labs", (Exact 1, false));
+    ("malloc", (Exact 1, false));
+    ("memchr", (Exact 3, false));
+    ("memcmp", (Exact 3, true));
+    ("memcpy", (Exact 3, false));
+    ("memmove", (Exact 3, false));
+    ("memset", (Exact 3, false));
     ("perror", (Exact 1, false));
     ("printf", (More 1, false));
     ("putc", (Exact 2, false));
     ("putchar", (Exact 1, false));
-    ("putchar", (Exact 1, false));
-    ("putenv", (Exact 1, true));
+    ("putenv", (Exact 1, false));
     ("puts", (Exact 1, false));
     ("qsort", (Exact 4, false));
-    ("rand", (Exact 0, false));
-    ("realloc", (Exact 2, true));
+    ("rand", (Exact 0, true));
+    ("realloc", (Exact 2, false));
     ("scanf", (More 1, false));
     ("signal", (Exact 2, false));
+    ("sleep", (Exact 1, false));
     ("srand", (Exact 1, false));
-    ("strcat", (Exact 2, true));
-    ("strchr", (Exact 2, true));
-    ("strcmp", (Exact 2, false));
-    ("strcmp", (Exact 2, false));
-    ("strcpy", (Exact 2, true));
-    ("strlen", (Exact 1, false));
-    ("strtol", (Exact 1, true));
+    ("strcat", (Exact 2, false));
+    ("strchr", (Exact 2, false));
+    ("strcmp", (Exact 2, true));
+    ("strcpy", (Exact 2, false));
+    ("strlen", (Exact 1, true));
+    ("strtol", (Exact 1, false));
     ("system", (Exact 1, false));
-    ("tolower", (Exact 1, false));
-    ("toupper", (Exact 1, false));
+    ("tolower", (Exact 1, true));
+    ("toupper", (Exact 1, true));
+    ("usleep", (Exact 1, false));
+    ("waitpid", (Exact 3, false));
 ]
 let defined_functions decl_lst =
     let rec aux = function
         | [] -> stdlib
-        | (CFUN (_, name, params, _)) :: tl -> (name, (Exact (List.length params), true)) :: aux tl
+        | (CFUN (_, name, params, _)) :: tl -> (name, (Exact (List.length params), false)) :: aux tl
         | _ :: tl -> aux tl
     in
     aux decl_lst
@@ -571,6 +575,7 @@ let codegen decl_list =
                 | None -> ()
                 | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
             );
+            (* normal case: non-variadic *)
             let nb_args = min 6 (List.length decs) in
             enter_stackframe ();
             let args = stack_args decs in
@@ -583,6 +588,17 @@ let codegen decl_list =
             ));
             gen_code (nb_args+1, args :: frame) (name, None, None, false) code;
             leave_stackframe name;
+            (* when variadic
+             * - save return address
+             * - write arguments (make sure they are in the right order)
+             * - re-put return address
+             * - update rbp, rsp
+             * - continue as normal
+             *)
+            (* va_init will just create a pointer to the base of the frame
+             * then va_arg will increment that pointer
+             * NOTE: check cases with both more and fewer than 6 arguments
+             *)
         )
     and gen_expr (depth, frame) (label, tagbrk, tagcont) with_addr expr = match snd expr with
         | VAR name -> (match assoc name frame with
@@ -799,7 +815,8 @@ let codegen decl_list =
                 )
             ) (zip expr_nontrivial dests);
             prog.asm (SUB (Const (offset*8), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
-            prog.asm (MOV (Const nb_on_stk, Regst RAX)) (sprintf "varargs: %d on the stack" nb_on_stk);
+            (* prog.asm (MOV (Const nb_on_stk, Regst RAX)) (sprintf "varargs: %d on the stack" nb_on_stk); *)
+            prog.asm (XOR (Regst RAX, Regst RAX)) "";
             (match assoc fname frame with
                 | None | Some (FnPtr _) -> prog.asm (CAL fname) " +"
                 | Some loc -> (
@@ -809,7 +826,7 @@ let codegen decl_list =
             );
             prog.asm (MOV (Regst RBP, Regst RSP)) " +";
             (match List.assoc_opt fname descriptors with
-                | Some (_, false) | None -> prog.asm LTQ ""
+                | Some (_, true) | None -> prog.asm LTQ ""
                 | _ -> ()
             );
         )
@@ -1011,7 +1028,7 @@ let codegen decl_list =
         prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
         prog.asm SYS "";
     );
-    List.iter (gen_decl (global::[universal])) decl_list;
+    List.iter (gen_decl (global::universal::[])) decl_list;
     prog
 
 
