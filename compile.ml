@@ -109,9 +109,9 @@ let find_duplicate_decl decls =
         | _ :: tl -> dup tl
     in
     let names = List.map (function
-        | CFUN (loc, "va_init", _, _) -> (Error.error (Some loc) "va_init is a reserved name"; (loc, "va_init"))
+        | CFUN (loc, "va_init", _, _) -> (Error.error (Some loc) "va_start is a reserved name"; (loc, "va_start"))
         | CFUN (loc, "va_arg", _, _) -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
-        | CDECL (loc, "va_init") -> (Error.error (Some loc) "va_init is a reserved name"; (loc, "va_init"))
+        | CDECL (loc, "va_init") -> (Error.error (Some loc) "va_start is a reserved name"; (loc, "va_start"))
         | CDECL (loc, "va_arg") -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
         | CDECL (loc, name) -> (loc, name)
         | CFUN (loc, name, _, _) -> (loc, name)
@@ -591,7 +591,7 @@ let codegen decl_list =
                     List.iteri (fun i r ->
                         prog.asm (MOV (Regst r, Stack (8*(i+2)))) "reg -> stack";
                     ) [RDI;RSI;RDX;RCX;R08;R09];
-                    let nb_fixed = min 6 (List.length fixed) in
+                    let nb_fixed = List.length fixed in
                     prog.asm (MOV (Regst R10, Stack 8)) "put back return address";
                     prog.asm (MOV (Regst R11, Stack 0)) "save previous base pointer";
                     let args = List.mapi (fun i dec -> match dec with
@@ -797,7 +797,7 @@ let codegen decl_list =
                 | S_INDEX -> Error.error (Some (fst expr)) "INDEX cannot perform extended assign."
             );
         )
-        | CALL ("va_init", args) -> (
+        | CALL ("va_start", args) -> (
             let d = (match va_depth with
                 | Some d -> d
                 | None -> (Error.error (Some (fst expr)) "cannot init va in non-variadic function"; 0)
@@ -805,7 +805,7 @@ let codegen decl_list =
             match args with
                 | [e] -> (
                     gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) true e;
-                    prog.asm (MOV (Const d, Deref RDI)) "init va";
+                    prog.asm (MOV (Const (d+2), Deref RDI)) "init first va";
                 )
                 | _ -> Error.error (Some (fst expr)) "va_init expects exactly one argument"
         )
