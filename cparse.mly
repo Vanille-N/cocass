@@ -323,11 +323,15 @@ init_declarator_list:
 init_declarator: declarator { $1 };
 
 declarator:
-    identifier { let loc, x = $1 in CDECL (loc, x) }
+    | identifier { let loc, x = $1 in CDECL (loc, x) }
+    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x) }
 ;
 
-type_specifier: INTEGER { () }
-    | CHAR STAR_CHR { () }
+type_specifier:
+    | INTEGER { () }
+    | CHAR { () }
+    | LONG { () }
+    | VOID { () }
     | type_specifier STAR_CHR { () }
 ;
 
@@ -531,6 +535,7 @@ parameter_type_list:
 
 parameter_declarator:
     | OPEN_PAREN_CHR CLOSE_PAREN_CHR { [] }
+    | OPEN_PAREN_CHR VOID CLOSE_PAREN_CHR { [] }
     | OPEN_PAREN_CHR parameter_type_list CLOSE_PAREN_CHR { $2 }
 ;
 
