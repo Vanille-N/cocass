@@ -318,8 +318,8 @@ let codegen decl_list =
     let needs_exceptions = needs_exceptions decl_list in
     if needs_exceptions then (
         (* declare exception-related globals *)
-        prog.int handler_addr;
-        prog.int handler_base;
+        prog.int handler_addr 0;
+        prog.int handler_base 0;
     );
     let descriptors = defined_functions decl_list in
     let enter_stackframe () =
@@ -379,6 +379,18 @@ let codegen decl_list =
             | CLOCAL declarations -> (
                 let newvars = make_scope depth declarations in
                 let newdepth = depth + List.length declarations in
+                let initvals = List.map (function
+                    | CDECL (_, _, i) -> i
+                    | CFUN _ -> failwith "unreachable @ compile::codegen::gen_code::CLOCAL::initvals"
+                ) declarations in
+                List.iter (fun ((name, pos), init) ->
+                    match init with
+                        | None -> ()
+                        | Some e -> (
+                            gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts e);
+                            prog.asm (MOV (Regst RAX, pos)) (sprintf "initialise %s" name);
+                        )
+                ) (zip newvars initvals);
                 (newdepth, newvars :: frame, va_depth)
             )
             | CEXPR expr -> (
@@ -1160,8 +1172,19 @@ let codegen decl_list =
     let rec get_global_vars = function
         | [] -> []
         | (CFUN (_, name, _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
-        | (CDECL (_, name, _)) :: tl -> (
-            prog.int name;
+        | (CDECL (loc, name, initval)) :: tl -> (
+            let value = match initval with
+                | None -> 0
+                | Some v -> (
+                    match Reduce.redexp ~force:true consts v with
+                        | _, CST c -> c
+                        | _ -> (
+                            Error.error (Some loc) "initialisation of global variables must be a compile-time constant";
+                            0
+                        )
+                )
+            in
+            prog.int name value;
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
