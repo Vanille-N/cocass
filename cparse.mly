@@ -320,12 +320,17 @@ init_declarator_list:
         { $3 :: $1 }
 ;
 
-init_declarator: declarator { $1 };
+declarative_statement: declaration { getloc (), CLOCAL $1 }
+
+init_declarator:
+    | identifier EQ_CHR assignment_expression { let loc, x = $1 in CDECL (loc, x, Some $3) }
+    | identifier { let loc, x = $1 in CDECL (loc, x, None) }
+    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) }
+;
 
 declarator:
-    | identifier EQ_CHR expression { let loc, x = $1 in CDECL (loc, x, Some $3) }
     | identifier { let loc, x = $1 in CDECL (loc, x, None) }
-    /* | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) } */
+    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) }
 ;
 
 type_specifier:
@@ -340,36 +345,26 @@ close_bracket : CLOSE_BRACKET_CHR { getloc () };
 
 statement:
     | compound_statement { $1 }
-    | expression_statement
-        { loc_of_expr $1, CEXPR $1 }
+    | expression_statement { loc_of_expr $1, CEXPR $1 }
     | selection_statement { $1 }
     | iteration_statement { $1 }
     | jump_statement { $1 }
     | handler_statement { $1 }
+    | declarative_statement { $1 }
 ;
 
 open_block  : open_brace  { $1 };
 close_block : close_brace { $1 };
 
 scope_block:
-    | declaration_list statement_list scope_block
-        { getloc (), CBLOCK ($1, (List.rev $2) @ [$3]) }
-    | statement_list scope_block
-        { getloc (), CBLOCK ([], (List.rev $1) @ [$2]) }
-    | declaration_list scope_block
-        { getloc (), CBLOCK ($1, [$2]) }
-    | { getloc (), CBLOCK ([], []) }
+    | statement_list
+        { getloc (), CBLOCK (List.rev $1) }
+    | { getloc (), CBLOCK [] }
 ;
 
 compound_statement:
     | open_block scope_block close_block
         { sup_locator $1 $3, snd $2 }
-;
-
-/* Une declaration_list est une liste non inversee de declaration */
-declaration_list:
-    | declaration { $1 }
-    | declaration_list declaration { $1 @ $2 }
 ;
 
 /* Une statement_list est une liste inversee de statement */
@@ -401,8 +396,8 @@ case :
 
 default :
     | defaultkw COLON_CHR statement_list
-        { $1, CBLOCK ([], List.rev $3) }
-    | { getloc (), CBLOCK ([], []) }
+        { $1, CBLOCK (List.rev $3) }
+    | { getloc (), CBLOCK [] }
 ;
 
 case_list :
@@ -420,7 +415,7 @@ switchkw : SWITCH { getloc () };
 
 selection_statement:
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement
-        { sup_locator $1 (fst $5), CIF ($3, $5, (getloc (), CBLOCK ([], []))) }
+        { sup_locator $1 (fst $5), CIF ($3, $5, (getloc (), CBLOCK [])) }
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement ELSE statement
         { sup_locator $1 (fst $7), CIF ($3, $5, $7) }
     | switchkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR switch_block {
@@ -440,7 +435,7 @@ iteration_statement:
     | forkw OPEN_PAREN_CHR expression_statement expression_statement close_paren statement
     /* for (e0; e; ) c == e0; while (e) c; */ {
         let loc = sup_locator $1 (fst $6) in
-        loc, CBLOCK ([], [
+        loc, CBLOCK ([
             (loc_of_expr $3, CEXPR $3);
             (loc, CWHILE ($4, $6, None, true))
         ])
@@ -448,7 +443,7 @@ iteration_statement:
     | forkw OPEN_PAREN_CHR expression_statement expression_statement expression close_paren statement
     /* for (e0; e; e1) c == e0; while (e) { c; e1 } */ {
         let loc = sup_locator $1 (fst $7) in
-        loc, CBLOCK ([], [
+        loc, CBLOCK ([
             (loc_of_expr $3, CEXPR $3);
             loc, CWHILE ($4, $7, Some $5, true)
         ])
