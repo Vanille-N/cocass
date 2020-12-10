@@ -42,7 +42,7 @@ let rec print_block printer offset out lst =
     match lst with
         | [] -> ()
         | [e] -> printer offset false out e
-        | e::rest -> (
+        | e :: rest -> (
             printer offset true out e;
             print_block printer offset out rest
         )
@@ -63,11 +63,13 @@ let print_ast (out, color) code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
         match snd code with
-            | CBLOCK (decl_lst, code_lst) -> (
+            | CBLOCK (code_lst) -> (
                 fprintf out "%sblock\n" (offset ^ curr_full ^ color_none);
-                print_ast_indent (offset ^ curr_empty ^ color_none) true out decl_lst;
-                fprintf out "%sbody\n" (offset ^ curr_empty ^ color_none ^ termin);
-                print_block print_code_indent (offset ^ curr_empty ^ color_none ^ blank) out code_lst;
+                List.iter (print_code_indent (offset ^ color_none ^ curr_empty) true out) code_lst;
+                fprintf out "%s(end)\n" (offset ^ curr_empty ^ termin ^ color_none);
+            )
+            | CLOCAL (decl_lst) -> (
+                print_ast_indent (offset ^ color_none) true out decl_lst;
             )
             | CEXPR expr -> (
                 fprintf out "%sexpr\n" (offset ^ curr_full ^ color_none);
@@ -138,8 +140,8 @@ let print_ast (out, color) code =
             | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
             | CDECL (_, name, Some init) -> (
                 fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
-                fprintf out "%sinit\n" (offset ^ blank ^ curr_full);
-                print_expr_indent (offset ^ blank ^ curr_empty) false out init;
+                fprintf out "%sinit\n" (offset ^ curr_empty ^ termin);
+                print_expr_indent (offset ^ curr_empty ^ blank) false out init;
             )
             | CFUN (_, name, decs, code) -> (
                 fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (color_fun ^ name ^ color_none);
