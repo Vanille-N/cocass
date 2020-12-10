@@ -118,9 +118,11 @@ let find_duplicate_decl decls =
     ) decls in
     dup (List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) names)
 
-(* determine if expression is trivial *)
+(* determine if expression is trivial,
+ * i.e. it requires no registers other than RAX
+ * and is side-effect-free as well as side-effect-proof
+ *)
 let is_single_step = function
-    | (_, VAR _) -> true
     | (_, CST _) -> true
     | (_, STRING _) -> true
     | _ -> false
@@ -136,11 +138,18 @@ let needs_exceptions decl_list =
         | CBREAK -> false
         | CCONTINUE -> false
         | CEXPR _ -> false
-        | CIF (_, code_true, code_false) -> aux_code (snd code_true) || aux_code (snd code_false)
+        | CIF (_, code_true, code_false) ->
+            aux_code (snd code_true)
+            || aux_code (snd code_false)
         | CRETURN _ -> false
         | CWHILE (_, code, _, _) -> aux_code (snd code)
-        | CSWITCH (_, cases, deflt) -> any (fun (_, _, c) -> any aux_code (List.map snd c)) cases || aux_code (snd deflt)
-        | CTRY (body, catches, finally) -> aux_code (snd body) || any (fun (_, _, _, c) -> aux_code (snd c)) catches || (match finally with None -> true | Some (_, c) -> aux_code c)
+        | CSWITCH (_, cases, deflt) ->
+            any (fun (_, _, c) -> any aux_code (List.map snd c)) cases
+            || aux_code (snd deflt)
+        | CTRY (body, catches, finally) ->
+            aux_code (snd body)
+            || any (fun (_, _, _, c) -> aux_code (snd c)) catches
+            || (match finally with None -> true | Some (_, c) -> aux_code c)
     in any aux_decl decl_list
 
 (* get declaration name from var_declaration *)
@@ -245,8 +254,10 @@ let stdlib = [
 let defined_functions decl_lst =
     let rec aux = function
         | [] -> stdlib
-        | (CFUN (_, name, CDECL (_,"...") :: fixed, _)) :: tl -> (name, (More (List.length fixed), false)) :: aux tl
-        | (CFUN (_, name, params, _)) :: tl -> (name, (Exact (List.length params), false)) :: aux tl
+        | (CFUN (_, name, CDECL (_, "...") :: fixed, _)) :: tl ->
+            (name, (More (List.length fixed), false)) :: aux tl
+        | (CFUN (_, name, params, _)) :: tl ->
+            (name, (Exact (List.length params), false)) :: aux tl
         | _ :: tl -> aux tl
     in
     aux decl_lst
@@ -278,6 +289,8 @@ let consts = List.filter_map (function
  * *** RDI is last calculated address
  * *** RCX is extra register (mul operand, divisor, shift amount, array index)
  * *** R10 is function pointer
+ * *** .LCn are strings
+ * *** .EXn are exceptions
  *
  * They are added to the universal conventions and constraints:
  * *** RAX is return value
@@ -760,15 +773,11 @@ let codegen decl_list =
             match assoc arr frame with
                 | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s." arr)
                 | Some loc when is_addr loc -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false idx;
-                    if is_single_step value then (
-                        prog.asm (MOV (Regst RAX, Regst RCX)) "store index";
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
-                    ) else (
-                        store depth RAX;
-                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
-                        retrieve (depth) RCX;
-                    );
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false idx;
+                    prog.asm (MOV (Regst RAX, Regst RCX)) "move index";
+                    retrieve (depth) RAX;
                     (* idx is in RCX, value is in RAX *)
                     if with_addr then (
                         prog.asm (MOV (loc, Regst RDI)) "access array";
@@ -782,54 +791,49 @@ let codegen decl_list =
                 | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
         )
         | SET_DEREF (dest, value) -> (
-            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false dest;
-            if is_single_step value then (
-                prog.asm (MOV (Regst RAX, Regst RDI)) "save destination";
-                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
-            ) else (
-                store depth RAX;
-                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
-                retrieve depth RDI;
-            );
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
+            store depth RAX;
+            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false dest;
+            prog.asm (MOV (Regst RAX, Regst RDI)) "move address";
+            retrieve depth RAX;
             prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
         )
         | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
             let (op, value) = (match snd expr with
+                | OPSET_VAR (op, _, value) -> (op, value)
+                | OPSET_ARRAY (op, _, _, value) -> (op, value)
+                | OPSET_DEREF (op, _, value) -> (op, value)
+                | _ -> failwith "unreachable @ compile::codegen::gen_expr::OPSET_*"
+            ) in
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
+            store depth RAX;
+            (match snd expr with
                 | OPSET_VAR (op, name, value) -> (
-                    (match assoc name frame with
+                    match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
                             prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-                    ); (op, value)
                 )
                 | OPSET_ARRAY (op, name, idx, value) -> (
-                    (match assoc name frame with
+                    match assoc name frame with
                         | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
                         | Some loc when is_addr loc -> (
-                            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false idx;
+                            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false idx;
                             prog.asm (MOV (loc, Regst RDI)) "access array";
                             prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
                         )
                         | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-                    ); (op, value)
                 )
                 | OPSET_DEREF (op, addr, value) -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false addr;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false addr;
                     prog.asm (MOV (Regst RAX, Regst RDI)) "load value as address";
-                    (op, value)
                 )
-                | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::OPSET_*"
-            ) in
-            (* The address of our expression is in RDI *)
-            if is_single_step value then (
-                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
-            ) else (
-                store depth RDI;
-                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false value;
-                retrieve depth RDI;
+                | _ -> failwith "unreachable @ compile::codegen::gen_expr::OPSET_*"
             );
+            (* The address of our expression is in RDI *)
+            retrieve depth RAX;
             (match op with
                 | S_ADD | S_SUB | S_AND | S_OR | S_XOR -> (
                     (match op with
@@ -933,10 +937,10 @@ let codegen decl_list =
             (* calculate all nontrivial parameters *)
             List.iter (fun (i, e, is_nontrivial) ->
                 if is_nontrivial then (
-                    gen_expr (depth+i, frame, va_depth) (label, tagbrk, tagcont) false e;
+                    gen_expr (depth+nb_nontrivial+1, frame, va_depth) (label, tagbrk, tagcont) false e;
                     store (depth+i) RAX;
                 )
-            ) expr_nontrivial;
+            ) (List.rev expr_nontrivial);
             (* now load all nontrivial and calculate all trivial (1-step, won't mess with already set registers *)
             List.iteri (fun j ((i, e, is_nontrivial), dest) ->
                 if is_nontrivial then (
@@ -948,7 +952,7 @@ let codegen decl_list =
                         | Regst r -> retrieve (depth+i) r;
                         | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
                 ) else (
-                    gen_expr (depth+nb_nontrivial, frame, va_depth) (label, tagbrk, tagcont) false e;
+                    gen_expr (depth+nb_nontrivial+1, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (MOV (Regst RAX, dest)) (sprintf "trivial arg #%d" (j+1));
                 )
             ) (zip expr_nontrivial dests);
@@ -1004,23 +1008,22 @@ let codegen decl_list =
         | OP2 (op, lhs, rhs) -> (
             match op with
                 | S_MUL -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-                    if is_single_step rhs then (
-                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    if is_single_step lhs then (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "save rhs";
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     ) else (
                         store depth RAX;
-                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                         retrieve depth RCX;
                     );
                     prog.asm (MUL (Regst RCX)) "mul";
                 )
                 | S_MOD | S_DIV -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     store depth RAX;
-                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                    prog.asm (MOV (Regst RAX, Regst RCX)) "";
-                    retrieve depth RAX;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    retrieve depth RCX;
                     prog.asm QTO "";
                     prog.asm (DIV (Regst RCX)) "div/mod";
                     (if op = S_MOD then
@@ -1028,31 +1031,27 @@ let codegen decl_list =
                     );
                 )
                 | S_ADD | S_SUB -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-                    if is_single_step rhs then (
-                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    if is_single_step lhs then (
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "save rhs";
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                     ) else (
                         store depth RAX;
-                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
                         retrieve depth RCX;
                     );
-                    (if op = S_SUB then
-                        prog.asm (NEG (Regst RAX)) "neg -> sub";
+                    (if op = S_SUB
+                        then prog.asm (SUB (Regst RCX, Regst RAX)) "sub"
+                        else prog.asm (ADD (Regst RCX, Regst RAX)) "add"
                     );
-                    prog.asm (ADD (Regst RCX, Regst RAX)) "add";
                 )
                 | S_INDEX -> (
                     if is_lvalue (snd lhs) then (
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-                        if is_single_step rhs then (
-                            prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                        ) else (
-                            store depth RAX;
-                            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                            retrieve depth RCX;
-                        );
+                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                        store depth RAX;
+                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                        prog.asm (MOV (Regst RAX, Regst RCX)) "move lhs";
+                        retrieve depth RAX;
                         if with_addr then (
                             prog.asm (LEA (Index (RCX, RAX), Regst RDI)) "index";
                             prog.asm (MOV (Deref RDI, Regst RAX)) " +";
@@ -1064,26 +1063,20 @@ let codegen decl_list =
                     )
                 )
                 | S_SHL | S_SHR -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
                     store depth RAX;
-                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                    prog.asm (MOV (Regst RAX, Regst RCX)) "";
-                    retrieve depth RAX;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    retrieve depth RCX;
                     (if op = S_SHL
                         then prog.asm (SHL (Regst CL, Regst RAX)) ""
                         else prog.asm (SHR (Regst CL, Regst RAX)) ""
                     );
                 )
                 | S_AND | S_OR | S_XOR -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-                    if is_single_step rhs then (
-                        store depth RAX;
-                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                        retrieve depth RCX;
-                    ) else (
-                        prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                    );
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    retrieve depth RCX;
                     (match op with
                         | S_AND -> prog.asm (AND (Regst RCX, Regst RAX)) "and"
                         | S_OR -> prog.asm (IOR (Regst RCX, Regst RAX)) "incl. or"
@@ -1093,16 +1086,11 @@ let codegen decl_list =
                 )
         )
         | CMP (op, lhs, rhs) -> (
-            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-            if is_single_step rhs then (
-                prog.asm (MOV (Regst RAX, Regst RCX)) "save lhs";
-                gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-            ) else (
-                store depth RAX;
-                gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                retrieve depth RCX;
-            );
-            prog.asm (CMP (Regst RAX, Regst RCX)) "compare";
+            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+            store depth RAX;
+            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+            retrieve depth RCX;
+            prog.asm (CMP (Regst RCX, Regst RAX)) "compare";
             let tagbase = sprintf "%d_cmp" !label_cnt in
             incr label_cnt;
             let (jump_instr, case_nojump, comment) = (match op with
