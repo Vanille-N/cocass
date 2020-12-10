@@ -36,17 +36,20 @@ clean:
 	rm -f cparse.ml cparse.mli clex.ml
 	rm -f cparse.output
 	rm -f depend
-	rm -rf $PJ.tar.gz $PJ
+	rm -rf $(PJ).tar.gz $(PJ)
 	find . -name '*.s' -type f -exec rm {} +
 	find assets ! -name '*.*' -type f -exec rm {} +
 	find failures ! -name '*.*' -type f -exec rm {} +
 
 projet:
 	make clean
-	mkdir $PJ
-	cp -r $TESTS $PJ/
-	cp $FILES $PJ/
-	tar czf $PJ.tar.gz $PJ
+	mkdir $(PJ)
+	cp -r $(TESTS) $(PJ)/
+	cp $(FILES) $(PJ)/
+	tar czf $(PJ).tar.gz $(PJ)
+
+test: mcc
+	./test.py
 
 cparse.ml: cparse.mly
 	ocamlyacc -v cparse.mly
