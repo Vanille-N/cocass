@@ -39,6 +39,10 @@ assets = [
         "try_switch", "any_catch",
         "nothrow",
     ),
+    ("decl", [[], ["-O"]],
+        "init", "alternate", "typedef",
+        "ptr",
+    ),
 ]
 
 class Module:
