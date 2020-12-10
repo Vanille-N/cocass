@@ -70,7 +70,8 @@ type var_declaration =
     (** fonction avec ses arguments, et son code. *)
 and loc_code = Error.locator * code
 and code =
-    | CBLOCK of var_declaration list * loc_code list (** { declarations; code; } *)
+    | CBLOCK of loc_code list (** { code; } *)
+    | CLOCAL of var_declaration list
     | CEXPR of loc_expr (** une expression e; vue comme instruction. *)
     | CIF of loc_expr * loc_code * loc_code (** if (e) c1; else c2; *)
     | CWHILE of loc_expr * loc_code * (loc_expr option) * bool (** test_at_start? while (e) c; (finally;)*)
