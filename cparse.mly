@@ -323,8 +323,9 @@ init_declarator_list:
 init_declarator: declarator { $1 };
 
 declarator:
-    | identifier { let loc, x = $1 in CDECL (loc, x) }
-    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x) }
+    | identifier EQ_CHR expression { let loc, x = $1 in CDECL (loc, x, Some $3) }
+    | identifier { let loc, x = $1 in CDECL (loc, x, None) }
+    /* | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) } */
 ;
 
 type_specifier:
@@ -532,7 +533,7 @@ parameter_list:
         { $3 :: $1 }
 ;
 
-ellipsis: ELLIPSIS { CDECL (getloc (), "...") }
+ellipsis: ELLIPSIS { CDECL (getloc (), "...", None) }
 
 parameter_type_list:
     | parameter_list { List.rev $1}

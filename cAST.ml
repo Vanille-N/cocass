@@ -84,7 +84,7 @@ and expr = VAR of string (* une variable --- toujours de type int. *)
                             si n=0, represente skip. *)
 
 type var_declaration =
-    | CDECL of locator * string (* declaration de variable de type int. *)
+    | CDECL of locator * string * loc_expr option (* declaration de variable de type int. *)
     | CFUN of locator * string * var_declaration list * loc_code
         (* fonction avec ses arguments, et son code. *)
 and loc_code = locator * code

@@ -135,7 +135,12 @@ let print_ast (out, color) code =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
         List.iter (function
-            | CDECL (_, name) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL (_, name, Some init) -> (
+                fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
+                fprintf out "%sinit\n" (offset ^ blank ^ curr_full);
+                print_expr_indent (offset ^ blank ^ curr_empty) false out init;
+            )
             | CFUN (_, name, decs, code) -> (
                 fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (color_fun ^ name ^ color_none);
                 print_ast_indent (offset ^ curr_empty) true out decs;
@@ -226,7 +231,11 @@ let print_declarations (out, color) code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
         List.iter (function
-            | CDECL (_, name) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL (_, name, Some init) -> (
+                fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
+                fprintf out "%s(init)\n" (offset ^ blank ^ curr_full);
+            )
             | CFUN (_, name, decs, code) -> (
                 fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (color_fun ^ name ^ color_none);
                 print_ast_indent (offset ^ curr_empty) true out decs;

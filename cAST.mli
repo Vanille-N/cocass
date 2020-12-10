@@ -64,8 +64,8 @@ and expr =
       si n=0, represente skip. *)
 
 type var_declaration =
-  | CDECL of Error.locator * string
-    (** declaration de variable de type int. *)
+  | CDECL of Error.locator * string * loc_expr option
+    (** declaration de variable de type int, possiblement avec une valeur d'initialisation. *)
   | CFUN of Error.locator * string * var_declaration list * loc_code
     (** fonction avec ses arguments, et son code. *)
 and loc_code = Error.locator * code
