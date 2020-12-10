@@ -350,15 +350,19 @@ statement:
 open_block  : open_brace  { $1 };
 close_block : close_brace { $1 };
 
+scope_block:
+    | declaration_list statement_list scope_block
+        { getloc (), CBLOCK ($1, (List.rev $2) @ [$3]) }
+    | statement_list scope_block
+        { getloc (), CBLOCK ([], (List.rev $1) @ [$2]) }
+    | declaration_list scope_block
+        { getloc (), CBLOCK ($1, [$2]) }
+    | { getloc (), CBLOCK ([], []) }
+;
+
 compound_statement:
-    | open_block close_block
-        { sup_locator $1 $2, CBLOCK ([], []) }
-    | open_block statement_list close_block
-        { sup_locator $1 $3, CBLOCK ([], List.rev $2) }
-    | open_block declaration_list close_block
-        { sup_locator $1 $3, CBLOCK ($2, []) }
-    | open_block declaration_list statement_list close_block
-        { sup_locator $1 $4, CBLOCK ($2, List.rev $3) }
+    | open_block scope_block close_block
+        { sup_locator $1 $3, snd $2 }
 ;
 
 /* Une declaration_list est une liste non inversee de declaration */
