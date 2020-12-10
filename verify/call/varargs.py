@@ -31,7 +31,7 @@ def twice(nb, *rest):
     res += '\n'
     return res
 
-def verify(*args):
+def expect(*args):
     res = ""
     res += foo(1,2,3,4, 0)
     res += foo(*range(1,7), 0)

@@ -1,4 +1,4 @@
-def verify(*argv):
+def expect(*argv):
     res = ""
     argc = len(argv)
     if argc > 2:

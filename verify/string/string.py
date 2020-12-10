@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     s = args[0]
     res = ""
     for i,c in enumerate(s):

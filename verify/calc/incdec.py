@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     arr = [*range(10)]
     i = 0
     while (i < 10):

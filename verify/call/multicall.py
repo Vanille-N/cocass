@@ -17,7 +17,7 @@ def main(argc):
     x = x + y
     return x
 
-def verify(*args):
+def expect(*args):
     return (main(len(args)), "", "")
 
 data = [

@@ -7,7 +7,7 @@ def syracuse(n):
         return 1 + syracuse(3*n + 1)
 
 
-def verify(*args):
+def expect(*args):
     always = "*Fin* (ce message doit toujours s'afficher).\n"
     if len(args) != 2:
         return (10, "", "Usage: ./exc1 <n>\ncalcule a quelle iteration une suite mysterieuse termine, en partant de <n>.\n")

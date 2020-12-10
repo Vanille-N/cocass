@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     for i in range(12):
         res += "i = {}\n".format(i)

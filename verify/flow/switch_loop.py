@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     i = -1
     while True:

@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     i = int(args[1])
     if i == 0:
         return (0, "Zero\nExit.\n", "")

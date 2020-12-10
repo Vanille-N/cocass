@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     return (0, "bar\n", "")
 
 data = [

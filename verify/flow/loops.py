@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     res += "1. for                   0 1 2 3 4 5 6 7 8 9 \n"
     res += "2. one-line for          0 1 2 3 4 5 6 7 8 9 \n"

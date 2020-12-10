@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     for i in range(1000):
         for j in range(5):

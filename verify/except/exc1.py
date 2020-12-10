@@ -6,7 +6,7 @@ def syracuse(n):
     else:
         return 1 + syracuse(3*n + 1)
 
-def verify(*args):
+def expect(*args):
     if len(args) != 2:
         return (10, "", "Usage: ./exc1 <n>\ncalcule a quelle iteration une suite mysterieuse termine, en partant de <n>.\n")
     n = int(args[1])

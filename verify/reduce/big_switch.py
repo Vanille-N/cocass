@@ -4,7 +4,7 @@ def foo(i):
     else:
         return "Other"
 
-def verify(*args):
+def expect(*args):
     return (0, "\n".join([foo(x) for x in args[1:]]) + "\n", "No more arguments\n")
 
 data = [

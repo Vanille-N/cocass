@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     s = "Formatting string: <%s> <%s> <%s>"
     fmt = s.replace("%s", "{}")
     res = fmt.format(s, "foo", "bar") + '\n'

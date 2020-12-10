@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     res += "Yes:\n"
     res += "\t5 < 6: {}\n".format(int(5 < 6))

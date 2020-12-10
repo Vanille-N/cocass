@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     for i in range(10):
         if (i == 5): continue

@@ -16,7 +16,7 @@ def calculate(op, lhs, rhs):
     else:
         return ("", "Unknown operator {}.\n".format(op))
 
-def verify(*args):
+def expect(*args):
     out = ""
     err = ""
     if len(args) == 1 or len(args) % 3 != 1:

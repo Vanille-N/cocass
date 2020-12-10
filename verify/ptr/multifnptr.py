@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     res = ""
     res += "foo1(5) = 15 ?= 15\n"
     res += "foo1(bar1(5)) = 12 ?= 12\n"

@@ -10,7 +10,7 @@ def bit_xor(x, y):
 def bit_not(x):
     return "~{} = {}\n".format(x, ~x)
 
-def verify(*args):
+def expect(*args):
     ret = ""
     for i in range(200):
         for j in range(i, 200):

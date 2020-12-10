@@ -4,7 +4,7 @@ def foo(x):
 def apply(fn, arg):
     return fn(arg)
 
-def verify(*args):
+def expect(*args):
     return (0, apply(foo, 10) + apply(foo, 20), "")
 
 data = [

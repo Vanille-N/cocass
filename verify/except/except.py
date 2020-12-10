@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     i = int(args[1])
     return [
         (0, "", ""),

@@ -6,7 +6,7 @@ def factorial(n):
         f *= i
     return f
 
-def verify(*args):
+def expect(*args):
     if len(args) != 2:
         return (10, "", "Usage: ./fact <n>\ncalcule et affiche la factorielle de <n>.\n")
     else:

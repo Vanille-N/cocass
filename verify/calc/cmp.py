@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     i = 5;
     j = 6;
     res = ""

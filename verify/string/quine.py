@@ -6,7 +6,7 @@ q = """int main() {
 }
 """
 
-def verify(*args):
+def expect(*args):
     return (0, q, "")
 
 data = [

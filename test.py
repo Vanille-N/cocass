@@ -10,9 +10,8 @@ assets = [
     ),
     ("call", [[], ["-O"]],
         "argcount", "noreturn", "multicall",
-        "has_args", "hello", "argsort", "call",
-        "exit", "put", "printglob", "cat",
-        "sprintf", "quine", "max", "strret",
+        "has_args", "hello", "call",
+        "exit", "printglob", "max",
         "varargs",
     ),
     ("calc", [[], ["-O"]],
@@ -21,9 +20,13 @@ assets = [
         "calc",
     ),
     ("ptr", [[], ["-O"]],
-        "array", "string", "fnptr", "additions",
+        "array", "fnptr", "additions",
         "extended_assign", "multifnptr",
 
+    ),
+    ("string", [[], ["-O"]],
+        "argsort", "cat", "path", "put",
+        "quine", "sprintf", "string", "strret",
     ),
     ("flow", [[], ["-O"]],
         "break", "continue", "count", "loops",
@@ -81,11 +84,11 @@ def check(fbase):
     module = Module("verify/{}.py".format(fbase))
     ok = 0
     ko = 0
+    prog = "./assets/{}".format(fbase)
     for d in module.data:
-        prog = "./assets/{}".format(fbase)
         res = run([prog, *d], capture_output=True)
         code, out, err = res.returncode, res.stdout, res.stderr
-        (expect_code, expect_out, expect_err) = module.verify(prog, *d)
+        (expect_code, expect_out, expect_err) = module.expect(prog, *d)
         expect_out, expect_err = bytes(expect_out, 'UTF-8'), bytes(expect_err, 'UTF-8')
         if expect_code == code and expect_err == err and expect_out == out:
             print("    \x1b[32m[OK]\x1b[0m {}".format(d))

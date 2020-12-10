@@ -15,7 +15,7 @@ def baz(*x):
         ret += "{}:{}\n".format(*i)
     return ret
 
-def verify(*args):
+def expect(*args):
     global i, j, k
     i = 0
     j = 0

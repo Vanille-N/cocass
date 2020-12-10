@@ -1,4 +1,4 @@
-def verify(*args):
+def expect(*args):
     ret = ""
 
     ret += "ADD "
