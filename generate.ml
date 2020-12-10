@@ -128,8 +128,8 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
             TextLt (color_int ^ ")")
         ]
     in
-    let generate_ialign name =
-        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.zero %s8" color_meta color_int)]
+    let generate_ialign (name, value) =
+        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.quad %d%s" color_meta value color_int)]
     in
     let generate_salign (contents, tag) =
         [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
@@ -305,7 +305,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
 
 
 type program = {
-    int: string -> unit;
+    int: string -> int -> unit;
     str: string -> string;
     exc: string -> string;
     asm: instruction -> string -> unit;
@@ -319,8 +319,8 @@ let make_prog () =
     let excs = ref [] in
     let exc_cnt = ref 0 in
     let text = ref [] in
-    let int name =
-        ints := name :: !ints
+    let int name value =
+        ints := (name, value) :: !ints
     in
     let str value =
         match List.assoc_opt value !strs with
