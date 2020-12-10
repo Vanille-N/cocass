@@ -1,4 +1,5 @@
 long i1;
+long j1 = 3;
 void* i3;
 void f1 ();
 void* f2 ();

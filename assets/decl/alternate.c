@@ -1,28 +1,9 @@
 int main () {
-    int i, ibis;
+    int i, j;
     i = 1;
-    int j;
-    int jbis;
-    j = 2;
-    jbis = 3;
-    jbis = 4;
-    int k;
-    k = i + j;
-    printf("%d %d %d\n", i, j, k);
-}
-
-
-int foo() {
-    int i;
-}
-
-int bar() {
-    return 0;
-}
-
-int baz() {
-    return 0;
-    int i;
-    int j;
-    return 1;
+    int k, l;
+    i = i + 1;
+    k = j = 3;
+    l = 3;
+    printf("%d %d %d %d\n", i, j, k, l);
 }
