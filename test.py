@@ -12,7 +12,7 @@ assets = [
         "argcount", "noreturn", "multicall",
         "has_args", "hello", "call",
         "exit", "printglob", "max",
-        "varargs",
+        "varargs", "assert",
     ),
     ("calc", [[], ["-O"]],
         "fact", "binops", "bitwise", "cmp",
