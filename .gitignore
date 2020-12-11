@@ -3,6 +3,8 @@ assets/**/*
 !assets/**/*.c
 failures/*
 !failures/*.c
+arch-sys/*
+!arch-sys/*.c
 
 
 *.cmi
