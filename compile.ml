@@ -101,6 +101,8 @@ let find_duplicate_catch catches =
         | None -> dup sorted
         | Some loc -> Some (loc, "_")
 
+let reserved = ["va_start"; "va_arg"; "assert"]
+
 (* detect conflicting declaration *)
 let find_duplicate_decl decls =
     let rec dup = function
@@ -109,10 +111,10 @@ let find_duplicate_decl decls =
         | _ :: tl -> dup tl
     in
     let names = List.map (function
-        | CFUN (loc, "va_init", _, _) -> (Error.error (Some loc) "va_start is a reserved name"; (loc, "va_start"))
-        | CFUN (loc, "va_arg", _, _) -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
-        | CDECL (loc, "va_init", _) -> (Error.error (Some loc) "va_start is a reserved name"; (loc, "va_start"))
-        | CDECL (loc, "va_arg", _) -> (Error.error (Some loc) "va_arg is a reserved name"; (loc, "va_arg"))
+        | CFUN (loc, name, _, _) when List.mem name reserved ->
+            (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
+        | CDECL (loc, name, _) when List.mem name reserved ->
+            (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
         | CDECL (loc, name, _) -> (loc, name)
         | CFUN (loc, name, _, _) -> (loc, name)
     ) decls in
