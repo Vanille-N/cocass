@@ -976,10 +976,15 @@ let codegen decl_list =
             match args with
                 | [e] -> (
                     let tagbase = sprintf "%d_assert" !label_cnt in
+                    let (fname, nline, _, _, _) = fst expr in
+                    let failure = sprintf "Assertion failure at %s:%d\n" fname nline in
+                    let s = prog.str failure in
                     incr label_cnt;
                     gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (CMP (Const 0, Regst RAX)) "check assertion against 0";
                     prog.asm (JNE (label, tagbase ^ "_ok")) "";
+                    prog.asm (LEA (Globl s, Regst RDI)) "load error message";
+                    prog.asm (CAL "printf") "print error message";
                     prog.asm (CAL "exit") "abort";
                     prog.asm (TAG (label, tagbase ^ "_ok")) "successful assertion";
                 )
