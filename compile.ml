@@ -972,6 +972,19 @@ let codegen decl_list =
                 )
                 | _ -> Error.error (Some (fst expr)) "va_arg expects exactly one argument"
         )
+        | CALL ("assert", args) -> (
+            match args with
+                | [e] -> (
+                    let tagbase = sprintf "%d_assert" !label_cnt in
+                    incr label_cnt;
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false e;
+                    prog.asm (CMP (Const 0, Regst RAX)) "check assertion against 0";
+                    prog.asm (JNE (label, tagbase ^ "_ok")) "";
+                    prog.asm (CAL "exit") "abort";
+                    prog.asm (TAG (label, tagbase ^ "_ok")) "successful assertion";
+                )
+                | _ -> Error.error (Some (fst expr)) "assert expects exactly one argument"
+        )
         | CALL (fname, expr_lst) -> (
             (* Argument positioning
              *
