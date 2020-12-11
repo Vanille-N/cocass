@@ -1,19 +1,19 @@
-int assert(int x) {
+int verify(int x) {
     if (!x) exit(1);
 }
 
 int main() {
     int x, y;
     x = 3; y = 4;
-    assert(x + y == 7);
-    assert((x+1) + y == 8);
-    assert(x + (y+1) == 8);
-    assert(x * y == 12);
-    assert((x+1) * y == 16);
-    assert(x * (y+1) == 15);
-    assert(x - y == -1);
-    assert((x+1) - y == 0);
-    assert(x - (y+1) == -2);
+    verify(x + y == 7);
+    verify((x+1) + y == 8);
+    verify(x + (y+1) == 8);
+    verify(x * y == 12);
+    verify((x+1) * y == 16);
+    verify(x * (y+1) == 15);
+    verify(x - y == -1);
+    verify((x+1) - y == 0);
+    verify(x - (y+1) == -2);
     x += 3;
-    assert(x == 6);
+    verify(x == 6);
 }
