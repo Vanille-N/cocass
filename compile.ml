@@ -983,8 +983,10 @@ let codegen decl_list =
                     gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (CMP (Const 0, Regst RAX)) "check assertion against 0";
                     prog.asm (JNE (label, tagbase ^ "_ok")) "";
-                    prog.asm (LEA (Globl s, Regst RDI)) "load error message";
-                    prog.asm (CAL "printf") "print error message";
+                    prog.asm (MOV (Globl "stderr", Regst RDI)) "print to stderr";
+                    prog.asm (LEA (Globl s, Regst RSI)) "load error message";
+                    prog.asm (CAL "fprintf") "print error message";
+                    prog.asm (MOV (Const 1, Regst RDI)) "";
                     prog.asm (CAL "exit") "abort";
                     prog.asm (TAG (label, tagbase ^ "_ok")) "successful assertion";
                 )
