@@ -165,6 +165,9 @@ let universal = [
     ("true", Const 1); ("false", Const 0);
     ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
     ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
+    ("SIGALRM", Const 14);
+    ("O_RDONLY", Const 0); ("O_WRONLY", Const 1); ("O_RDWR", Const 2);
+    ("O_APPEND", Const 1024); ("O_CREAT", Const 64); ("O_TRUNC", Const 512);
     ("STDIN_FILENO", Const 0); ("STDOUT_FILENO", Const 1); ("STDERR_FILENO", Const 2);
     ("RAND_MAX", Const 2147483647);
     ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
@@ -187,7 +190,16 @@ let stdlib = [
     ("abs", (Exact 1, true));
     ("atoi", (Exact 1, true));
     ("atol", (Exact 1, false));
+    ("alarm", (Exact 1, false));
     ("bsearch", (Exact 5, false));
+    ("close", (Exact 1, false));
+    ("creat", (More 2, true));
+    ("dup", (Exact 1, true));
+    ("dup2", (Exact 2, true));
+    ("execl", (More 2, true));
+    ("execlp", (More 2, true));
+    ("execv", (Exact 2, true));
+    ("execvp", (Exact 2, true));
     ("exit", (Exact 1, false));
     ("fclose", (Exact 1, false));
     ("feof", (Exact 1, true));
@@ -205,6 +217,7 @@ let stdlib = [
     ("getchar", (Exact 0, true));
     ("getenv", (Exact 1, false));
     ("getpid", (Exact 0, true));
+    ("getppid", (Exact 0, true));
     ("gets", (Exact 1, false));
     ("isalnum", (Exact 1, true));
     ("isalpha", (Exact 1, true));
@@ -219,6 +232,7 @@ let stdlib = [
     ("isspace", (Exact 1, true));
     ("isupper", (Exact 1, true));
     ("isxdigit", (Exact 1, true));
+    ("kill", (Exact 2, false));
     ("labs", (Exact 1, false));
     ("malloc", (Exact 1, false));
     ("memchr", (Exact 3, false));
@@ -226,7 +240,9 @@ let stdlib = [
     ("memcpy", (Exact 3, false));
     ("memmove", (Exact 3, false));
     ("memset", (Exact 3, false));
+    ("open", (More 2, true));
     ("perror", (Exact 1, false));
+    ("pipe", (Exact 1, false));
     ("printf", (More 1, false));
     ("putc", (Exact 2, false));
     ("putchar", (Exact 1, false));
@@ -234,8 +250,11 @@ let stdlib = [
     ("puts", (Exact 1, false));
     ("qsort", (Exact 4, false));
     ("rand", (Exact 0, true));
+    ("read", (Exact 3, true));
     ("realloc", (Exact 2, false));
+    ("sbrk", (Exact 1, false));
     ("scanf", (More 1, false));
+    ("setpgid", (Exact 2, false));
     ("signal", (Exact 2, false));
     ("sleep", (Exact 1, false));
     ("srand", (Exact 1, false));
@@ -249,7 +268,9 @@ let stdlib = [
     ("tolower", (Exact 1, true));
     ("toupper", (Exact 1, true));
     ("usleep", (Exact 1, false));
+    ("wait", (Exact 1, true));
     ("waitpid", (Exact 3, false));
+    ("write", (Exact 3, false));
 ]
 (* stdlib + user-defined *)
 let defined_functions decl_lst =
