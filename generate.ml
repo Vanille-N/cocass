@@ -46,6 +46,7 @@ type instruction =
     | JMP of string * string
     | JLE of string * string
     | JLT of string * string
+    | JGE of string * string
     | JGT of string * string
     | JEQ of string * string
     | JNE of string * string
@@ -231,6 +232,9 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
             | JLT (fn, tag) -> [
                 TextLt (color_instr ^ "    jl ");
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
+            | JGE (fn, tag) -> [
+                TextLt (color_instr ^ "    jge ");
+                TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
             | JGT (fn, tag) -> [
                 TextLt (color_instr ^ "    jg ");
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
@@ -294,7 +298,9 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
     let ialign = List.map generate_ialign ints in
     List.iter (display_align out [10; 0]) ialign;
     let salign = List.map generate_salign strs in
+    fprintf out "\n.str_start:\n";
     List.iter (display_align out [10; 0]) salign;
+    fprintf out ".str_end:\n\n";
     let ealign = List.map generate_ealign excs in
     List.iter (display_align out [10; 0]) ealign;
     fprintf out "\n";

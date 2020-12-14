@@ -50,6 +50,7 @@ type instruction =
     | JMP of string * string (** jump to function.label *)
     | JLE of string * string (** jump to function.label if less or equal *)
     | JLT of string * string (** jump to function.label if less *)
+    | JGE of string * string (** jump to function.label if greater or equal *)
     | JGT of string * string (** jump to function.label if greater *)
     | JEQ of string * string (** jump to function.label if equal *)
     | JNE of string * string (** jump to function.label if not equal *)
