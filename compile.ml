@@ -1235,9 +1235,11 @@ let codegen decl_list =
         | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
     );
     let global = get_global_vars decl_list in
+    let fmt_int = if needs_exceptions then prog.str "Unhandled exception %s(%d)\n" else "" in
+    let fmt_str = if needs_exceptions then prog.str "Unhandled exception %s(\"%s\")\n" else "" in
+    List.iter (gen_decl (global::universal::[])) decl_list;
     if needs_exceptions then (
         (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
-        let fmt = prog.str "Unhandled exception %s(%d)\n" in
         prog.asm (FUN handler) "handle uncaught exceptions";
         prog.asm NOP " -> exception name is in %rdi";
         prog.asm NOP " -> exception parameter is in %rax";
@@ -1249,16 +1251,27 @@ let codegen decl_list =
         (* print error *)
         prog.asm (MOV (Regst RBX, Regst RCX)) "4th arg is parameter";
         prog.asm (MOV (Regst R12, Regst RDX)) "3rd arg is name";
-        prog.asm (LEA (Globl fmt, Regst RSI)) "2nd arg is format";
+        (* see if exception parameter is a global string *)
+        prog.asm (LEA (Globl ".str_start", Regst RAX)) "first string";
+        prog.asm (CMP (Regst RCX, Regst RAX)) "";
+        prog.asm (JGE (handler, "int")) "not a string";
+        prog.asm (LEA (Globl ".str_end", Regst RAX)) "last string";
+        prog.asm (CMP (Regst RCX, Regst RAX)) "";
+        prog.asm (JLT (handler, "int")) "not a string";
+        prog.asm (LEA (Globl fmt_str, Regst RSI)) "2nd arg is format";
+        prog.asm (JMP (handler, "str")) "";
+        (* continue normally *)
+        prog.asm (TAG (handler, "int")) "parameter is an integer";
+        prog.asm (LEA (Globl fmt_int, Regst RSI)) "2nd arg is format";
+        prog.asm (TAG (handler, "str")) "parameter was a string";
         prog.asm (MOV (Globl "stderr", Regst RDI)) "1st arg is stderr";
-        prog.asm (MOV (Const 0, Regst RAX)) "no args on the stack";
+        prog.asm (XOR (Regst RAX, Regst RAX)) "no args in vector registers";
         prog.asm (CAL "fprintf") "";
         (* exit *)
-        prog.asm (MOV (Regst RBX, Regst RDI)) "value";
+        prog.asm (MOV (Const 111, Regst RDI)) "value";
         prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
         prog.asm SYS "";
     );
-    List.iter (gen_decl (global::universal::[])) decl_list;
     prog
 
 
