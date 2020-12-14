@@ -40,7 +40,7 @@ assets = [
         "exc1", "exc2", "exc3", "except",
         "loop_try", "try_loop",
         "try_switch", "any_catch",
-        "nothrow",
+        "nothrow", "uncaught-str",
     ),
     ("decl", [[], ["-O"]],
         "init", "alternate", "typedef",

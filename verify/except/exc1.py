@@ -11,7 +11,7 @@ def expect(*args):
         return (10, "", "Usage: ./exc1 <n>\ncalcule a quelle iteration une suite mysterieuse termine, en partant de <n>.\n")
     n = int(args[1])
     if n == 0:
-        return (0, "", "Unhandled exception Zero(0)\n")
+        return (111, "", "Unhandled exception Zero(0)\n")
     else:
         return (0, "", "La suite termine apres {} iterations en partant de {}.\n".format(syracuse(n), n))
 

@@ -3,7 +3,7 @@ def expect(*args):
     for i in range(8):
         if i != 5:
             res += "i = {}\n".format(i)
-    return (0, res, "Unhandled exception Exit(0)\n")
+    return (111, res, "Unhandled exception Exit(0)\n")
 
 data = [
     [],

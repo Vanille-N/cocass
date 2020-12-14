@@ -15,7 +15,7 @@ def expect(*args):
     if n < 0:
         return (0, "", "Pas trouve...\n" + always)
     if n == 0:
-        return (0, "", always + "Unhandled exception Zero(0)\n")
+        return (111, "", always + "Unhandled exception Zero(0)\n")
     else:
         return (0, "", "La suite termine apres {} iterations en partant de {}.\n".format(syracuse(n), n) + always)
 
