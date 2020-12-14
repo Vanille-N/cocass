@@ -333,7 +333,13 @@ let consts = List.filter_map (function
  * <><><> <><> <><><>
  *)
 let codegen decl_list =
-    let label_cnt = ref 0 in
+    let (label_id, reset_label_cnt) =
+        let counter = ref 0 in
+        (
+            (fun () -> let c = !counter in incr counter; c),
+            (fun () -> counter := 0)
+        )
+    in
     let prog = make_prog () in
     let handler = ".ehandler" in
     let handler_addr = ".eaddr" in
@@ -432,8 +438,7 @@ let codegen decl_list =
                  *        exec do_false <──┘  │
                  *        end <───────────────┘
                  *)
-                let tagbase = sprintf "%d_cond" !label_cnt in
-                incr label_cnt;
+                let tagbase = sprintf "%d_cond" (label_id ()) in
                 gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "apply cond";
                 prog.asm (JEQ (label, tagbase ^ "_false")) ""; (* jump over do_true *)
@@ -457,8 +462,7 @@ let codegen decl_list =
                  *  │     jump true ────────┘
                  *  └───> end
                  *)
-                let tagbase = sprintf "%d_loop" !label_cnt in
-                incr label_cnt;
+                let tagbase = sprintf "%d_loop" (label_id ()) in
                 if test_at_start then prog.asm (JMP (label, tagbase ^ "_check")) ""; (* do-while doesn't *)
                 prog.asm (TAG (label, tagbase ^ "_start")) "";
                 let _ = gen_code locals (label, Some tagbase, Some tagbase, istry) body in
@@ -526,8 +530,7 @@ let codegen decl_list =
                  *   │  └─> exec default <──────┘            ─┘
                  *   └────> end
                  *)
-                let tagbase = sprintf "%d_switch" !label_cnt in
-                incr label_cnt;
+                let tagbase = sprintf "%d_switch" (label_id ()) in
                 prog.asm NOP "# enter switch";
                 gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts e);
                 (match extract_switch_cases cases with
@@ -630,8 +633,7 @@ let codegen decl_list =
                         | Some (loc, "_") -> Error.warning (Some loc) "all catch clauses after wildcard _ are unreachable."
                         | Some (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause." e)
                     );
-                    let tagbase = sprintf "%d_try" !label_cnt in
-                    incr label_cnt;
+                    let tagbase = sprintf "%d_try" (label_id ()) in
                     (* INIT TRY *)
                     prog.asm NOP "# enter try block";
                     prog.asm (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
@@ -722,7 +724,7 @@ let codegen decl_list =
     and gen_decl frame = function
         | CDECL (_, name, _) -> ()
         | CFUN (loc, name, decs, code) -> (
-            label_cnt := 0;
+            reset_label_cnt ();
             prog.asm (FUN name) "toplevel function";
             (match find_duplicate_decl decs with
                 | None -> ()
@@ -975,11 +977,10 @@ let codegen decl_list =
         | CALL ("assert", args) -> (
             match args with
                 | [e] -> (
-                    let tagbase = sprintf "%d_assert" !label_cnt in
+                    let tagbase = sprintf "%d_assert" (label_id ()) in
                     let (fname, nline, _, _, _) = fst expr in
                     let failure = sprintf "Assertion failure at %s:%d\n" fname nline in
                     let s = prog.str failure in
-                    incr label_cnt;
                     gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (CMP (Const 0, Regst RAX)) "check assertion against 0";
                     prog.asm (JNE (label, tagbase ^ "_ok")) "";
@@ -1181,8 +1182,7 @@ let codegen decl_list =
             gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
             retrieve depth RCX;
             prog.asm (CMP (Regst RCX, Regst RAX)) "compare";
-            let tagbase = sprintf "%d_cmp" !label_cnt in
-            incr label_cnt;
+            let tagbase = sprintf "%d_cmp" (label_id ()) in
             let (jump_instr, case_nojump, comment) = (match op with
                 | C_LT -> (JLT (label, tagbase), 0, "case <")
                 | C_LE -> (JLE (label, tagbase), 0, "case <=")
@@ -1199,8 +1199,7 @@ let codegen decl_list =
             prog.asm (TAG (label, tagbase ^ "_done")) " +";
         )
         | EIF (cond, expr_true, expr_false) -> (
-            let tagbase = sprintf "%d_tern" !label_cnt in
-            incr label_cnt;
+            let tagbase = sprintf "%d_tern" (label_id ()) in
             gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false cond;
             prog.asm (TST (Regst RAX, Regst RAX)) "apply ternary";
             prog.asm (JEQ (label, tagbase ^ "_false")) "";
