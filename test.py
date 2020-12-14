@@ -44,7 +44,7 @@ assets = [
     ),
     ("decl", [[], ["-O"]],
         "init", "alternate", "typedef",
-        "ptr",
+        "ptr", "scope-switch",
     ),
 ]
 
