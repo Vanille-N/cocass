@@ -191,13 +191,13 @@ relational_expression:
         CMP (C_LT, $1, $3) }
     | relational_expression CLOSE_ANGLE_CHR shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_GT, $1, $3) }
+        CMP (C_LT, $3, $1) }
     | relational_expression LE_OP shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
         CMP (C_LE, $1, $3) }
     | relational_expression GE_OP shift_expression {
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_GE, $1, $3) }
+        CMP (C_LE, $3, $1) }
 ;
 
 equality_expression:
@@ -206,8 +206,9 @@ equality_expression:
         sup_locator (loc_of_expr $1) (loc_of_expr $3),
         CMP (C_EQ, $1, $3) }
     | equality_expression NE_OP relational_expression {
-        sup_locator (loc_of_expr $1) (loc_of_expr $3),
-        CMP (C_NE, $1, $3) }
+        let loc = sup_locator (loc_of_expr $1) (loc_of_expr $3) in
+        loc,
+        EIF ((loc, CMP (C_EQ, $1, $3)), (loc, CST 0), (loc, CST 1)) }
 ;
 
 and_expression:
