@@ -129,32 +129,6 @@ let is_single_step = function
     | (_, STRING _) -> true
     | _ -> false
 
-(* detect use of throw to determine if exception handler is needed *)
-let needs_exceptions decl_list =
-    let rec aux_decl = function
-        | CDECL _ -> false
-        | CFUN (_, _, _, code) -> aux_code (snd code)
-    and aux_code = function
-        | CBLOCK code -> any aux_code (List.map snd code)
-        | CLOCAL _ -> false
-        | CTHROW _ -> true
-        | CBREAK -> false
-        | CCONTINUE -> false
-        | CEXPR _ -> false
-        | CIF (_, code_true, code_false) ->
-            aux_code (snd code_true)
-            || aux_code (snd code_false)
-        | CRETURN _ -> false
-        | CWHILE (_, code, _, _) -> aux_code (snd code)
-        | CSWITCH (_, cases, deflt) ->
-            any (fun (_, _, c) -> any aux_code (List.map snd c)) cases
-            || aux_code (snd deflt)
-        | CTRY (body, catches, finally) ->
-            aux_code (snd body)
-            || any (fun (_, _, _, c) -> aux_code (snd c)) catches
-            || (match finally with None -> true | Some (_, c) -> aux_code c)
-    in any aux_decl decl_list
-
 (* get declaration name from var_declaration *)
 let extract_decl_name = function
     | CDECL (_, name, _) -> name
@@ -344,12 +318,9 @@ let codegen decl_list =
     let handler = ".ehandler" in
     let handler_addr = ".eaddr" in
     let handler_base = ".ebase" in
-    let needs_exceptions = needs_exceptions decl_list in
-    if needs_exceptions then (
-        (* declare exception-related globals *)
-        prog.int handler_addr 0;
-        prog.int handler_base 0;
-    );
+    (* declare exception-related globals *)
+    prog.int handler_addr 0;
+    prog.int handler_base 0;
     let descriptors = defined_functions decl_list in
     let enter_stackframe () =
         prog.asm (PSH (Regst RBP)) "enter stackframe";
@@ -618,108 +589,97 @@ let codegen decl_list =
                  *          end
                  *
                  *)
-                if not needs_exceptions then (
-                    (* when nothing can be thrown, a try block is just a normal block
-                     * break, return, continue are still forbidden for consistency *)
-                    let _ = gen_code locals (label, None, None, true) code in
-                    (match finally with
-                        | None -> ()
-                        | Some code -> (let _ = gen_code locals (label, tagbrk, tagcont, istry) code in ())
-                    );
-                    locals
-                ) else (
-                    (match find_duplicate_catch catches with
-                        | None -> ()
-                        | Some (loc, "_") -> Error.warning (Some loc) "all catch clauses after wildcard _ are unreachable."
-                        | Some (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause." e)
-                    );
-                    let tagbase = sprintf "%d_try" (label_id ()) in
-                    (* INIT TRY *)
-                    prog.asm NOP "# enter try block";
-                    prog.asm (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
-                    prog.asm (MOV (Deref RSI, Regst RAX)) " +";
-                    store depth RAX;
-                    prog.asm (LEA (Globl (label ^ "." ^ tagbase ^ "_catch"), Regst RAX)) "new handler addr";
-                    prog.asm (MOV (Regst RAX, Deref RSI)) " +";
-                    prog.asm (LEA (Globl handler_base, Regst RSI)) "save previous handler base";
-                    prog.asm (MOV (Deref RSI, Regst RAX)) " +";
-                    store (depth+1) RAX;
-                    prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
-                    (* BEGIN TRY *)
-                    let _ = gen_code (depth+2, frame, va_depth) (label, None, None, true) code in
-                    (* END TRY *)
-                    prog.asm NOP "# try block exited normally, remove handler";
-                    prog.asm (LEA (Globl handler_base, Regst RSI)) "";
-                    retrieve (depth+1) RCX; (* where we saved previous base *)
-                    prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
-                    prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
-                    retrieve depth RCX; (* where we saved previous addr *)
-                    prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
-                    prog.asm (MOV (Const 0, Regst RDI)) "no unhandled exception remains";
-                    prog.asm (JMP (label, tagbase ^ "_finally")) "";
-                    (* BEGIN CATCH *)
-                    prog.asm (TAG (label, tagbase ^ "_catch")) "try block aborted, remove handler";
-                    prog.asm NOP " -> exception name is in %rdi";
-                    prog.asm NOP " -> exception parameter is in %rax";
-                    prog.asm (MOV (Regst RBP, Regst RSP)) "";
-                    prog.asm (LEA (Globl handler_base, Regst RSI)) "";
-                    retrieve (depth+1) RCX;
-                    prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
-                    prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
-                    retrieve depth RCX;
-                    prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
-                    List.iter (fun (_, name, bind, handle) -> (
-                        if name <> "_" then (
-                            let id = prog.exc name in
-                            prog.asm (LEA (Globl id, Regst RSI)) "exception name";
-                            prog.asm (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
-                            prog.asm (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
-                            if bind <> "_" then (
-                                store depth RAX;
-                                let _ = gen_code (depth+1, [(bind, Stack (-depth))] :: frame, va_depth) (label, tagbrk, tagcont, istry) handle in
-                                ()
-                            ) else (
-                                (* _ does not induce a variable binding *)
-                                let _ = gen_code locals (label, tagbrk, tagcont, istry) handle in
-                                ()
-                            );
-                            prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
-                            prog.asm (JMP (label, tagbase ^ "_finally")) "";
-                            prog.asm (TAG (label, tagbase ^ "_not" ^ id)) "";
+                (match find_duplicate_catch catches with
+                    | None -> ()
+                    | Some (loc, "_") -> Error.warning (Some loc) "all catch clauses after wildcard _ are unreachable."
+                    | Some (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause." e)
+                );
+                let tagbase = sprintf "%d_try" (label_id ()) in
+                (* INIT TRY *)
+                prog.asm NOP "# enter try block";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "save previous handler addr";
+                prog.asm (MOV (Deref RSI, Regst RAX)) " +";
+                store depth RAX;
+                prog.asm (LEA (Globl (label ^ "." ^ tagbase ^ "_catch"), Regst RAX)) "new handler addr";
+                prog.asm (MOV (Regst RAX, Deref RSI)) " +";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "save previous handler base";
+                prog.asm (MOV (Deref RSI, Regst RAX)) " +";
+                store (depth+1) RAX;
+                prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
+                (* BEGIN TRY *)
+                let _ = gen_code (depth+2, frame, va_depth) (label, None, None, true) code in
+                (* END TRY *)
+                prog.asm NOP "# try block exited normally, remove handler";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "";
+                retrieve (depth+1) RCX; (* where we saved previous base *)
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
+                retrieve depth RCX; (* where we saved previous addr *)
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                prog.asm (MOV (Const 0, Regst RDI)) "no unhandled exception remains";
+                prog.asm (JMP (label, tagbase ^ "_finally")) "";
+                (* BEGIN CATCH *)
+                prog.asm (TAG (label, tagbase ^ "_catch")) "try block aborted, remove handler";
+                prog.asm NOP " -> exception name is in %rdi";
+                prog.asm NOP " -> exception parameter is in %rax";
+                prog.asm (MOV (Regst RBP, Regst RSP)) "";
+                prog.asm (LEA (Globl handler_base, Regst RSI)) "";
+                retrieve (depth+1) RCX;
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler base";
+                prog.asm (LEA (Globl handler_addr, Regst RSI)) "";
+                retrieve depth RCX;
+                prog.asm (MOV (Regst RCX, Deref RSI)) "restore previous handler addr";
+                List.iter (fun (_, name, bind, handle) -> (
+                    if name <> "_" then (
+                        let id = prog.exc name in
+                        prog.asm (LEA (Globl id, Regst RSI)) "exception name";
+                        prog.asm (CMP (Regst RDI, Regst RSI)) " + check against currently raised exception";
+                        prog.asm (JNE (label, tagbase ^ "_not" ^ id)) "not a match";
+                        if bind <> "_" then (
+                            store depth RAX;
+                            let _ = gen_code (depth+1, [(bind, Stack (-depth))] :: frame, va_depth) (label, tagbrk, tagcont, istry) handle in
+                            ()
                         ) else (
-                            (* _ matches any exception *)
-                            prog.asm NOP "# wildcard exception";
-                            if bind <> "_" then (
-                                Error.warning (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
-                            ) else (
-                                (* _ does not induce a variable binding *)
-                                let _ = gen_code locals (label, tagbrk, tagcont, istry) handle in
-                                ()
-                            );
-                            prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
-                            prog.asm (JMP (label, tagbase ^ "_finally")) "";
-                        )
-                    )) catches;
-                    (* BEGIN FINALLY *)
-                    prog.asm (TAG (label, tagbase ^ "_finally")) "";
-                    store depth RAX;
-                    store (depth+1) RDI;
-                    (match finally with
-                        | None -> ()
-                        | Some code -> let _ = gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) code in ()
-                    );
-                    (* MAYBE RETHROW *)
-                    retrieve (depth+1) RDI;
-                    prog.asm (CMP (Const 0, Regst RDI)) "check if exception was handled";
-                    prog.asm (JEQ (label, tagbase ^ "_end")) "done with the try block";
-                    retrieve depth RAX;
-                    prog.asm NOP "# no matching catch found, rethrow";
-                    prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
-                    prog.asm (MOV (Globl handler_addr, Regst RSI)) "load handler address";
-                    prog.asm (JMP ("", "*%rsi")) "";
-                    prog.asm (TAG (label, tagbase ^ "_end")) "";
-                    locals
-                )
+                            (* _ does not induce a variable binding *)
+                            let _ = gen_code locals (label, tagbrk, tagcont, istry) handle in
+                            ()
+                        );
+                        prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
+                        prog.asm (JMP (label, tagbase ^ "_finally")) "";
+                        prog.asm (TAG (label, tagbase ^ "_not" ^ id)) "";
+                    ) else (
+                        (* _ matches any exception *)
+                        prog.asm NOP "# wildcard exception";
+                        if bind <> "_" then (
+                            Error.warning (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
+                        ) else (
+                            (* _ does not induce a variable binding *)
+                            let _ = gen_code locals (label, tagbrk, tagcont, istry) handle in
+                            ()
+                        );
+                        prog.asm (MOV (Const 0, Regst RDI)) "mark as handled";
+                        prog.asm (JMP (label, tagbase ^ "_finally")) "";
+                    )
+                )) catches;
+                (* BEGIN FINALLY *)
+                prog.asm (TAG (label, tagbase ^ "_finally")) "";
+                store depth RAX;
+                store (depth+1) RDI;
+                (match finally with
+                    | None -> ()
+                    | Some code -> let _ = gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) code in ()
+                );
+                (* MAYBE RETHROW *)
+                retrieve (depth+1) RDI;
+                prog.asm (CMP (Const 0, Regst RDI)) "check if exception was handled";
+                prog.asm (JEQ (label, tagbase ^ "_end")) "done with the try block";
+                retrieve depth RAX;
+                prog.asm NOP "# no matching catch found, rethrow";
+                prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
+                prog.asm (MOV (Globl handler_addr, Regst RSI)) "load handler address";
+                prog.asm (JMP ("", "*%rsi")) "";
+                prog.asm (TAG (label, tagbase ^ "_end")) "";
+                locals
             )
     and gen_decl frame = function
         | CDECL (_, name, _) -> ()
@@ -779,7 +739,7 @@ let codegen decl_list =
                     (if name = "main" && List.length decs > 2 then
                         Error.error (Some loc) "main takes at most two arguments"
                     );
-                    (if needs_exceptions && name = "main" then (* setup emergency exception handler *) (
+                    (if name = "main" then (* setup emergency exception handler *) (
                         prog.asm (LEA (FnPtr handler, Regst RAX)) "init exception handler";
                         prog.asm (LEA (Globl handler_addr, Regst RDI)) " +";
                         prog.asm (MOV (Regst RAX, Deref RDI)) " +";
@@ -1235,10 +1195,10 @@ let codegen decl_list =
         | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
     );
     let global = get_global_vars decl_list in
-    let fmt_int = if needs_exceptions then prog.str "Unhandled exception %s(%d)\n" else "" in
-    let fmt_str = if needs_exceptions then prog.str "Unhandled exception %s(\"%s\")\n" else "" in
+    let fmt_int = prog.str "Unhandled exception %s(%d)\n" in
+    let fmt_str = prog.str "Unhandled exception %s(\"%s\")\n" in
     List.iter (gen_decl (global::universal::[])) decl_list;
-    if needs_exceptions then (
+    (
         (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
         prog.asm (FUN handler) "handle uncaught exceptions";
         prog.asm NOP " -> exception name is in %rdi";
