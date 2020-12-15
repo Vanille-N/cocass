@@ -30,7 +30,7 @@ assets = [
     ),
     ("flow", [[], ["-O"]],
         "break", "continue", "count", "loops",
-        "switch_loop",
+        "switch_loop", "seq",
     ),
     ("reduce", [[], ["-O"]],
         "reduce_eif", "reduce_monops", "reduce_binops",
