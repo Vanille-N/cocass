@@ -41,6 +41,7 @@ assets = [
         "loop_try", "try_loop",
         "try_switch", "any_catch",
         "nothrow", "uncaught-str",
+        "assert-catch",
     ),
     ("decl", [[], ["-O"]],
         "init", "alternate", "typedef",
