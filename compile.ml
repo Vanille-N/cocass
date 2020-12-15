@@ -939,16 +939,23 @@ let codegen decl_list =
                 | [e] -> (
                     let tagbase = sprintf "%d_assert" (label_id ()) in
                     let (fname, nline, _, _, _) = fst expr in
-                    let failure = sprintf "Assertion failure at %s:%d\n" fname nline in
-                    let s = prog.str failure in
+                    let failure = sprintf "%s:%d" fname nline in
+                    let msg = prog.str failure in
+                    let ex = prog.exc "AssertionFailure" in
                     gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false e;
                     prog.asm (CMP (Const 0, Regst RAX)) "check assertion against 0";
                     prog.asm (JNE (label, tagbase ^ "_ok")) "";
-                    prog.asm (MOV (Globl "stderr", Regst RDI)) "print to stderr";
+                    (* assertion failed, throw an AssertionFailure *)
+                    prog.asm (LEA (Globl ex, Regst RDI)) "id for exception AssertionFailure";
+                    prog.asm (LEA (Globl msg, Regst RAX)) "failure line";
+                    prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
+                    prog.asm (MOV (Globl handler_addr, Regst RSI)) "restore stackframe for handler";
+                    prog.asm (JMP ("", "*%rsi")) "";
+                    (* prog.asm (MOV (Globl "stderr", Regst RDI)) "print to stderr";
                     prog.asm (LEA (Globl s, Regst RSI)) "load error message";
-                    prog.asm (CAL "fprintf") "print error message";
-                    prog.asm (MOV (Const 1, Regst RDI)) "";
-                    prog.asm (CAL "exit") "abort";
+                    prog.asm (CAL "fprintf") "print error message"; *)
+                    (* prog.asm (MOV (Const 1, Regst RDI)) ""; *)
+                    (* prog.asm (CAL "exit") "abort"; *)
                     prog.asm (TAG (label, tagbase ^ "_ok")) "successful assertion";
                 )
                 | _ -> Error.error (Some (fst expr)) "assert expects exactly one argument"
