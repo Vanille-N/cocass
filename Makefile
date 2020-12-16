@@ -51,6 +51,9 @@ projet:
 test: mcc
 	./test.py
 
+tex:
+	pdflatex --interaction=nonstopmode --halt-on-error semantics.tex
+
 cparse.ml: cparse.mly
 	ocamlyacc -v cparse.mly
 
