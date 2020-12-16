@@ -39,4 +39,12 @@ Unary minus (same as \Cmm):
 Unary bitwise negation (same as \Cmm):
 \[\dfrac{\envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_NOT}, e) \tto -v-1 \modsize,\mu'}\]
 
+Indirection (added in \Cpm):
+\[\dfrac{x\in\dom\rho}{\envyields \t{OP1}(\t{M\_ADDR}, x)\tto \rho(x),\mu}\]
+\[\dfrac{x\in\dom\rho \qquad \envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_ADDR}, \t{OP2}(\t{S\_INDEX}, x, e)) \tto (\rho(x)+v\times 8) \modsize, \mu'}\]
+\[\dfrac{\envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_ADDR}, \t{OP1}(\t{M\_DEREF}, e)) \tto v,\mu'}\]
+
+Dereferencing (added in \Cpm):
+\[\dfrac{\envyields e\tto v,\mu' \qquad v\in\dom\mu'}{\envyields \t{OP1}(\t{M\_DEREF}, e) \tto \mu'(v),\mu'}\]
+
 \end{document}
