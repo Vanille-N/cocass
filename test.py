@@ -7,6 +7,8 @@ assets = [
     ("easy", [[], ["-O"]],
         "ex0", "ex1", "ex2", "add",
         "ret", "scoped_ret", "isdigit",
+        "ex3", "ex4", "ex5", "ex6", "ex7",
+        "ex8", "ex9", "ex10", "ex11", "ex12",
     ),
     ("call", [[], ["-O"]],
         "argcount", "noreturn", "multicall",
