@@ -47,4 +47,18 @@ Indirection (added in \Cpm):
 Dereferencing (added in \Cpm):
 \[\dfrac{\envyields e\tto v,\mu' \qquad v\in\dom\mu'}{\envyields \t{OP1}(\t{M\_DEREF}, e) \tto \mu'(v),\mu'}\]
 
+\subsection{Binary operators without side-effects}
+Multiplication (same as \Cmm):
+\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto v_1\times v_2\modsize,\mu''}\]
+
+Addition (same as \Cmm):
+\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_ADD}, e_1, e_2) \tto v_1 + v_2\modsize,\mu''}\]
+
+Subtraction (same as \Cmm):
+\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_SUB}, e_1, e_2) \tto v_1 - v_2\modsize,\mu''}\]
+
+Division and remainder (same as \Cmm):
+\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_DIV}, e_1, e_2) \tto v_1 \div v_2,\mu''}\]
+\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_MOD}, e_1, e_2) \tto v_1 \mod v_2,\mu''}\]
+Since \(v_1 \div v_2\) and \(v_1 \mod v_2\) are sure to be in the correct range, there is no need to specify they are taken \(\modsize\).
 \end{document}
