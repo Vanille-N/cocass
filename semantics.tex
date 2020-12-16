@@ -9,4 +9,22 @@
 \begin{document}
 \maketitle
 
+Retranscribed and extended from \url{http://www.lsv.fr/~goubault/CoursProgrammation/minic.html}\\
+and \url{http://www.lsv.fr/~goubault/CoursProgrammation/prog1_sem1.pdf}.\\
+
+Let \(\rho\) be the environment, \(\mu\) the function that gives the contents of each memory address.\\
+
+\section{Expressions}
+\subsection{Reading values}
+
+For local and global variables:
+\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\envyields \struct{VAR}\ x\tto \mu(\rho(x)), \mu}\]
+i.e. reading a variable returns its contents and changes nothing to the memory.\\
+
+For constant integers:
+\[\dfrac{}{\envyields \struct{CST}\ n\tto n, \mu}\]
+
+For strings:
+\[\dfrac{s\text{ stored at }a\in Addr}{\envyields \struct{STRING}\ s\tto a, \mu}\]
+
 \end{document}
