@@ -32,4 +32,11 @@ For arrays:
 
 None of these are different from the original \Cmm semantics.
 
+\subsection{Unary operators without side-effects}
+Unary minus (same as \Cmm):
+\[\dfrac{\envyields e \tto v,\mu'}{\envyields \t{OP1}(\t{M\_MINUS}, e) \tto -v \modsize,\mu'}\]
+
+Unary bitwise negation (same as \Cmm):
+\[\dfrac{\envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_NOT}, e) \tto -v-1 \modsize,\mu'}\]
+
 \end{document}
