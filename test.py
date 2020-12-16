@@ -22,7 +22,7 @@ assets = [
     ("ptr", [[], ["-O"]],
         "array", "fnptr", "additions",
         "extended_assign", "multifnptr",
-
+        "addr-deref",
     ),
     ("string", [[], ["-O"]],
         "argsort", "cat", "path", "put",
@@ -35,6 +35,7 @@ assets = [
     ("reduce", [[], ["-O"]],
         "reduce_eif", "reduce_monops", "reduce_binops",
         "reduce_cmp", "big_switch", "single_step",
+        "array",
     ),
     ("except", [[], ["-O"]],
         "exc1", "exc2", "exc3", "except",
@@ -45,7 +46,7 @@ assets = [
     ),
     ("decl", [[], ["-O"]],
         "init", "alternate", "typedef",
-        "ptr", "scope-switch",
+        "ptr", "scope-switch", "override",
     ),
 ]
 
