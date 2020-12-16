@@ -1,0 +1,106 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tcolorbox}
+\usepackage{amsfonts}
+\usepackage{stmaryrd}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\usepackage{dsfont}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+
+\geometry{top=10mm, left=15mm, right=15mm, bottom=20mm}
+
+\newcommand{\dd}{\text{d}}
+\renewcommand{\vec}{\overrightarrow}
+\renewcommand{\Im}{\mathfrak{Im}\ }
+\newcommand{\Ker}{\text{Ker}\ }
+\newcommand{\bijective}{%
+  \hookrightarrow\mathrel{\mspace{-15mu}}\rightarrow
+}
+\newcommand{\surjective}{\twoheadrightarrow}
+\newcommand{\injective}{\hookrightarrow}
+\newcommand{\implication}{\Longrightarrow}
+\newcommand{\reciprocal}{\Longleftarrow}
+\newcommand{\equivalent}{\Longleftrightarrow}
+\newcommand{\NN}{\ensuremath{\mathbb{N}}}
+\newcommand{\RR}{\ensuremath{\mathbb{R}}}
+\newcommand{\QQ}{\ensuremath{\mathbb{Q}}}
+\newcommand{\ZZ}{\ensuremath{\mathbb{Z}}}
+\newcommand{\CC}{\ensuremath{\mathbb{C}}}
+\renewcommand{\epsilon}{\varepsilon}
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+\newcommand{\comb}[2]{\displaystyle{#2 \choose #1}}
+\newcommand{\parts}{\mathcal{P}}
+\newcommand{\permut}{\mathfrak{S}}
+\newcommand{\id}{\text{Id}}
+\newcommand{\indic}{\mathds{1}}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\newcommand{\mat}[2]{\mathcal{M}_{#1}(#2)}
+
+\DeclareMathOperator{\mut}{mut}
+\DeclareMathOperator{\stab}{Stab}
+\renewcommand{\time}{\textsc{Time}}
+\newcommand{\len}{\textsc{Length}}
+\newcommand{\call}[1]{\textsc{#1}}
+\newcommand{\bbrack}[1]{\left\llbracket#1\right\rrbracket}
+
+\makeatletter
+\renewcommand{\Function}[2]{%
+  \csname ALG@cmd@\ALG@L @Function\endcsname{#1}{#2}%
+  \def\jayden@currentfunction{#1}%
+}
+\newcommand{\funclabel}[1]{%
+  \@bsphack
+  \protected@write\@auxout{}{%
+    \string\newlabel{#1}{{\jayden@currentfunction}{\thepage}}%
+  }%
+  \@esphack
+}
+\makeatother
+
+\definecolor{green}{rgb}{0.0, 0.5, 0.0}
+\makeatletter\algnewcommand{\Assert}[1]{\State {\color{green} \qquad$\{ #1 \}$}}\makeatother
+\makeatletter\algnewcommand{\Therefore}[1]{\State {\color{green} \qquad$\therefore\{ #1 \}$}}\makeatother
+\makeatletter\algnewcommand{\Also}[1]{{\color{green}$\wedge\{ #1 \}$}}\makeatother
+\makeatletter\algnewcommand{\AAssert}[1]{\State {\color{red} \qquad$\{ #1 \}$}}\makeatother
+\makeatletter\algnewcommand{\AAlso}[1]{{\color{red}$\wedge\{ #1 \}$}}\makeatother
+
+
+\newcommand{\opnorm}[1]{%
+  \left|\mkern-1.5mu\left|\mkern-1.5mu\left|
+   #1
+  \right|\mkern-1.5mu\right|\mkern-1.5mu\right|
+}
+\newcommand\sbullet[1][.5]{\mathbin{\vcenter{\hbox{\scalebox{#1}{$\bullet$}}}}}
+
+\newlength\tindent
+\setlength{\tindent}{\parindent}
+\setlength{\parindent}{0pt}
+\renewcommand{\indent}{\hspace*{\tindent}}
+\setlength\parindent{0pt}
+
+\DeclareMathOperator{\dom}{dom}
+\newcommand{\struct}[1]{\texttt{#1}}
+\renewcommand{\mod}{\text{ mod }}
+\newcommand{\tto}{\Rightarrow}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+\urlstyle{tt}

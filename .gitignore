@@ -21,3 +21,5 @@ cparse.output
 TODO
 NVILLANI-*
 ~*
+*.log
+*.aux
