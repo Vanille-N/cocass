@@ -1,9 +1,9 @@
 \input{header.tex}
 
-\newcommand{\envyields}{\mu,\rho\vdash_\pi}
-\newcommand{\modsize}{\mod 2^{64}}
+\newcommand{\Cpm}{C\(\pm\pm\)}
+\newcommand{\Cmm}{C\textminus\textminus}
 
-\title{Semantics of C\(\pm\pm\) (i.e. extended C\textminus\textminus)}
+\title{Semantics of \Cpm (i.e. extended \Cmm)}
 \author{\textsc{Villani} Neven, ENS Paris-Saclay\\\textsc{Programmation 1 -- Compilateur COCass}}
 
 \begin{document}
@@ -18,13 +18,18 @@ Let \(\rho\) be the environment, \(\mu\) the function that gives the contents of
 \subsection{Reading values}
 
 For local and global variables:
-\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\envyields \struct{VAR}\ x\tto \mu(\rho(x)), \mu}\]
+\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\envyields \t{VAR}\ x\tto \mu(\rho(x)), \mu}\]
 i.e. reading a variable returns its contents and changes nothing to the memory.\\
 
 For constant integers:
-\[\dfrac{}{\envyields \struct{CST}\ n\tto n, \mu}\]
+\[\dfrac{}{\envyields \t{CST}\ n\tto n, \mu}\]
 
 For strings:
-\[\dfrac{s\text{ stored at }a\in Addr}{\envyields \struct{STRING}\ s\tto a, \mu}\]
+\[\dfrac{s\text{ stored at }a\in Addr}{\envyields \t{STRING}\ s\tto a, \mu}\]
+
+For arrays:
+\[\dfrac{t\in\dom\rho \qquad \envyields e\tto i,\mu' \qquad (\rho(t)+i\times 8)\modsize\in\dom\mu}{\envyields \t{OP2}(\t{S\_INDEX}, t, e) \tto \mu'(\rho(t)+i\times 8 \modsize)}\]
+
+None of these are different from the original \Cmm semantics.
 
 \end{document}
