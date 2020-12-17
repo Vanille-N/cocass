@@ -305,4 +305,30 @@ On dereferences:
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},k \qquad \mu'(k)-1 = k'
 }{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu'[k\mapsto v],\t{nil},k'} \rule{Ptr}{^{\downarrow \bullet}}\]
+
+\subsection{Extended assignments}
+Let \(op\in \t{bin\_op}\setminus \{ \t{S\_INDEX} \}\).
+
+On variables:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e\tto v,\mu' \\
+    x\in\dom\rho \qquad \rho(x)\in\dom(\mu') \qquad \rho(x) = k \qquad \mu'(k) = u \\
+    \rho,\mu'\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w,\mu''
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_VAR}(op, x, e) \tto w,\mu''[k\mapsto w]}\rule{Var}{^{\gets op}}\]
+
+On arrays:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e_2\tto v,\mu'\\
+    \rho,\mu'\vdash_\pi e_1\tto i,\mu''\\
+    t\in\dom\rho \qquad \rho(t)+i\times8 = k \qquad k\in\dom\mu''\\
+    \mu''(k) = u \qquad \rho,\mu''\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w\mu'''
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto w,\mu'''[k\mapsto w]}\rule{Idx}{^{\gets op}}\]
+
+On dereferences:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e_2\tto v,\mu'\\
+    \rho,\mu'\vdash_\pi e_1\tto k,\mu''\\
+    k\in\dom\mu'' \qquad \mu''(k) = u \\
+    \rho,\mu''\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w\mu'''
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_DEREF}(op, e_1, e_2) \tto w,\mu'''[k\mapsto w]}\rule{Ptr}{^{\gets op}}\]
 \end{document}
