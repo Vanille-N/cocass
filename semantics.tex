@@ -188,5 +188,46 @@ All are the same as in \Cmm.
     \qquad v_1 \not\leq v_2
 \end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Le}{^\bot}\]
 
+For optimisation purposes mostly, the comparison operators \(\t{C\_NE}\), \(\t{C\_GT}\), \(\t{C\_GE}\) may be introduced by the compiler (not by the parser, however).\\
+They are defined as
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 = v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Ne}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \leq v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Gt}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 < v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Ge}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \ne v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Ne}{^\top}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \not\leq v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Gt}{^\top}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \not< v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Ge}{^\top}\]
+
+When one of the operands raises a non-\t{nil} flag:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\chi',v_1 \\
+    \chi'\ne\t{nil}
+\end{array}}{\rho,\mu,\chi,v \gives \t{CMP}(op, e_1, e_2) \tto \rho,\mu',\chi',v_1} \rule{Cmp}{^\chi}\]
+
+
 
 \end{document}
