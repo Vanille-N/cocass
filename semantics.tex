@@ -374,4 +374,16 @@ For a function pointer:
 \end{array}}{\rho,\mu,\t{nil},v \gives \t{CALL}(f, [e_1; \cdots; e_n]) \tto w,\mu''}\rule{Call}{_\mu^n}\]
 
 
+
+\section{Code}
+\subsection{Expressions}
+When an expression is executed as a statement.\\
+If only the flag \t{nil} is raised, the expression is executed
+\[\dfrac{
+    \rho,\mu \vdash_\pi e \tto v',\mu'
+}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CEXPR}\ e \tto \rho,\mu',\t{nil},v'}\rule{Expr}{^\t{nil}}\]
+
+Otherwise it is skipped.
+\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \Vdash_\pi \t{CEXPR}\ e\tto \rho,\mu,\chi,v}\rule{Expr}{^\chi}\]
+
 \end{document}
