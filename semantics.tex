@@ -134,10 +134,26 @@ Let \(\dec: \{ \bot, \top \}^{64} \to \ZZ_{64}\) the function
 \[(b_0, \cdots, b_{63}) \mapsto \sum_{i=0}^{63} (1\t{ if } b_i\t{ else }0)\times 2^i\]
 and \(\bin = \dec^{-1}\).
 
-We can now define bitwise operators as follows (added in \Cpm).\\
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu'' \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1) \qquad (b_0^2,\cdots,b_{63}^2) = \bin(v_2)}{\envyields \t{OP2}(\t{S\_AND}, e_1, e_2) \tto \dec(b_0^1 \wedge b_0^2,\cdots, b_{63}^1 \wedge b_{63}^2)}\]
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu'' \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1) \qquad (b_0^2,\cdots,b_{63}^2) = \bin(v_2)}{\envyields \t{OP2}(\t{S\_OR}, e_1, e_2) \tto \dec(b_0^1 \vee b_0^2,\cdots, b_{63}^1 \vee b_{63}^2)}\]
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu'' \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1) \qquad (b_0^2,\cdots,b_{63}^2) = \bin(v_2)}{\envyields \t{OP2}(\t{S\_XOR}, e_1, e_2) \tto \dec(b_0^1 \oplus b_0^2,\cdots, b_{63}^1 \oplus b_{63}^2)}\]
+We can now define bitwise operators as follows (added in \Cmp).\\
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_AND}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \wedge b_0^2,\cdots, b_{63}^1 \wedge b_{63}^2),\mu''} \rule{And}{}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_OR}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \vee b_0^2,\cdots, b_{63}^1 \vee b_{63}^2),\mu''} \rule{Ior}{}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_XOR}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \oplus b_0^2,\cdots, b_{63}^1 \oplus b_{63}^2),\mu''} \rule{Xor}{}\]
+
+When one of the operands raises a non-\t{nil} flag:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\chi',v_1 \\
+    \chi'\ne\t{nil}
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(op, e_1, e_2) \tto \rho,\mu',\chi',v_1} \rule{Op2}{^\chi}\]
 
 
 \end{document}
