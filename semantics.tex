@@ -353,4 +353,25 @@ On dereferences:
 With a special case for the empty sequence:
 \[\dfrac{}{\rho,\mu,\t{nil},v \gives \t{ESEQ}\ [] \tto x,\mu}\rule{Seq}{^0}\]
 where \(x\) is an arbitrary value
+
+\subsection{Function call}
+For a toplevel function:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e_n \tto v_n,\mu_n \\
+    \rho,\mu_n\vdash_\pi e_{n-1} \tto v_{n-1},\mu_{n-1} \\
+    \cdots \\
+    \rho,\mu_2\vdash_\pi e_1 \tto v_1,\mu' \\
+    f\in\dom\fun\setminus\dom\rho \qquad \fun(f)(\rho, \mu', v_1, \cdots, v_n) = (w, \mu'')
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CALL}(f, [e_1; \cdots; e_n]) \tto w,\mu''}\rule{Call}{_\pi^n}\]
+
+For a function pointer:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e_n \tto v_n,\mu_n \\
+    \rho,\mu_n\vdash_\pi e_{n-1} \tto v_{n-1},\mu_{n-1} \\
+    \cdots \\
+    \rho,\mu_2\vdash_\pi e_1 \tto v_1,\mu' \\
+    f\in\dom\rho \qquad \rho(f)\in\dom\fnptr \qquad \fnptr(\rho(f))(\rho, \mu', v_1, \cdots, v_n) = (w,\mu'')
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CALL}(f, [e_1; \cdots; e_n]) \tto w,\mu''}\rule{Call}{_\mu^n}\]
+
+
 \end{document}
