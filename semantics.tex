@@ -155,5 +155,38 @@ When one of the operands raises a non-\t{nil} flag:
     \chi'\ne\t{nil}
 \end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(op, e_1, e_2) \tto \rho,\mu',\chi',v_1} \rule{Op2}{^\chi}\]
 
+\subsection{Comparisons}
+All are the same as in \Cmm.
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 = v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Eq}{^\top}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 < v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Lt}{^\top}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \leq v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Le}{^\top}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \ne v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Eq}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \not< v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Lt}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \qquad v_1 \not\leq v_2
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Le}{^\bot}\]
+
 
 \end{document}
