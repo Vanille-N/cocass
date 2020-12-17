@@ -90,25 +90,45 @@ When the operand raises a non-\t{nil} flag:
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu',\chi',v_e \qquad \chi'\ne\t{nil}
 }{\rho,\mu,\chi,v \gives \t{OP1}(op, e) \tto \rho,\mu',\chi',v_e}\rule{Op1}{^\chi}\]
+
+\subsection{Binary operators}
 Multiplication (same as \Cmm):
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto v_1\times v_2\modsize,\mu''}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\times v_2}\rule{Mul}{}\]
 
 Addition (same as \Cmm):
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_ADD}, e_1, e_2) \tto v_1 + v_2\modsize,\mu''}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_ADD}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1 + v_2}\rule{Add}{}\]
 
 Subtraction (same as \Cmm):
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_SUB}, e_1, e_2) \tto v_1 - v_2\modsize,\mu''}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SUB}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1 - v_2}\rule{Sub}{}\]
 
 Division and remainder (same as \Cmm):
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_DIV}, e_1, e_2) \tto v_1 \div v_2,\mu''}\]
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_MOD}, e_1, e_2) \tto v_1 \mod v_2,\mu''}\]
-Since \(v_1 \div v_2\) and \(v_1 \mod v_2\) are sure to be in the correct range, there is no need to specify they are taken \(\modsize\).
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad v_2\ne 0\\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_DIV}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\div v_2}\rule{Div}{}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad v_2\ne 0\\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MOD}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\mod v_2}\rule{Mod}{}\]
 
-Shifts (added in \Cpm):
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_SHL}, e_1, e_2) \tto v_1 \times 2^{v_2} \modsize}\]
-\[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_SHL}, e_1, e_2) \tto v_1 \div 2^{v_2} \modsize}\]
-
-
+Shifts (added in \Cmp):
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHL}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\times 2^{v_2}}\rule{Shl}{}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHR}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\div 2^{v_2}} \rule{Shr}{}\]
 
 Let \(\dec: \{ \bot, \top \}^{64} \to \ZZ_{64}\) the function
 \[(b_0, \cdots, b_{63}) \mapsto \sum_{i=0}^{63} (1\t{ if } b_i\t{ else }0)\times 2^i\]
