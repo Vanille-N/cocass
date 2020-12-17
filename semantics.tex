@@ -1,9 +1,12 @@
 \input{header.tex}
 
-\newcommand{\Cpm}{C\(\pm\pm\)}
+\newcommand{\Cmp}{\(\pm\)C)}
 \newcommand{\Cmm}{C\textminus\textminus}
+\newcommand{\fun}{\text{fun}_\pi^n}
+\newcommand{\fnptr}{\text{fun}_\mu^n}
+\newcommand{\gives}{\vdash_\pi}
 
-\title{Semantics of \Cpm (i.e. extended \Cmm)}
+\title{Semantics of \Cmp (i.e. extended \Cmm)}
 \author{\textsc{Villani} Neven, ENS Paris-Saclay\\\textsc{Programmation 1 -- Compilateur COCass}}
 
 \begin{document}
@@ -12,11 +15,22 @@
 Retranscribed and extended from \url{http://www.lsv.fr/~goubault/CoursProgrammation/minic.html}\\
 and \url{http://www.lsv.fr/~goubault/CoursProgrammation/prog1_sem1.pdf}.\\
 
-Let \(\rho\) be the environment, \(\mu\) the function that gives the contents of each memory address.\\
 
 \section{Expressions}
-\subsection{Reading values}
 
+\subsection*{Notation}
+
+\(\ZZ_{64}\triangleq \ZZ/64\ZZ\) is the set in which all calculations are done.\\
+
+We write \((\rho: \mathcal{S}\to\ZZ_{64})\in \mathcal{P}\) the environment, where \(\mathcal{S}\) is the set of names of variables and functions, \((\mu: \ZZ_{64}\to\ZZ_{64})\in \mathcal{M}\) the memory.\\
+
+A flag is defined as an element of \(\mathcal{E} \triangleq S \sqcup \{ \t{brk}, \t{ret}, \t{cnt}, \t{nil} \}\).\\
+Intuitively, \(\rho,\mu,\chi,v \Vdash_\pi c \tto \rho',\mu',\chi',v'\) means that when \(c\) is executed under the environment \(\rho\) with the memory \(\mu\), the flag \(\chi\), and the previous value \(v\), it updates it to the new environment and memory \(\rho'\) and \(\mu'\), raises \(\chi'\), and changes the value to \(v'\).\\
+
+In addition, we write \(\fun: \mathcal{S}\to \mathcal{F}^n\) where \(\mathcal{F}^n \triangleq (\mathcal{M} \times \mathcal{E} \times \ZZ_{64})^{\mathcal{P} \times \mathcal{M} \times \ZZ_{64}^n}\), i.e. functions that take an environment, a memory layout and \(n\) 64-bit integer arguments and return one 64-bit integer, the updated memory, and a flag.\\
+\(\fnptr: \ZZ_{64}\to \mathcal{F}^n\) returns the function (if there is one) defined at the given memory address, and is useful for variables that are function pointers.\\
+
+For \(\mu\in\mathcal{M}, v\in\ZZ_{64}, x\in\ZZ_{64}\) we write \(\mu[x\mapsto v]: \left\{\begin{array}{ll}x\mapsto v & \\ y\mapsto \mu(y) & y\in \dom\mu\setminus\{x\}\end{array}\right.\)
 For local and global variables:
 \[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\envyields \t{VAR}\ x\tto \mu(\rho(x)), \mu}\]
 i.e. reading a variable returns its contents and changes nothing to the memory.\\
