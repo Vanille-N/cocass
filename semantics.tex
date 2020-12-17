@@ -331,4 +331,16 @@ On dereferences:
     k\in\dom\mu'' \qquad \mu''(k) = u \\
     \rho,\mu''\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w\mu'''
 \end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_DEREF}(op, e_1, e_2) \tto w,\mu'''[k\mapsto w]}\rule{Ptr}{^{\gets op}}\]
+
+\subsection{Ternary operator}
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e\tto c,\mu' \qquad c = 0\\
+    \rho,\mu'\vdash_\pi e_\bot \tto v,\mu''\\
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{EIF}(e, e_\top, e_\bot) \tto v,\mu''}\rule{Tern}{^\bot}\]
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e\tto c,\mu' \qquad c \ne 0\\
+    \rho,\mu'\vdash_\pi e_\top \tto v,\mu''\\
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{EIF}(e, e_\top, e_\bot) \tto v,\mu''}\rule{Tern}{^\top}\]
+
 \end{document}
