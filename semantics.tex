@@ -386,4 +386,19 @@ If only the flag \t{nil} is raised, the expression is executed
 Otherwise it is skipped.
 \[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \Vdash_\pi \t{CEXPR}\ e\tto \rho,\mu,\chi,v}\rule{Expr}{^\chi}\]
 
+\subsection{Conditional branching}
+If only \t{nil} is raised, one of the two branches is executed depending on how the condition evaluates.
+\[\dfrac{\begin{array}{c}
+    \rho,\mu \vdash_\pi e \tto v,\mu' \qquad v = 0 \\
+    \rho,\mu',\t{nil},v \Vdash_\pi c_\bot \tto \rho',\mu',x,v' \\
+\end{array}}{\rho,\mu',\t{nil},v \Vdash_\pi \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu',x,v'}\rule{If}{^\bot}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu \vdash_\pi e \tto v,\mu' \qquad v \ne 0 \\
+    \rho,\mu',\t{nil},v \Vdash_\pi c_\top \tto \rho',\mu',x,v' \\
+\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu',x,v'}\rule{If}{^\top}\]
+Note that the branch is allowed to modify the memory and raise flags, but not change the environment: \(\rho\) is preserved.\\
+
+For all other flags, the condition and both branches are skipped.
+\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \Vdash_\pi \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu,\chi,v}\rule{If}{^\chi}\]
+
 \end{document}
