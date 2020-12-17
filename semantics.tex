@@ -57,20 +57,39 @@ None of these are different from the original \Cmm semantics.
 
 \subsection{Unary operators without side-effects}
 Unary minus (same as \Cmm):
-\[\dfrac{\envyields e \tto v,\mu'}{\envyields \t{OP1}(\t{M\_MINUS}, e) \tto -v \modsize,\mu'}\]
+\[\dfrac{
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu',\t{nil},v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_MINUS}, e) \tto \rho,\mu',\t{nil},-v_e}\rule{Neg}{}\]
 
 Unary bitwise negation (same as \Cmm):
-\[\dfrac{\envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_NOT}, e) \tto -v-1 \modsize,\mu'}\]
+\[\dfrac{
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_NOT}, e) \tto \rho,\mu',t{nil},-v_e-1}\rule{Not}{}\]
 
-Indirection (added in \Cpm):
-\[\dfrac{x\in\dom\rho}{\envyields \t{OP1}(\t{M\_ADDR}, x)\tto \rho(x),\mu}\]
-\[\dfrac{x\in\dom\rho \qquad \envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_ADDR}, \t{OP2}(\t{S\_INDEX}, x, e)) \tto (\rho(x)+v\times 8) \modsize, \mu'}\]
-\[\dfrac{\envyields e\tto v,\mu'}{\envyields \t{OP1}(\t{M\_ADDR}, \t{OP1}(\t{M\_DEREF}, e)) \tto v,\mu'}\]
 
-Dereferencing (added in \Cpm):
-\[\dfrac{\envyields e\tto v,\mu' \qquad v\in\dom\mu'}{\envyields \t{OP1}(\t{M\_DEREF}, e) \tto \mu'(v),\mu'}\]
+Indirection (added in \Cmp):
+\[\dfrac{
+    x\in\dom\rho
+}{\rho,\mu,\t{nil},v \gives \t{OP1}(\t{M\_ADDR}, x)\tto \rho,\mu,\t{nil},\rho(x)}\rule{Var}{^\&}\]
 
-\subsection{Binary operators without side-effects}
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu',\t{nil},t+i\times 8}\rule{Idx}{^\&}\]
+
+\[\dfrac{
+    \rho,\mu,\chi,v \gives a \tto \rho,\mu',\t{nil},v_a
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP1}(\t{M\_DEREF}, a)) \tto \rho,\mu',\t{nil},v_a}\rule{Ptr}{^\&}\]
+
+Dereferencing (added in \Cmp):
+\[\dfrac{
+    \rho,\mu,\chi,v \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a\in\dom\mu'
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_DEREF}, a) \tto \rho,\mu',\t{nil},\mu'(v_a)}\rule{Ptr}{}\]
+
+When the operand raises a non-\t{nil} flag:
+\[\dfrac{
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\chi',v_e \qquad \chi'\ne\t{nil}
+}{\rho,\mu,\chi,v \gives \t{OP1}(op, e) \tto \rho,\mu',\chi',v_e}\rule{Op1}{^\chi}\]
 Multiplication (same as \Cmm):
 \[\dfrac{\envyields e_2\tto v_2,\mu' \qquad \mu',\rho\vdash_\pi e_1\tto v_1,\mu''}{\envyields \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto v_1\times v_2\modsize,\mu''}\]
 
