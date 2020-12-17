@@ -343,4 +343,14 @@ On dereferences:
     \rho,\mu'\vdash_\pi e_\top \tto v,\mu''\\
 \end{array}}{\rho,\mu,\t{nil},v \gives \t{EIF}(e, e_\top, e_\bot) \tto v,\mu''}\rule{Tern}{^\top}\]
 
+\subsection{Sequence}
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\t{nil},v \gives e_1 \tto v_1,\mu_1 \\
+    \rho,\mu_1\vdash_\pi e_2 \tto v_2,\mu_2 \\
+    \cdots \\
+    \rho,\mu_{n-1}\vdash_\pi e_n \tto v_n,\mu' \\
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{ESEQ}\ [e_1;\cdots;e_n] \tto v_n,\mu'}\rule{Seq}{^n}\]
+With a special case for the empty sequence:
+\[\dfrac{}{\rho,\mu,\t{nil},v \gives \t{ESEQ}\ [] \tto x,\mu}\rule{Seq}{^0}\]
+where \(x\) is an arbitrary value
 \end{document}
