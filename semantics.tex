@@ -31,18 +31,27 @@ In addition, we write \(\fun: \mathcal{S}\to \mathcal{F}^n\) where \(\mathcal{F}
 \(\fnptr: \ZZ_{64}\to \mathcal{F}^n\) returns the function (if there is one) defined at the given memory address, and is useful for variables that are function pointers.\\
 
 For \(\mu\in\mathcal{M}, v\in\ZZ_{64}, x\in\ZZ_{64}\) we write \(\mu[x\mapsto v]: \left\{\begin{array}{ll}x\mapsto v & \\ y\mapsto \mu(y) & y\in \dom\mu\setminus\{x\}\end{array}\right.\)
+
+\subsection{Reading values}
 For local and global variables:
-\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\envyields \t{VAR}\ x\tto \mu(\rho(x)), \mu}\]
+\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\rho,\mu,\t{nil},v \gives \t{VAR}\ x\tto \rho,\mu,\t{nil},\mu(\rho(x))}\rule{Var}{}\]
 i.e. reading a variable returns its contents and changes nothing to the memory.\\
+\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{VAR}\ x\tto \rho,\mu,\chi,v} \rule{Var}{^\chi}\]
 
 For constant integers:
-\[\dfrac{}{\envyields \t{CST}\ n\tto n, \mu}\]
+\[\dfrac{}{\rho,\mu,\t{nil},v \gives \t{CST}\ n\tto \rho,\mu,\t{nil},n}\rule{Cst}{}\]
+\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{CST}\ n\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
 
 For strings:
-\[\dfrac{s\text{ stored at }a\in Addr}{\envyields \t{STRING}\ s\tto a, \mu}\]
+\[\dfrac{s\text{ stored at }a\in Addr}{\rho,\mu,\t{nil},v \gives \t{STRING}\ s\tto \rho,\mu,\t{nil},a}\rule{Str}{}\]
+\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{STRING}\ s\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
 
 For arrays:
-\[\dfrac{t\in\dom\rho \qquad \envyields e\tto i,\mu' \qquad (\rho(t)+i\times 8)\modsize\in\dom\mu}{\envyields \t{OP2}(\t{S\_INDEX}, t, e) \tto \mu'(\rho(t)+i\times 8 \modsize)}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
+    \rho,\mu_i,\chi_i,i \gives a\tto \rho,\mu',\t{nil},v_a \\
+    v_a+v_i\times 8\in\dom\mu'
+\end{array}}{\rho,\mu,\t{nil},v \gives \t{OP2}(\t{S\_INDEX}, a, i) \tto \rho,\mu',\t{nil},\mu'(v_a+v_i\times 8)}\rule{Idx}{}\]
 
 None of these are different from the original \Cmm semantics.
 
