@@ -467,10 +467,31 @@ A flag skips the loop:
     \chi\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e,c,f,\t{false}) \tto \rho,\mu,\chi,v} \rule{While}{^{\chi,\t{false}}}\]
 
+\cnt\ executes the finally clause before continuing as normal:
 \[\dfrac{\begin{array}{c}
-
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{None},\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{Some},\t{true}}}\]
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{None},\t{false}}}\]
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{Some},\t{false}}}\]
+
 \[\dfrac{\begin{array}{c}
 
 \end{document}
