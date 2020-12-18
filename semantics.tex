@@ -1,10 +1,14 @@
 \input{header.tex}
 
-\newcommand{\Cmp}{\(\pm\)C)}
+\newcommand{\Cmp}{\(\pm\)C}
 \newcommand{\Cmm}{C\textminus\textminus}
 \newcommand{\fun}{\text{fun}_\pi^n}
 \newcommand{\fnptr}{\text{fun}_\mu^n}
 \newcommand{\gives}{\vdash_\pi}
+\newcommand{\brk}{\t{brk}}
+\newcommand{\ret}{\t{ret}}
+\newcommand{\cnt}{\t{cnt}}
+\newcommand{\nil}{\t{nil}}
 
 \title{Semantics of \Cmp (i.e. extended \Cmm)}
 \author{\textsc{Villani} Neven, ENS Paris-Saclay\\\textsc{Programmation 1 -- Compilateur COCass}}
@@ -20,115 +24,119 @@ and \url{http://www.lsv.fr/~goubault/CoursProgrammation/prog1_sem1.pdf}.\\
 
 \subsection*{Notation}
 
-\(\ZZ_{64}\triangleq \ZZ/64\ZZ\) is the set in which all calculations are done.\\
+\(\ZZ_{64}\) is the set of 64-bit signed integers, in which all calculations are done when not specified otherwise.\\
 
-We write \((\rho: \mathcal{S}\to\ZZ_{64})\in \mathcal{P}\) the environment, where \(\mathcal{S}\) is the set of names of variables and functions, \((\mu: \ZZ_{64}\to\ZZ_{64})\in \mathcal{M}\) the memory.\\
+We write \((\rho: \mathcal{S}\to\ZZ_{64})\in \mathcal{P}\) the environment, where \(\mathcal{S}\) is the set of names of variables and functions, \((\mu: \ZZ_{64}\to\ZZ_{8})\in \mathcal{M}\) the memory.\\
+\(\mu\) is read by blocks of 8 bytes : \(\mu^{64}(i) \triangleq \sum_{k=0}^7 2^{8k}\mu(i+k)\).\\
+\(\rho_g\in\mathcal{P}\) is the global environment.\\
 
-A flag is defined as an element of \(\mathcal{E} \triangleq S \sqcup \{ \t{brk}, \t{ret}, \t{cnt}, \t{nil} \}\).\\
-Intuitively, \(\rho,\mu,\chi,v \Vdash_\pi c \tto \rho',\mu',\chi',v'\) means that when \(c\) is executed under the environment \(\rho\) with the memory \(\mu\), the flag \(\chi\), and the previous value \(v\), it updates it to the new environment and memory \(\rho'\) and \(\mu'\), raises \(\chi'\), and changes the value to \(v'\).\\
+A flag is defined as an element of \(\mathcal{E} \triangleq S \sqcup \{ \brk, \ret, \cnt, \nil \}\): either an exception string or a special control flow keyword.\\
+Intuitively, \(\rho,\mu,\chi,v \gives c \tto \rho',\mu',\chi',v'\) means that when \(c\) is executed under the environment \(\rho\) with the memory \(\mu\), the flag \(\chi\), and the previous value \(v\), it updates it to the new environment and memory \(\rho'\) and \(\mu'\), raises \(\chi'\), and changes the value to \(v'\).\\
 
-In addition, we write \(\fun: \mathcal{S}\to \mathcal{F}^n\) where \(\mathcal{F}^n \triangleq (\mathcal{M} \times \mathcal{E} \times \ZZ_{64})^{\mathcal{P} \times \mathcal{M} \times \ZZ_{64}^n}\), i.e. functions that take an environment, a memory layout and \(n\) 64-bit integer arguments and return one 64-bit integer, the updated memory, and a flag.\\
-\(\fnptr: \ZZ_{64}\to \mathcal{F}^n\) returns the function (if there is one) defined at the given memory address, and is useful for variables that are function pointers.\\
+In addition, we write \(\fun: \ZZ_{64}\to \t{code}\), a wrapper around \Cmp\ functions: \(\fun(a)(p_1, \cdots, p_n) = c\) updates the environment with \(p_1, \cdots, p_n\) and executes the body of the function whose definition was given by the code \(c\) and stored at \(a\). This way of considering functions allows in particular for function pointers.\\
 
-For \(\mu\in\mathcal{M}, v\in\ZZ_{64}, x\in\ZZ_{64}\) we write \(\mu[x\mapsto v]: \left\{\begin{array}{ll}x\mapsto v & \\ y\mapsto \mu(y) & y\in \dom\mu\setminus\{x\}\end{array}\right.\)
+For \(\mu\in\mathcal{M}, v\in\ZZ_{8}, x\in\ZZ_{64}\) we write \(\mu[x\mapsto v]: \left\{\begin{array}{ll}x\mapsto v & \\ y\mapsto \mu(y) & y\in \dom\mu\setminus\{x\}\end{array}\right.\)\\
+However we will usually use \(\mu^{64}[x\mapsto v] \triangleq\mu[x+k\mapsto v_k\ |\  0\leq k<8,\ v = \sum_{k=0}^8 2^{8k}v_k]\), i.e. the memory is written 8 bytes at a time.\\
+
+A similar notation is used for \(\rho\), \(\rho_g\) and \(\fun\).
 
 \subsection{Reading values}
 For local and global variables:
-\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\rho,\mu,\t{nil},v \gives \t{VAR}\ x\tto \rho,\mu,\t{nil},\mu(\rho(x))}\rule{Var}{}\]
+\[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\rho,\mu,\nil,v \gives \t{VAR}\ x\tto \rho,\mu,\nil,\mu^{64}(\rho(x))}\rule{Var}{}\]
 i.e. reading a variable returns its contents and changes nothing to the memory.\\
-\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{VAR}\ x\tto \rho,\mu,\chi,v} \rule{Var}{^\chi}\]
+\[\dfrac{\chi\ne\nil}{\rho,\mu,\chi,v \gives \t{VAR}\ x\tto \rho,\mu,\chi,v} \rule{Var}{^\chi}\]
 
 For constant integers:
-\[\dfrac{}{\rho,\mu,\t{nil},v \gives \t{CST}\ n\tto \rho,\mu,\t{nil},n}\rule{Cst}{}\]
-\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{CST}\ n\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
+\[\dfrac{}{\rho,\mu,\nil,v \gives \t{CST}\ n\tto \rho,\mu,\nil,n}\rule{Cst}{}\]
+\[\dfrac{\chi\ne\nil}{\rho,\mu,\chi,v \gives \t{CST}\ n\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
 
 For strings:
-\[\dfrac{s\text{ stored at }a\in Addr}{\rho,\mu,\t{nil},v \gives \t{STRING}\ s\tto \rho,\mu,\t{nil},a}\rule{Str}{}\]
-\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \gives \t{STRING}\ s\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
+\[\dfrac{s\text{ stored at }a\in Addr}{\rho,\mu,\nil,v \gives \t{STRING}\ s\tto \rho,\mu,\nil,a}\rule{Str}{}\]
+\[\dfrac{\chi\ne\nil}{\rho,\mu,\chi,v \gives \t{STRING}\ s\tto \rho,\mu,\chi,v} \rule{Cst}{^\chi}\]
 
 For arrays:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,i \gives a\tto \rho,\mu',\t{nil},v_a \\
-    v_a+v_i\times 8\in\dom\mu'
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{OP2}(\t{S\_INDEX}, a, i) \tto \rho,\mu',\t{nil},\mu'(v_a+v_i\times 8)}\rule{Idx}{}\]
+    \rho,\mu_i,\chi_i,i \gives a\tto \rho,\mu_a,\nil,v_a \\
+    v_a+v_i\times 8\in\dom\mu_a
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_INDEX}, a, i) \tto \rho,\mu_a,\nil,\mu_a^{64}(v_a+v_i\times 8)}\rule{Idx}{}\]
 
-None of these are different from the original \Cmm semantics.
+None of these are different from the original \Cmm\ semantics.
 
 \subsection{Unary operators without side-effects}
 Unary minus (same as \Cmm):
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu',\t{nil},v_e
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_MINUS}, e) \tto \rho,\mu',\t{nil},-v_e}\rule{Neg}{}\]
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_MINUS}, e) \tto \rho,\mu_e,\nil,-v_e}\rule{Neg}{}\]
 
 Unary bitwise negation (same as \Cmm):
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},v_e
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_NOT}, e) \tto \rho,\mu',t{nil},-v_e-1}\rule{Not}{}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_NOT}, e) \tto \rho,\mu_e,\nil,-v_e-1}\rule{Not}{}\]
 
 
 Indirection (added in \Cmp):
 \[\dfrac{
     x\in\dom\rho
-}{\rho,\mu,\t{nil},v \gives \t{OP1}(\t{M\_ADDR}, x)\tto \rho,\mu,\t{nil},\rho(x)}\rule{Var}{^\&}\]
+}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_ADDR}, \t{VAR}\ x)\tto \rho,\mu,\nil,\rho(x)}\rule{Var}{^\&}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu',\t{nil},t+i\times 8}\rule{Idx}{^\&}\]
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu_a,\nil,v_a \\
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP2}(\t{S\_INDEX}, a, i)) \tto \rho,\mu_a,\nil,v_a+v_i\times 8}\rule{Idx}{^\&}\]
 
 \[\dfrac{
-    \rho,\mu,\chi,v \gives a \tto \rho,\mu',\t{nil},v_a
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP1}(\t{M\_DEREF}, a)) \tto \rho,\mu',\t{nil},v_a}\rule{Ptr}{^\&}\]
+    \rho,\mu,\chi,v \gives a \tto \rho,\mu_a,\nil,v_a
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_ADDR}, \t{OP1}(\t{M\_DEREF}, a)) \tto \rho,\mu_a,\nil,v_a}\rule{Ptr}{^\&}\]
 
 Dereferencing (added in \Cmp):
 \[\dfrac{
-    \rho,\mu,\chi,v \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a\in\dom\mu'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_DEREF}, a) \tto \rho,\mu',\t{nil},\mu'(v_a)}\rule{Ptr}{}\]
+    \rho,\mu,\chi,v \gives a\tto \rho,\mu_a,\nil,v_a \qquad v_a\in\dom\mu_a
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_DEREF}, a) \tto \rho,\mu_a,\nil,\mu_a^{64}(v_a)}\rule{Ptr}{}\]
 
-When the operand raises a non-\t{nil} flag:
+When the operand raises a non-\nil\ flag:
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\chi',v_e \qquad \chi'\ne\t{nil}
-}{\rho,\mu,\chi,v \gives \t{OP1}(op, e) \tto \rho,\mu',\chi',v_e}\rule{Op1}{^\chi}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+}{\rho,\mu,\chi,v \gives \t{OP1}(op, e) \tto \rho,\mu_e,\chi_e,v_e}\rule{Op1}{^\chi}\]
 
 \subsection{Binary operators}
 Multiplication (same as \Cmm):
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\times v_2}\rule{Mul}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MUL}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1\times v_2}\rule{Mul}{}\]
 
 Addition (same as \Cmm):
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_ADD}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1 + v_2}\rule{Add}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_ADD}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1 + v_2}\rule{Add}{}\]
 
 Subtraction (same as \Cmm):
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SUB}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1 - v_2}\rule{Sub}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SUB}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1 - v_2}\rule{Sub}{}\]
 
 Division and remainder (same as \Cmm):
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad v_2\ne 0\\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_DIV}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\div v_2}\rule{Div}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_DIV}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1\div v_2}\rule{Div}{}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad v_2\ne 0\\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MOD}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\mod v_2}\rule{Mod}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_MOD}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1\mod v_2}\rule{Mod}{}\]
 
 Shifts (added in \Cmp):
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHL}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\times 2^{v_2}}\rule{Shl}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHL}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1\times 2^{v_2}}\rule{Shl}{}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHR}, e_1, e_2) \tto \rho,\mu',\t{nil},v_1\div 2^{v_2}} \rule{Shr}{}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_SHR}, e_1, e_2) \tto \rho,\mu_1,\nil,v_1\div 2^{v_2}} \rule{Shr}{}\]
 
 Let \(\dec: \{ \bot, \top \}^{64} \to \ZZ_{64}\) the function
 \[(b_0, \cdots, b_{63}) \mapsto \sum_{i=0}^{63} (1\t{ if } b_i\t{ else }0)\times 2^i\]
@@ -136,98 +144,97 @@ and \(\bin = \dec^{-1}\).
 
 We can now define bitwise operators as follows (added in \Cmp).\\
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_AND}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \wedge b_0^2,\cdots, b_{63}^1 \wedge b_{63}^2),\mu''} \rule{And}{}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_AND}, e_1, e_2) \tto \rho,\mu_1,\nil,\dec(b_0^1 \wedge b_0^2,\cdots, b_{63}^1 \wedge b_{63}^2),\mu_1} \rule{And}{}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_OR}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \vee b_0^2,\cdots, b_{63}^1 \vee b_{63}^2),\mu''} \rule{Ior}{}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_OR}, e_1, e_2) \tto \rho,\mu_1,\nil,\dec(b_0^1 \vee b_0^2,\cdots, b_{63}^1 \vee b_{63}^2),\mu_1} \rule{Ior}{}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \qquad \rho,\mu_2,\chi_2,v_2\gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     (b_0^2,\cdots,b_{63}^2) = \bin(v_2) \qquad (b_0^1,\cdots,b_{63}^1) = \bin(v_1)
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_XOR}, e_1, e_2) \tto \rho,\mu',\t{nil},\dec(b_0^1 \oplus b_0^2,\cdots, b_{63}^1 \oplus b_{63}^2),\mu''} \rule{Xor}{}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(\t{S\_XOR}, e_1, e_2) \tto \rho,\mu_1,\nil,\dec(b_0^1 \oplus b_0^2,\cdots, b_{63}^1 \oplus b_{63}^2),\mu_1} \rule{Xor}{}\]
 
-When one of the operands raises a non-\t{nil} flag:
+When one of the operands raises a non-\nil\ flag:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\chi',v_1 \\
-    \chi'\ne\t{nil}
-\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(op, e_1, e_2) \tto \rho,\mu',\chi',v_1} \rule{Op2}{^\chi}\]
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\chi_1,v_1 \\
+    \chi_1\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP2}(op, e_1, e_2) \tto \rho,\mu_1,\chi_1,v_1} \rule{Op2}{^\chi}\]
 
 \subsection{Comparisons}
 All are the same as in \Cmm.
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 = v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Eq}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Eq}{^\top}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 < v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Lt}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Lt}{^\top}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \leq v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Le}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Le}{^\top}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \ne v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Eq}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_EQ}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Eq}{^\bot}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \not< v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Lt}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_LT}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Lt}{^\bot}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \not\leq v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Le}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_LE}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Le}{^\bot}\]
 
 For optimisation purposes mostly, the comparison operators \(\t{C\_NE}\), \(\t{C\_GT}\), \(\t{C\_GE}\) may be introduced by the compiler (not by the parser, however).\\
 They are defined as
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 = v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Ne}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Ne}{^\bot}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \leq v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Gt}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Gt}{^\bot}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 < v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu',\t{nil},0}\rule{Ge}{^\bot}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu_1,\nil,0}\rule{Ge}{^\bot}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \ne v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Ne}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Ne}{^\top}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \not\leq v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Gt}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Gt}{^\top}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\t{nil},v_1 \\
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\nil,v_1 \\
     \qquad v_1 \not< v_2
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu',\t{nil},1}\rule{Ge}{^\top}\]
+\end{array}}{\rho,\mu,\nil,v \gives \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \rho,\mu_1,\nil,1}\rule{Ge}{^\top}\]
 
-When one of the operands raises a non-\t{nil} flag:
+When one of the operands raises a non-\nil\ flag:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e_2\tto \rho,\mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu',\chi',v_1 \\
-    \chi'\ne\t{nil}
-\end{array}}{\rho,\mu,\chi,v \gives \t{CMP}(op, e_1, e_2) \tto \rho,\mu',\chi',v_1} \rule{Cmp}{^\chi}\]
-
+    \rho,\mu_2,\chi_2,v_2 \gives e_1\tto \rho,\mu_1,\chi_1,v_1 \\
+    \chi_1\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CMP}(op, e_1, e_2) \tto \rho,\mu_1,\chi_1,v_1} \rule{Cmp}{^\chi}\]
 
 \subsection{Assignments}
 
