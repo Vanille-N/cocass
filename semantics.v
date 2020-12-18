@@ -1,7 +1,9 @@
-Require Export ZArith String.
-Require Export List.
+Require Import ZArith String.
+Require Import List.
 Open Scope Z_scope.
 Open Scope string_scope.
+
+(* Definitions of ±C expressions *)
 
 Inductive mon_op : Type :=
   | M_MINUS | M_NOT | M_POST_INC
@@ -50,14 +52,50 @@ Inductive toplevel_decl : Type :=
   | CDECL (name:string) (init:option expr)
   | CFUN (name:string) (args:list var_decl) (body:code).
 
-Record memory : Set := mkMem {
-  rd_raw : Z -> Z;
-  is_write : Z -> bool;
-  rd_int : Z -> Z;
-  rd_str : Z -> string;
-}.
+(* A memory model *)
 
-Definition scope := string -> Z.
+Definition memory : Set := list (Z * Z).
+
+Definition uint_max := Zpower_nat 2 64 - 1.
+Definition int_max := Zpower_nat 2 63 - 1.
+Definition int_min := - Zpower_nat 2 63.
+
+Definition signed_to_unsigned_64 (n:Z) := if Z.gtb n 0 then n else (Zpower_nat 2 64 + n + 1).
+Definition unsigned_to_signed_64 (n:Z) := if Z.gtb n int_max then (n - Zpower_nat 2 64) else n.
+
+Lemma unsigned_inverse : forall n, n >= 0 /\ n <= uint_max -> signed_to_unsigned_64 (unsigned_to_signed_64 n) = n.
+Proof.
+    intros.
+    destruct (Z.gtb n 0).
+    - auto.
+    - auto.
+Qed.
+
+Compute (signed_to_unsigned_64 (-1)).
+
+Fixpoint rd_raw (m:memory) (a:Z) :=
+    match m with
+        | nil => 0
+        | (loc,val) :: rest => if Z.eqb loc a then val else (rd_raw rest a)
+    end.
+
+Fixpoint rd_bytes (m:memory) (a:Z) (i:nat) :=
+    match i with
+        | O => 0
+        | S p => (rd_bytes m (a+1) p) * 256 + (rd_raw m a)
+    end.
+
+Definition rd_int (m:memory) (a:Z) := unsigned_to_signed_64 (rd_bytes m a 8).
+Variable rd_str : memory -> Z -> string.
+
+Definition wr_raw (m:memory) (a:Z) (v:Z) := (a,v) :: m.
+(* Write bytes into memory *)
+Fixpoint wr_bytes (m:memory) (a:Z) (v:Z) (i:nat) :=
+    match i with
+        | O => m
+        | S p => wr_bytes (wr_raw m a (v mod 256)) (a+1) (v / 256) p
+    end.
+Definition wr_int (m:memory) (a:Z) (v:Z) := wr_bytes m (signed_to_unsigned_64 a) v 8.
 Inductive flag : Type :=
   | brk | ret | cnt | nil | Exc (e:string).
 
