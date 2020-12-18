@@ -20,9 +20,7 @@ Retranscribed and extended from \url{http://www.lsv.fr/~goubault/CoursProgrammat
 and \url{http://www.lsv.fr/~goubault/CoursProgrammation/prog1_sem1.pdf}.\\
 
 
-\section{Expressions}
-
-\subsection*{Notation}
+\section*{Notation}
 
 \(\ZZ_{64}\) is the set of 64-bit signed integers, in which all calculations are done when not specified otherwise.\\
 
@@ -40,6 +38,7 @@ However we will usually use \(\mu^{64}[x\mapsto v] \triangleq\mu[x+k\mapsto v_k\
 
 A similar notation is used for \(\rho\), \(\rho_g\) and \(\fun\).
 
+\section{Expressions}
 \subsection{Reading values}
 For local and global variables:
 \[\dfrac{x\in\dom\rho \qquad \rho(x)\in\dom\mu}{\rho,\mu,\nil,v \gives \t{VAR}\ x\tto \rho,\mu,\nil,\mu^{64}(\rho(x))}\rule{Var}{}\]
@@ -426,35 +425,43 @@ For all other flags, neither of the branches is executed.
 \[\dfrac{}{\rho,\mu,\chi,v \gives \t{CBLOCK}\ [] \tto \rho,\mu,\chi,v} \rule{Block}{^0}\]
 Again for blocks, the memory may be changed and flags may be raised, but the environment is preserved.\\
 
-
+%% update here
 \subsection{Loops}
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu \vdash_\pi e \tto a,\mu' \qquad a = 0 \\
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\t{nil},v} \rule{While}{^{\bot,f,\t{true}}}\]
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\nil,v} \rule{While}{^{\bot,f,\t{true}}}\]
+
 Except in the case of a \t{do-while}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \Vdash_\pi c \tto \rho',\mu',\t{nil},v' \\
-    \rho,\mu',\t{nil},v' \Vdash_\pi \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho'',\mu'',\chi'',v''
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu'',\chi'',v''}\rule{While}{^{\top,\t{None},\t{false}}}\]
+    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\nil,v_c \\
+    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{None},\t{false}}}\]
+
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \Vdash_\pi c \tto \rho',\mu',\t{nil},v' \\
-    \rho,\mu' \vdash_\pi f \tto a,\mu'' \\
-    \rho,\mu'',\t{nil},v' \Vdash_\pi \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho''',\mu''',\chi''',v'''
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CWHILE}(e, c, \t{Some}\ f, \t{false}) \tto \rho,\mu''',\chi''',v'''}\rule{While}{^{\top,\t{Some},\t{false}}}\]
+    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\chi_c,v_c \\
+    \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\nil,v_f \\
+    \rho,\mu_f,\nil,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{Some},\t{false}}}\]
 
 
-A loop continues normally if its condition is nonzero and its body does not raise a flag other than \t{nil}:
+A loop continues normally if its condition is nonzero:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu \vdash_\pi e \tto a,\mu' \qquad a \ne 0 \\
-    \rho,\mu',\t{nil},v' \Vdash_\pi c \tto \rho'',\mu'',\t{nil},v'' \\
-    \rho,\mu'',\t{nil},v'' \Vdash_\pi \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho''',\mu''',\chi''',v'''
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu''',\chi''',v'''}\rule{While}{^{\top,\t{None},\t{true}}}\]
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
+    \rho,\mu_c,\chi_c,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{None},\t{true}}}\]
+
 \[\dfrac{\begin{array}{c}
-    \rho,\mu \vdash_\pi e \tto a,\mu' \qquad a \ne 0 \\
-    \rho,\mu',\t{nil},v' \Vdash_\pi c \tto \rho'',\mu'',\t{nil},v'' \\
-    \rho,\mu'' \vdash_\pi f \tto \rho''',\mu''' \\
-    \rho,\mu''',\t{nil},v''' \Vdash_\pi \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho'''',\mu'''',\chi'''',v''''
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu'''',\chi'''',v''''}\rule{While}{^{\top,\t{Some},\t{true}}}\]
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
+    \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{Some},\t{true}}}\]
+\[\dfrac{\begin{array}{c}
+
+
+\[\dfrac{\begin{array}{c}
+\[\dfrac{\begin{array}{c}
 
 \end{document}
