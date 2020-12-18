@@ -502,4 +502,17 @@ A flag skips the loop:
     \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\brk,v_c \\
 \end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{false}}}\]
 
+\subsection{Control flow}
+\[\dfrac{
+}{\rho,\mu,\nil,v \gives \t{CBREAK} \tto \rho,\mu,\brk,0} \rule{Break}{}\]
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CBREAK} \tto \rho,\mu,\chi,v} \rule{Break}{^\chi}\]
+
+\[\dfrac{
+}{\rho,\mu,\nil,v \gives \t{CCONTINUE} \tto \rho,\mu,\cnt,0} \rule{Continue}{}\]
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CCONTINUE} \tto \rho,\mu,\chi,v} \rule{Continue}{^\chi}\]
+
 \end{document}
