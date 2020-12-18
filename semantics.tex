@@ -425,7 +425,6 @@ For all other flags, neither of the branches is executed.
 \[\dfrac{}{\rho,\mu,\chi,v \gives \t{CBLOCK}\ [] \tto \rho,\mu,\chi,v} \rule{Block}{^0}\]
 Again for blocks, the memory may be changed and flags may be raised, but the environment is preserved.\\
 
-%% update here
 \subsection{Loops}
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
@@ -514,5 +513,20 @@ A flag skips the loop:
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives \t{CCONTINUE} \tto \rho,\mu,\chi,v} \rule{Continue}{^\chi}\]
+
+\[\dfrac{
+}{\rho,\mu,\nil,v \gives \t{CRETURN}\ \t{None} \tto \rho,\mu,\ret,0} \rule{Return}{^\t{None}}\]
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
+\end{array}}{\rho,\mu,\nil,v \gives \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\ret,v_e} \rule{Return}{^\t{Some}}\]
+
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CRETURN}\ \t{None} \tto \rho,\mu,\chi,v} \rule{Return}{^{\t{None}\chi}}\]
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+\end{array}}{\rho,\mu,\nil,v \gives \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Return}{^{\t{Some}\chi}}\]
 
 \end{document}
