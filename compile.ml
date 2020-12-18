@@ -147,8 +147,7 @@ let universal = [
     ("STDIN_FILENO", Const 0); ("STDOUT_FILENO", Const 1); ("STDERR_FILENO", Const 2);
     ("RAND_MAX", Const 2147483647);
     ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
-    ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Hexdc "ff");
-    ("BYTE", Const 255);
+    ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Const 255);
 ]
 
 type arity =
@@ -1104,20 +1103,16 @@ let codegen decl_list =
                     );
                 )
                 | S_INDEX -> (
-                    if is_lvalue (snd lhs) then (
-                        gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
-                        store depth RAX;
-                        gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
-                        prog.asm (MOV (Regst RAX, Regst RCX)) "move lhs";
-                        retrieve depth RAX;
-                        if with_addr then (
-                            prog.asm (LEA (Index (RCX, RAX), Regst RDI)) "index";
-                            prog.asm (MOV (Deref RDI, Regst RAX)) " +";
-                        ) else (
-                            prog.asm (MOV (Index (RCX, RAX), Regst RAX)) "index";
-                        )
+                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false rhs;
+                    store depth RAX;
+                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false lhs;
+                    prog.asm (MOV (Regst RAX, Regst RCX)) "move lhs";
+                    retrieve depth RAX;
+                    if with_addr then (
+                        prog.asm (LEA (Index (RCX, RAX), Regst RDI)) "index";
+                        prog.asm (MOV (Deref RDI, Regst RAX)) " +";
                     ) else (
-                        Error.error (Some (fst expr)) "index requires an lvalue."
+                        prog.asm (MOV (Index (RCX, RAX), Regst RAX)) "index";
                     )
                 )
                 | S_SHL | S_SHR -> (

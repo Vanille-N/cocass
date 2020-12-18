@@ -1,10 +1,9 @@
 int strget(char* str, int index) {
-    return *(str+index) % 256;
+    return *(str+index) & BYTE;
 }
 void strset(char* str, int index, int newval) {
-    int val, arr;
-    arr = str + index;
-    *(str+index) = (*(str+index) & (~255)) + (newval % 256);
+    int arr = str + index;
+    *arr = (*arr & ~BYTE) + (newval & BYTE);
 }
 
 char* fmt;
