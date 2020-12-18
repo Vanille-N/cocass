@@ -239,79 +239,82 @@ When one of the operands raises a non-\nil\ flag:
 \subsection{Assignments}
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},v_e \\
-    x\in\dom\rho \qquad \rho(x)\in\dom\mu'
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_VAR}(x, e) \tto \rho,\mu'[\rho(x)\mapsto v_e],\t{nil},v_e}\rule{Var}{^\gets}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e \\
+    x\in\dom\rho \qquad \rho(x)\in\dom\mu_e
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_VAR}(x, e) \tto \rho,\mu_e^{64}[\rho(x)\mapsto v_e],\nil,v_e}\rule{Var}{^\gets}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\chi',v_e \qquad \chi'\ne\t{nil}
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_VAR}(x, e) \tto \rho,\mu',\chi',v_e}\rule{Var}{^{\gets\chi}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_VAR}(x, e) \tto \rho,\mu_e,\chi_e,v_e}\rule{Var}{^{\gets\chi}}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu',\t{nil},v_i \\
-    \rho(x)\in\dom\mu'
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu'[\rho(x)+v_i\times 8 \mapsto v_e],\t{nil},v_e}\rule{Idx}{^\gets}\]
+    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu_i,\nil,v_i \\
+    \rho(x)\in\dom\mu_i
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu_i^{64}[\rho(x)+v_i\times 8 \mapsto v_e],\nil,v_e}\rule{Idx}{^\gets}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu',\chi',v_i \qquad \chi'\ne\t{nil}
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu',\chi',v_i}\rule{Idx}{^{\gets\chi}}\]
+    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu_i,\chi_i,v_i \qquad \chi_i\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu_i,\chi_i,v_i}\rule{Idx}{^{\gets\chi}}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives a \tto \rho,\mu',\t{nil},v_a
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_DEREF}(a, e) \tto \rho,\mu'[v_a\mapsto v_e],\t{nil},v_e}\rule{Ptr}{^\gets}\]
+    \rho,\mu_e,\chi_e,v_e \gives a \tto \rho,\mu_a,\nil,v_a
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_DEREF}(a, e) \tto \rho,\mu_a^{64}[v_a\mapsto v_e],\nil,v_e}\rule{Ptr}{^\gets}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives a \tto \rho,\mu',\chi',v_a \qquad \chi'\ne\t{nil}
-\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_DEREF}(a, e) \tto \rho,\mu',\chi',v_a}\rule{Ptr}{^{\gets\chi}}\]
+    \rho,\mu_e,\chi_e,v_e \gives a \tto \rho,\mu_a,\chi_a,v_a \qquad \chi_a\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{SET\_DEREF}(a, e) \tto \rho,\mu_a,\chi_a,v_a}\rule{Ptr}{^{\gets\chi}}\]
 
 \subsection{Increments}
 On variables:
 \[\dfrac{
-    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu
-}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{VAR}\ x) \tto \rho,\mu[k\mapsto \mu(k)+1],\t{nil},\mu(k)} \rule{Var}{^{\bullet\uparrow}}\]
+    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu^{64}(k) = v_k
+}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{VAR}\ x) \tto \rho,\mu^{64}[k\mapsto v_k+1],\nil,v_k} \rule{Var}{^{\bullet\uparrow}}\]
 \[\dfrac{
-    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu
-}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{VAR}\ x) \tto \rho,\mu[k\mapsto \mu(k)-1],\t{nil},\mu(k)} \rule{Var}{^{\bullet\downarrow}}\]
+    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu^{64}(k) = v_k
+}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{VAR}\ x) \tto \rho,\mu^{64}[k\mapsto v_k-1],\nil,v_k} \rule{Var}{^{\bullet\downarrow}}\]
 \[\dfrac{
-    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu(k)+1 = v_k
-}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{VAR}\ x) \tto \rho,\mu[k\mapsto v_k],\t{nil},v_k} \rule{Var}{^{\uparrow \bullet}}\]
+    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu^{64}(k)+1 = v_k
+}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{VAR}\ x) \tto \rho,\mu^{64}[k\mapsto v_k],\nil,v_k} \rule{Var}{^{\uparrow \bullet}}\]
 \[\dfrac{
-    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu(k)-1 = v_k
-}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{VAR}\ x) \tto \rho,\mu[k\mapsto v_k],\t{nil},v_k} \rule{Var}{^{\downarrow \bullet}}\]
+    x\in\dom\rho \qquad \rho(x) = k \in\dom\mu \qquad \mu^{64}(k)-1 = v_k
+}{\rho,\mu,\nil,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{VAR}\ x) \tto \rho,\mu^{64}[k\mapsto v_k],\nil,v_k} \rule{Var}{^{\downarrow \bullet}}\]
 
-%%%%% HERE FOR UPDATE v,mu -> rho,mu,chi,v
 On arrays:
-\[\dfrac{
+\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a+v_i\times8 = k \qquad k\in\dom\mu'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu''[k \mapsto \mu''(k)+1],\t{nil},\mu'(k)}\rule{Idx}{^{\bullet\uparrow}}\]
-\[\dfrac{
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu_a,\nil,v_a \\
+    v_a+v_i\times8 = k \qquad k\in\dom\mu_a
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu_a^{64}[k \mapsto \mu_a(k)+1],\nil,\mu_a^{64}(k)}\rule{Idx}{^{\bullet\uparrow}}\]
+\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a+v_i\times8 = k \qquad k\in\dom\mu'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu''[k \mapsto \mu''(k)-1],\t{nil},\mu'(k)}\rule{Idx}{^{\bullet\downarrow}}\]
-\[\dfrac{
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu_a,\nil,v_a \\
+    v_a+v_i\times8 = k \qquad k\in\dom\mu_a
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu_a^{64}[k \mapsto \mu_a(k)-1],\nil,\mu_a^{64}(k)}\rule{Idx}{^{\bullet\downarrow}}\]
+\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a+v_i\times8 = k \qquad k\in\dom\mu' \qquad \mu''(k)+1 = k'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu'[k \mapsto v],\t{nil},k'}\rule{Idx}{^{\uparrow \bullet}}\]
-\[\dfrac{
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu_a,\nil,v_a \\
+    v_a+v_i\times8 = k \qquad k\in\dom\mu_a \qquad \mu_a^{64}(k)+1 = v_k
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu_a[k \mapsto v_k],\nil,v_k}\rule{Idx}{^{\uparrow \bullet}}\]
+\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives i\tto \rho,\mu_i,\chi_i,v_i \\
-    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu',\t{nil},v_a \qquad v_a+v_i\times8 = k \qquad k\in\dom\mu' \qquad \mu''(k)-1 = k'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu'[k \mapsto v],\t{nil},k'}\rule{Idx}{^{\downarrow \bullet}}\]
+    \rho,\mu_i,\chi_i,v_i \gives a\tto \rho,\mu_a,\nil,v_a \\
+    v_a+v_i\times8 = k \qquad k\in\dom\mu_a \qquad \mu_a^{64}(k)-1 = v_k
+\end{array}}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP2}(\t{S\_INDEX}, a, e)) \tto \rho,\mu_a[k \mapsto v_k],\nil,v_k}\rule{Idx}{^{\downarrow \bullet}}\]
 
 On dereferences:
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},k
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rhox,\mu'[k\mapsto \mu'(k)+1],\t{nil},\mu'(k)} \rule{Ptr}{^{\bullet\uparrow}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)+1],\nil,\mu_e(v_e)} \rule{Ptr}{^{\bullet\uparrow}}\]
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},k
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu'[k\mapsto \mu'(k)-1],\t{nil},\mu'(k)} \rule{Ptr}{^{\bullet\downarrow}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)-1],\nil,\mu_e^{64}(v_e)} \rule{Ptr}{^{\bullet\downarrow}}\]
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},k \qquad \mu'(k)+1 = k'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu'[k\mapsto v],\t{nil},k'} \rule{Ptr}{^{\uparrow \bullet}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e \qquad \mu_e^{64}(v_e)+1 = k
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\uparrow \bullet}}\]
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e\tto \rho,\mu',\t{nil},k \qquad \mu'(k)-1 = k'
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu'[k\mapsto v],\t{nil},k'} \rule{Ptr}{^{\downarrow \bullet}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e \qquad \mu_e^{64}(v_e)-1 = k
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\downarrow \bullet}}\]
 
 \subsection{Extended assignments}
 Let \(op\in \t{bin\_op}\setminus \{ \t{S\_INDEX} \}\).
