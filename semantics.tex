@@ -321,26 +321,37 @@ Let \(op\in \t{bin\_op}\setminus \{ \t{S\_INDEX} \}\).
 
 On variables:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \gives e\tto v,\mu' \\
-    x\in\dom\rho \qquad \rho(x)\in\dom(\mu') \qquad \rho(x) = k \qquad \mu'(k) = u \\
-    \rho,\mu'\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w,\mu''
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_VAR}(op, x, e) \tto w,\mu''[k\mapsto w]}\rule{Var}{^{\gets op}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \\
+    x\in\dom\rho \qquad \rho(x)\in\dom(\mu_e) \qquad \rho(x) = k \qquad \mu_e^{64}(k) = u \\
+    \rho,\mu_e,\chi_e,v_e \gives \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\nil,w
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_VAR}(op, x, e) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Var}{^{\gets op}}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil\\
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_VAR}(op, x, e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Var}{^{\gets op\chi}}\]
 
 On arrays:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \gives e_2\tto v,\mu'\\
-    \rho,\mu'\vdash_\pi e_1\tto i,\mu''\\
-    t\in\dom\rho \qquad \rho(t)+i\times8 = k \qquad k\in\dom\mu''\\
-    \mu''(k) = u \qquad \rho,\mu''\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w\mu'''
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto w,\mu'''[k\mapsto w]}\rule{Idx}{^{\gets op}}\]
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu_i,\chi_i,v_i \\
+    t\in\dom\rho \qquad \rho(t)+v_i\times8 = k \qquad k\in\dom\mu_i\\
+    \mu_i^{64}(k) = u \qquad \rho,\mu_i,\chi_i,v_i \gives \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\t,\nil,w
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Idx}{^{\gets op}}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives i\tto \rho,\mu_i,\chi_i,v_i \qquad \chi_i\ne\nil\\
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto \rho,\mu_i,\chi_i,v_i} \rule{Idx}{^{\gets op\chi}}\]
 
 On dereferences:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \gives e_2\tto v,\mu'\\
-    \rho,\mu'\vdash_\pi e_1\tto k,\mu''\\
-    k\in\dom\mu'' \qquad \mu''(k) = u \\
-    \rho,\mu''\vdash_\pi\t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto w\mu'''
-\end{array}}{\rho,\mu,\t{nil},v \gives \t{OPSET\_DEREF}(op, e_1, e_2) \tto w,\mu'''[k\mapsto w]}\rule{Ptr}{^{\gets op}}\]
+    \rho,\mu,\chi,v \gives a\tto \rho,\mu_a,\chi_a,v_a \\
+    \rho,\mu_a,\chi_a,v_a \gives e\tto \rho,\mu_e,\chi_e,v_e \\
+    v_e\in\dom\mu_e \qquad \mu_e^{64}(v_e) = u \\
+    \rho,\mu_e,\chi_e,v_e \gives \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\nil,w
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_DEREF}(op, e_1, e_2) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Ptr}{^{\gets op}}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives a\tto \rho,\mu_a,\chi_a,v_a \\
+    \rho,\mu_a,\chi_a,v_a \gives e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
+\end{array}}{\rho,\mu,\chi,v \gives \t{OPSET\_DEREF}(op, e_1, e_2) \tto \rho,\mu_e,\chi_e,v_e} \rule{Ptr}{^{\gets op\chi}}\]
 
 \subsection{Ternary operator}
 \[\dfrac{\begin{array}{c}
