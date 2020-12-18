@@ -458,6 +458,15 @@ A loop continues normally if its condition is nonzero:
     \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
     \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
 \end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{Some},\t{true}}}\]
+
+A flag skips the loop:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e,c,f,\t{true}) \tto \rho,\mu_e,\chi_e,v_e} \rule{While}{^{\chi,\t{true}}}\]
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e,c,f,\t{false}) \tto \rho,\mu,\chi,v} \rule{While}{^{\chi,\t{false}}}\]
+
 \[\dfrac{\begin{array}{c}
 
 
