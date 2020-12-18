@@ -420,14 +420,12 @@ For all other flags, neither of the branches is executed.
 
 \subsection{Blocks}
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\t{nil},v \Vdash_\pi c \tto \rho',\mu',\chi',v' \\
-    \rho',\mu',\chi',v' \Vdash_\pi \t{CBLOCK}\ S \tto \rho'',\mu'',\chi'',v''
-\end{array}}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CBLOCK}(c :: S) \tto \rho,\mu'',\chi'',v''} \rule{Block}{^1}\]
-\[\dfrac{}{\rho,\mu,\t{nil},v \Vdash_\pi \t{CBLOCK}\ [] \tto \rho,\mu,\t{nil},v''} \rule{Block}{^0}\]
+    \rho,\mu,\chi,v \gives c \tto \rho',\mu',\chi',v' \\
+    \rho',\mu',\chi',v' \gives \t{CBLOCK}\ S \tto \rho'',\mu'',\chi'',v''
+\end{array}}{\rho,\mu,\chi,v \gives \t{CBLOCK}(c :: S) \tto \rho,\mu'',\chi'',v''} \rule{Block}{^1}\]
+\[\dfrac{}{\rho,\mu,\chi,v \gives \t{CBLOCK}\ [] \tto \rho,\mu,\chi,v} \rule{Block}{^0}\]
 Again for blocks, the memory may be changed and flags may be raised, but the environment is preserved.\\
 
-For all other flags, the whole block is skipped.
-\[\dfrac{\chi\ne\t{nil}}{\rho,\mu,\chi,v \Vdash_\pi \t{CBLOCK}\ S \tto \rho,\mu,\chi,v} \rule{Block}{^\chi}\]
 
 \subsection{Loops}
 A loop with a false condition stops:
