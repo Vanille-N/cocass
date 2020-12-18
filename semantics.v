@@ -96,31 +96,47 @@ Fixpoint wr_bytes (m:memory) (a:Z) (v:Z) (i:nat) :=
         | S p => wr_bytes (wr_raw m a (v mod 256)) (a+1) (v / 256) p
     end.
 Definition wr_int (m:memory) (a:Z) (v:Z) := wr_bytes m (signed_to_unsigned_64 a) v 8.
+
+Definition scope : Set := string -> Z.
+
 Inductive flag : Type :=
-  | brk | ret | cnt | nil | Exc (e:string).
+  | Xbrk | Xret | Xcnt | Xnil | Exc (e:string).
 
 Definition state : Set := (scope * memory * flag * Z).
 
+(* Evaluation of expressions *)
+
 Inductive eval_expr : state -> expr -> state -> Prop :=
-  | var : forall rho mu v x, eval_expr (rho,mu,nil,v) (VAR x) (rho,mu,nil,mu.(rd_int) (rho x))
-  | var_chi : forall rho mu chi v x, chi <> nil
+  | var : forall rho mu v x, eval_expr (rho,mu,Xnil,v) (VAR x) (rho,mu,Xnil,rd_int mu (rho x))
+  | var_chi : forall rho mu chi v x, chi <> Xnil
     -> eval_expr (rho,mu,chi,v) (VAR x) (rho,mu,chi,v)
-  | cst : forall rho mu v n, eval_expr (rho,mu,nil,v) (CST n) (rho,mu,nil,n)
-  | cst_chi : forall rho mu chi v n, chi <> nil
+  | cst : forall rho mu v n, eval_expr (rho,mu,Xnil,v) (CST n) (rho,mu,Xnil,n)
+  | cst_chi : forall rho mu chi v n, chi <> Xnil
     -> eval_expr (rho,mu,chi,v) (CST n) (rho,mu,chi,v)
-  | str : forall rho mu v s a, mu.(rd_str) a = s
-    -> eval_expr (rho,mu,nil,v) (STRING s) (rho,mu,nil,a)
-  | str_chi : forall rho mu chi v s, chi <> nil
+  | str : forall rho mu v s a, rd_str mu a = s
+    -> eval_expr (rho,mu,Xnil,v) (STRING s) (rho,mu,Xnil,a)
+  | str_chi : forall rho mu chi v s, chi <> Xnil
     -> eval_expr (rho,mu,chi,v) (STRING s) (rho,mu,chi,v)
   | idx : forall rho mu chi v i mu_i chi_i v_i a mu' v_a,
     eval_expr (rho,mu,chi,v) i (rho,mu_i,chi_i,v_i)
-    /\ eval_expr (rho,mu_i,chi_i,v_i) a (rho,mu',nil,v_a)
-    -> eval_expr (rho,mu,chi,v) (OP2 S_INDEX a i) (rho,mu',nil,mu'.(rd_int) (v_a + v_i * 8)).
+    /\ eval_expr (rho,mu_i,chi_i,v_i) a (rho,mu',Xnil,v_a)
+    -> eval_expr (rho,mu,chi,v) (OP2 S_INDEX a i) (rho,mu',Xnil,rd_int mu' (v_a + v_i * 8))
+  | neg : forall rho mu chi v e mu_e v_e,
+    eval_expr (rho,mu,chi,v) e (rho,mu_e,Xnil,v_e)
+    -> eval_expr (rho,mu,chi,v) (OP1 M_MINUS e) (rho,mu_e,Xnil,-v_e)
+  | not : forall rho mu chi v e mu_e v_e,
+    eval_expr (rho,mu,chi,v) (OP1 M_NOT e) (rho,mu_e,Xnil,-v_e-1)
+  | var_ref : forall rho mu v x, eval_expr (rho,mu,Xnil,v) (OP1 M_ADDR (VAR x)) (rho,mu,Xnil,rho x)
+  | idx_ref : forall rho mu chi v i mu_i chi_i v_i a mu_a v_a,
+    eval_expr (rho,mu,chi,v) i (rho,mu_i,chi_i,v_i)
+    /\ eval_expr (rho,mu_i,chi_i,v_i) a (rho,mu_a,Xnil,v_a)
+    -> eval_expr (rho,mu,chi,v) (OP1 M_ADDR (OP2 S_INDEX a i)) (rho,mu_a,Xnil,v_a+v_i*8).
 
 
 
 
-Lemma one : forall rho mu v, eval_expr (rho,mu,nil,v) (CST 1) (rho,mu,nil,1).
+Lemma one : forall rho mu v, eval_expr (rho,mu,Xnil,v) (CST 1) (rho,mu,Xnil,1).
 Proof.
-  intros; apply cst.
+  intros.
+  apply cst.
 Qed.
