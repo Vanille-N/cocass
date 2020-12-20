@@ -68,8 +68,11 @@ let print_ast (out, color) code =
                 List.iter (print_code_indent (offset ^ color_none ^ curr_empty) true out) code_lst;
                 fprintf out "%s(end)\n" (offset ^ curr_empty ^ termin ^ color_none);
             )
-            | CLOCAL (decl_lst) -> (
-                print_ast_indent (offset ^ color_none) true out decl_lst;
+            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL (_, name, Some init) -> (
+                fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
+                fprintf out "%sinit\n" (offset ^ curr_empty ^ termin);
+                print_expr_indent (offset ^ curr_empty ^ blank) false out init;
             )
             | CEXPR expr -> (
                 fprintf out "%sexpr\n" (offset ^ curr_full ^ color_none);
@@ -137,8 +140,8 @@ let print_ast (out, color) code =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
         List.iter (function
-            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
-            | CDECL (_, name, Some init) -> (
+            | CGLOB (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CGLOB (_, name, Some init) -> (
                 fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
                 fprintf out "%sinit\n" (offset ^ curr_empty ^ termin);
                 print_expr_indent (offset ^ curr_empty ^ blank) false out init;
@@ -233,8 +236,8 @@ let print_declarations (out, color) code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
         List.iter (function
-            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
-            | CDECL (_, name, Some init) -> (
+            | CGLOB (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CGLOB (_, name, Some init) -> (
                 fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
                 fprintf out "%s(init)\n" (offset ^ blank ^ curr_full);
             )
