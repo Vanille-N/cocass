@@ -436,34 +436,22 @@ Again for blocks, the memory may be changed and flags may be raised, but the env
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\nil,v} \rule{While}{^{\bot,f,\t{true}}}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\nil,v} \rule{While}{^{\bot,\t{true}}}\]
 
 Except in the case of a \t{do-while}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\nil,v_c \\
-    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{None},\t{false}}}\]
-
-\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\chi_c,v_c \\
     \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\nil,v_f \\
-    \rho,\mu_f,\nil,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{Some},\t{false}}}\]
-
+    \rho,\mu_f,\nil,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\t{false}}}\]
 
 A loop continues normally if its condition is nonzero:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
     \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
-    \rho,\mu_c,\chi_c,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{None},\t{true}}}\]
-
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
     \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{Some},\t{true}}}\]
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{true}}}\]
 
 A flag skips the loop:
 \[\dfrac{\begin{array}{c}
@@ -477,36 +465,25 @@ A flag skips the loop:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
     \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{None},\t{true}}}\]
-
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
     \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{Some},\t{true}}}\]
-
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{None},\t{false}}}\]
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
     \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{Some}\ f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{Some},\t{false}}}\]
+    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{false}}}\]
 
 \brk\ interrupts the loop but is not retransmitted:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
     \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\brk,v_c \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{true}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{true}}}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\brk,v_c \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, \t{None}, \t{false}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{false}}}\]
+\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{false}}}\]
 
 \subsection{Control flow}
 \[\dfrac{
