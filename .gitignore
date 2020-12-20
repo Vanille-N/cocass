@@ -23,3 +23,6 @@ NVILLANI-*
 ~*
 *.log
 *.aux
+
+*.glob
+*.vo*
