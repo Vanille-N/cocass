@@ -143,6 +143,7 @@ let universal = [
     ("SIGABRT", Const 6); ("SIGFPE", Const 8); ("SIGILL", Const 4);
     ("SIGINT", Const 2); ("SIGSEGV", Const 11); ("SIGTERM", Const 15);
     ("SIGALRM", Const 14);
+    ("SIG_IGN", Const 1); ("SIG_DFL", Const 0);
     ("O_RDONLY", Const 0); ("O_WRONLY", Const 1); ("O_RDWR", Const 2);
     ("O_APPEND", Const 1024); ("O_CREAT", Const 64); ("O_TRUNC", Const 512);
     ("STDIN_FILENO", Const 0); ("STDOUT_FILENO", Const 1); ("STDERR_FILENO", Const 2);
@@ -248,14 +249,11 @@ let stdlib = [
     ("waitpid", (Exact 3, false));
     ("write", (Exact 3, false));
 ]
-let builtin = [
-    ("SIG_IGN", (Exact 1, false));
-]
 
 (* stdlib + user-defined *)
 let defined_functions decl_lst =
     let rec aux = function
-        | [] -> builtin @ stdlib
+        | [] -> stdlib
         | (CFUN (_, name, CDECL (_, "...", _) :: fixed, _)) :: tl ->
             (name, (More (List.length fixed), false)) :: aux tl
         | (CFUN (_, name, params, _)) :: tl ->
@@ -1204,7 +1202,7 @@ let codegen decl_list =
     let global = get_global_vars decl_list in
     let fmt_int = prog.str "Unhandled exception %s(%d)\n" in
     let fmt_str = prog.str "Unhandled exception %s(\"%s\")\n" in
-    let defined = List.map (fun (name, _) -> (name, FnPtr name)) (builtin @ stdlib) in
+    let defined = List.map (fun (name, _) -> (name, FnPtr name)) stdlib in
     List.iter (gen_decl (global::defined::universal::[])) decl_list;
     (    (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
         prog.asm (FUN handler) "handle uncaught exceptions";
@@ -1238,10 +1236,6 @@ let codegen decl_list =
         prog.asm (MOV (Const 111, Regst RDI)) "value";
         prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
         prog.asm SYS "";
-    );
-    (   (* hand-compiled SIG_IGN *)
-        prog.asm (FUN "SIG_IGN") "ignore signal";
-        prog.asm RET "";
     );
     prog
 
