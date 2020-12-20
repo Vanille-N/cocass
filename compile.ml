@@ -102,6 +102,7 @@ let find_duplicate_catch catches =
         | Some loc -> Some (loc, "_")
 
 let reserved = ["va_start"; "va_arg"; "assert"]
+let predefs = ["SIG_IGN"]
 
 (* detect conflicting declaration *)
 let find_duplicate_decl decls =
@@ -111,9 +112,9 @@ let find_duplicate_decl decls =
         | _ :: tl -> dup tl
     in
     let names = List.map (function
-        | CFUN (loc, name, _, _) when List.mem name reserved ->
+        | CFUN (loc, name, _, _) when List.mem name reserved || List.mem name predefs ->
             (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
-        | CDECL (loc, name, _) when List.mem name reserved ->
+        | CDECL (loc, name, _) when List.mem name reserved || List.mem name predefs ->
             (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
         | CDECL (loc, name, _) -> (loc, name)
         | CFUN (loc, name, _, _) -> (loc, name)
@@ -247,10 +248,14 @@ let stdlib = [
     ("waitpid", (Exact 3, false));
     ("write", (Exact 3, false));
 ]
+let builtin = [
+    ("SIG_IGN", (Exact 1, false));
+]
+
 (* stdlib + user-defined *)
 let defined_functions decl_lst =
     let rec aux = function
-        | [] -> stdlib
+        | [] -> builtin @ stdlib
         | (CFUN (_, name, CDECL (_, "...", _) :: fixed, _)) :: tl ->
             (name, (More (List.length fixed), false)) :: aux tl
         | (CFUN (_, name, params, _)) :: tl ->
@@ -1199,9 +1204,9 @@ let codegen decl_list =
     let global = get_global_vars decl_list in
     let fmt_int = prog.str "Unhandled exception %s(%d)\n" in
     let fmt_str = prog.str "Unhandled exception %s(\"%s\")\n" in
-    List.iter (gen_decl (global::universal::[])) decl_list;
-    (
-        (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
+    let defined = List.map (fun (name, _) -> (name, FnPtr name)) (builtin @ stdlib) in
+    List.iter (gen_decl (global::defined::universal::[])) decl_list;
+    (    (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
         prog.asm (FUN handler) "handle uncaught exceptions";
         prog.asm NOP " -> exception name is in %rdi";
         prog.asm NOP " -> exception parameter is in %rax";
@@ -1233,6 +1238,10 @@ let codegen decl_list =
         prog.asm (MOV (Const 111, Regst RDI)) "value";
         prog.asm (MOV (Const 60, Regst RAX)) "code for exit";
         prog.asm SYS "";
+    );
+    (   (* hand-compiled SIG_IGN *)
+        prog.asm (FUN "SIG_IGN") "ignore signal";
+        prog.asm RET "";
     );
     prog
 
