@@ -64,14 +64,14 @@ and expr =
       si n=0, represente skip. *)
 
 type var_declaration =
-  | CGLOB of Error.locator * string * loc_expr option
+  | CDECL of Error.locator * string * loc_expr option
     (** declaration de variable de type int, possiblement avec une valeur d'initialisation. *)
   | CFUN of Error.locator * string * var_declaration list * loc_code
     (** fonction avec ses arguments, et son code. *)
 and loc_code = Error.locator * code
 and code =
     | CBLOCK of loc_code list (** { code; } *)
-    | CDECL of Error.locator * string * loc_expr option
+    | CLOCAL of var_declaration list
     | CEXPR of loc_expr (** une expression e; vue comme instruction. *)
     | CIF of loc_expr * loc_code * loc_code (** if (e) c1; else c2; *)
     | CWHILE of loc_expr * loc_code * (loc_expr option) * bool (** test_at_start? while (e) c; (finally;)*)
