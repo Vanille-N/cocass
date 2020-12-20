@@ -426,6 +426,13 @@ For all other flags, neither of the branches is executed.
 Again for blocks, the memory may be changed and flags may be raised, but the environment is preserved.\\
 
 \subsection{Loops}
+
+\[\dfrac{
+}{\rho,\mu,\chi,v \gives \t{None} \tto \rho,\mu,\chi,v} \rule{None}{}\]
+\[\dfrac{
+    \rho,\mu,\chi,v \gives f \tto \rho_f,\mu_f,\chi_f,v_f
+}{\rho,\mu,\chi,v \gives \t{Some}\ f \tto \rho_f,\mu_f,\chi_f,v_f} \rule{Some}{}\]
+
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
