@@ -304,16 +304,16 @@ On arrays:
 On dereferences:
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)+1],\nil,\mu_e(v_e)} \rule{Ptr}{^{\bullet\uparrow}}\]
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_INC}, \t{OP1}(\t{M\_DEREF}, e)) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)+1],\nil,\mu_e(v_e)} \rule{Ptr}{^{\bullet\uparrow}}\]
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)-1],\nil,\mu_e^{64}(v_e)} \rule{Ptr}{^{\bullet\downarrow}}\]
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_POST\_DEC}, \t{OP1}(\t{M\_DEREF}, e)) \tto \rho,\mu_e^{64}[v_e\mapsto \mu_e(v_e)-1],\nil,\mu_e^{64}(v_e)} \rule{Ptr}{^{\bullet\downarrow}}\]
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e \qquad \mu_e^{64}(v_e)+1 = k
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\uparrow \bullet}}\]
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_INC}, \t{OP1}(\t{M\_DEREF}, e)) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\uparrow \bullet}}\]
 \[\dfrac{
     \rho,\mu,\chi,v \gives e\tto \rho,\mu_e,\nil,v_e \qquad \mu_e^{64}(v_e)-1 = k
-}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP1}(\t{M\_DEREF}, e) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\downarrow \bullet}}\]
+}{\rho,\mu,\chi,v \gives \t{OP1}(\t{M\_PRE\_DEC}, \t{OP1}(\t{M\_DEREF}, e)) \tto \rho,\mu_e[v_e\mapsto k],\nil,k} \rule{Ptr}{^{\downarrow \bullet}}\]
 
 \subsection{Extended assignments}
 Let \(op\in \t{bin\_op}\setminus \{ \t{S\_INDEX} \}\).
