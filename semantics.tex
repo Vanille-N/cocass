@@ -513,4 +513,9 @@ A flag skips the loop:
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
 \end{array}}{\rho,\mu,\nil,v \gives \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Return}{^{\t{Some}\chi}}\]
 
+\subsection{Local variable declarations}
+
+First, the obvious:
+\[\dfrac{\begin{array}{c}
+\end{array}}{\rho,\mu,\chi,v \gives \t{CLOCAL}\ [] \tto \rho,\mu,\chi,v} \rule{Local}{^0}\]
 \end{document}
