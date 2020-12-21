@@ -4,6 +4,8 @@ open Genlab
 open Generate
 open Printf
 
+module Vb = Verbose
+
 (* utils *)
 
 (* zip two lists together *)
@@ -309,6 +311,7 @@ let consts = List.filter_map (function
  * <><><> <><> <><><>
  *)
 let codegen decl_list =
+    Vb.info "starting compilation" None;
     let (label_id, reset_label_cnt) =
         let counter = ref 0 in
         (
@@ -367,8 +370,10 @@ let codegen decl_list =
     in
     let rec gen_code (depth, frame, va_depth) (label, tagbrk, tagcont, istry) code =
         let locals = (depth, frame, va_depth) in
+        let loc = fst code in
         match snd code with
             | CBLOCK code_lst -> (
+                Vb.info "code block" (Some loc);
                 let rec pipe locals = function
                     | [] -> ()
                     | code :: rest -> (
@@ -379,6 +384,7 @@ let codegen decl_list =
                 locals
             )
             | CLOCAL declarations -> (
+                Vb.info "local declaration" (Some loc);
                 let newvars = make_scope depth declarations in
                 let newdepth = depth + List.length declarations in
                 let initvals = List.map (function
@@ -396,11 +402,13 @@ let codegen decl_list =
                 (newdepth, newvars :: frame, va_depth)
             )
             | CEXPR expr -> (
+                Vb.info "expression statement" (Some loc);
                 let expr = Reduce.redexp consts expr in
                 gen_expr locals (label, tagbrk, tagcont) false expr;
                 locals
             )
             | CIF (cond, do_true, do_false) -> (
+                Vb.info "conditional branching" (Some loc);
                 (* structure::if
                  *
                  *        begin
@@ -423,6 +431,7 @@ let codegen decl_list =
                 locals
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
+                Vb.info "while loop" (Some loc);
                 (* structure::while
                  *
                  *        begin
@@ -452,7 +461,8 @@ let codegen decl_list =
                 locals
             )
             | CRETURN None -> (
-                if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
+                Vb.info "return none" (Some loc);
+                if istry then Error.error (Some loc) "you may not use return inside a try block"
                 else (
                     prog.asm (XOR (Regst RAX, Regst RAX)) "return 0";
                     prog.asm (JMP (label, "return")) " +";
@@ -460,7 +470,8 @@ let codegen decl_list =
                 locals
             )
             | CRETURN (Some ret) -> (
-                if istry then Error.error (Some (fst code)) "you may not use return inside a try block"
+                Vb.info "return some" (Some loc);
+                if istry then Error.error (Some loc) "you may not use return inside a try block"
                 else (
                     gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts ret);
                     prog.asm (JMP (label, "return")) "return";
@@ -468,22 +479,25 @@ let codegen decl_list =
                 locals
             )
             | CBREAK -> (
+                Vb.info "break statement" (Some loc);
                 (match tagbrk with
-                    | None when istry -> Error.error (Some (fst code)) "break may not reach outside of try."
-                    | None -> Error.error (Some (fst code)) "no loop to break out of."
+                    | None when istry -> Error.error (Some loc) "break may not reach outside of try."
+                    | None -> Error.error (Some loc) "no loop to break out of."
                     | Some tagbrk -> prog.asm (JMP (label, tagbrk ^ "_done")) (sprintf "break out of %s" tagbrk)
                 );
                 locals
             )
             | CCONTINUE -> (
+                Vb.info "continue statement" (Some loc);
                 (match tagcont with
-                    | None when istry -> Error.error (Some (fst code)) "continue may not reach outside of try."
-                    | None -> Error.error (Some (fst code)) "no loop to continue."
+                    | None when istry -> Error.error (Some loc) "continue may not reach outside of try."
+                    | None -> Error.error (Some loc) "no loop to continue."
                     | Some tagcont -> prog.asm (JMP (label, tagcont ^ "_finally")) (sprintf "continue to next iteration of %s" tagcont)
                 );
                 locals
             )
             | CSWITCH (e, cases, deflt) -> (
+                Vb.info "switch block" (Some loc);
                 (* structure::switch
                  *
                  *          begin
@@ -557,8 +571,9 @@ let codegen decl_list =
                 locals
             )
             | CTHROW (name, value) -> (
+                Vb.info "throw statement" (Some loc);
                 (if name = "_" then
-                    Error.error (Some (fst code)) "wildcard _ exception may not be thrown."
+                    Error.error (Some loc) "wildcard _ exception may not be thrown."
                 );
                 let id = prog.exc name in
                 gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts value);
@@ -569,6 +584,7 @@ let codegen decl_list =
                 locals
             )
             | CTRY (code, catches, finally) -> (
+                Vb.info "try block" (Some loc);
                 (* structure::try
                  *
                  *          begin
@@ -605,6 +621,7 @@ let codegen decl_list =
                 prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
                 (* BEGIN TRY *)
                 let _ = gen_code (depth+2, frame, va_depth) (label, None, None, true) code in
+                Vb.info "end try block" None;
                 (* END TRY *)
                 prog.asm NOP "# try block exited normally, remove handler";
                 prog.asm (LEA (Globl handler_base, Regst RSI)) "";
@@ -648,7 +665,7 @@ let codegen decl_list =
                         (* _ matches any exception *)
                         prog.asm NOP "# wildcard exception";
                         if bind <> "_" then (
-                            Error.warning (Some (fst code)) "in next handler: wildcard exception may not induce a variable binding";
+                            Error.warning (Some loc) "in next handler: wildcard exception may not induce a variable binding";
                         ) else (
                             (* _ does not induce a variable binding *)
                             let _ = gen_code locals (label, tagbrk, tagcont, istry) handle in
@@ -679,8 +696,9 @@ let codegen decl_list =
                 locals
             )
     and gen_decl frame = function
-        | CDECL (_, name, _) -> ()
+        | CDECL (loc, name, _) -> Vb.info (sprintf "variable declaration: %s" name) (Some loc)
         | CFUN (loc, name, decs, code) -> (
+            Vb.info (sprintf "function declaration: %s" name) (Some loc);
             reset_label_cnt ();
             prog.asm (FUN name) "toplevel function";
             (match find_duplicate_decl decs with
@@ -689,6 +707,7 @@ let codegen decl_list =
             );
             match decs with
                 | CDECL (_, "...", _) :: fixed -> (
+                    Vb.detail "function is variadic" None;
                     (* variadic *)
                     if name = "main" then Error.error (Some loc) "main may not be variadic";
                     (* Mess with the stack a bit for future convenience :
