@@ -529,4 +529,9 @@ There are never functions defined in a \t{CLOCAL}, only \t{CDECL}:
     \rho',\mu',\nil,v_e \gives \t{CLOCAL}\ S \tto \rho_s,\mu_s,\chi_s,v_s
 \end{array}}{\rho,\mu,\chi,v \gives \t{CLOCAL}(\t{CDECL}(w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
 
+\subsection{Throw}
+
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu,\chi,v} \rule{Throw}{^\chi}\]
 \end{document}
