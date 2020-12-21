@@ -545,13 +545,8 @@ let codegen decl_list =
                         prog.asm NOP "# end jump table";
                         List.iter (fun (_, c, blk) ->
                             prog.asm (TAG (label, tagbase ^ (tag_of_int c))) "";
-                            let rec pipe locals = function
-                                | [] -> ()
-                                | instr :: rest -> (
-                                    let locals = gen_code locals (label, Some tagbase, tagcont, istry) instr in
-                                    pipe locals rest
-                                )
-                            in pipe locals blk
+                            let _ = gen_code locals (label, Some tagbase, tagcont, istry) blk in
+                            ()
                         ) cases;
                         prog.asm (TAG (label, tagbase ^ "_default")) "";
                         let _ = gen_code locals (label, Some tagbase, tagcont, istry) deflt in
