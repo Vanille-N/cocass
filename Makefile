@@ -22,7 +22,7 @@ FILES=clex.mll cAST.ml cAST.mli cparse.mly \
 	  reduce.ml reduce.mli \
 	  compile.ml compile.mli \
 	  cprint.ml cprint.mli \
-	  error.ml verbose.ml genlab.ml main.ml \
+	  error.ml verbose.ml verbose.mli genlab.ml main.ml \
 	  Makefile README.md test.py
 TESTS=assets failures verify
 
