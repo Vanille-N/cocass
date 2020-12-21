@@ -535,6 +535,9 @@ There are never functions defined in a \t{CLOCAL}, only \t{CDECL}:
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Throw}{^\chi}\]
 
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
+\end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu_e,s,v_e} \rule{Throw}{}\]
 
 
 \end{document}
