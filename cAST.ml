@@ -97,7 +97,7 @@ and code =
     | CRETURN of loc_expr option (* return; ou return (e); *)
     | CBREAK
     | CCONTINUE
-    | CSWITCH of loc_expr * (Error.locator * int * loc_code list) list * loc_code
+    | CSWITCH of loc_expr * (Error.locator * int * loc_code) list * loc_code
     | CTRY of loc_code * catch list * loc_code option
     | CTHROW of string * loc_expr
 and catch = Error.locator * string * string * loc_code
