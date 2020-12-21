@@ -109,9 +109,9 @@ let print_ast (out, color) code =
             | CSWITCH (e, cases, deflt) -> (
                 fprintf out "%sswitch%s\n" (offset ^ curr_full ^ color_cond) color_none;
                 print_expr_indent (offset ^ curr_empty ^ color_cond) true out (Reduce.redexp [] e);
-                List.iter (fun (_, c, lst) -> (
-                    fprintf out "%scase %s%d%s\n" (offset ^ curr_empty ^ color_ctrl) color_const c color_none;
-                    List.iter (print_code_indent (offset ^ curr_empty ^ color_cond) true out) lst
+                List.iter (fun (_, v, c) -> (
+                    fprintf out "%scase %s%d%s\n" (offset ^ curr_empty ^ color_ctrl) color_const v color_none;
+                    print_code_indent (offset ^ curr_empty ^ color_cond) true out c
                 )) cases;
                 fprintf out "%sdefault%s\n" (offset ^ curr_empty ^ color_ctrl) color_none;
                 print_code_indent (offset ^ curr_empty ^ color_cond) false out deflt;
