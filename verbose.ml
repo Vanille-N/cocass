@@ -24,3 +24,10 @@
 
 let verbose = ref 0
 let reduce_exprs = ref false
+
+let say i msg loc =
+    if !verbose >= i then
+        Error.warning loc msg
+
+let info = say 1
+let detail = say 2
