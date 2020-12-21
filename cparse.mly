@@ -386,13 +386,13 @@ defaultkw : DEFAULT { getloc () };
 
 case :
     | casekw CONSTANT COLON_CHR statement_list
-        { $1, $2, List.rev $4 }
+        { $1, $2, ($1, CBLOCK (List.rev $4)) }
     | casekw SUB_CHR CONSTANT COLON_CHR statement_list
-        { $1, -$3, List.rev $5 }
+        { $1, -$3, ($1, CBLOCK (List.rev $5)) }
     | casekw CONSTANT COLON_CHR
-        { $1, $2, [] }
+        { $1, $2, ($1, CBLOCK []) }
     | casekw SUB_CHR CONSTANT COLON_CHR
-        { $1, -$3, [] }
+        { $1, -$3, ($1, CBLOCK []) }
 ;
 
 default :
