@@ -547,11 +547,11 @@ Otherwise raise the new exception \(s\in S\):
 \end{array}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_e,\chi_e,v_e} \rule{Switch}{^\chi}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \\
-    \rho,\mu_e,\nil,v_e \gives \t{CBLOCK}(L^c(v_e)) \tto \rho,\mu_l,\chi_l,v_l
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives \t{CBLOCK}(L(v_e)) \tto \rho,\mu_l,\chi_l,v_l
 \end{array}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_l,\chi_l,v_l} \rule{Switch}{}\]
 
-Where for \(L = [(j_1, l_1); \cdots; (j_n,l_n)]\), \(L^c(v_e)\) is defined as follows : \\
+Where for \(L = [(j_1, l_1); \cdots; (j_n,l_n)]\), \(L(v_e)\) is defined as follows : \\
 Let \(I_i =  \{ j_1, \cdots, j_i \}\) for \(1 \leq i \leq n\), \(I_{n+1} = \ZZ_{64}\). \\
 
 \end{document}
