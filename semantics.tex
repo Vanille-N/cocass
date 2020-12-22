@@ -540,5 +540,11 @@ Otherwise raise the new exception \(s\in S\):
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
 \end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu_e,s,v_e} \rule{Throw}{}\]
 
+\subsection{Switch}
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi\ne\nil
+\end{array}{c}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_e,\chi_e,v_e} \rule{Switch}{^\chi}\]
+
 
 \end{document}
