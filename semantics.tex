@@ -397,32 +397,32 @@ Works for both a toplevel function and a function pointer:
 \subsection{Expressions}
 An expression as statement is simply executed. If a non-\nil\ flag is raised, it will be skipped anyway.\\
 \[\dfrac{
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e
-}{\rho,\mu,\chi,v \Vdash_\pi \t{CEXPR}\ e \tto \rho,\mu_e,\chi_e,v_e}\rule{Expr}{}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e
+}{\rho,\mu,\chi,v \gives^c \t{CEXPR}\ e \tto \rho,\mu_e,\chi_e,v_e}\rule{Expr}{}\]
 
 \subsection{Conditional branching}
 If only \nil\ is raised after the evaluation of the condition, one of the two branches is executed.
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
-    \rho,\mu_e,\nil,v_e \gives c_\bot \tto \rho_\bot,\mu_\bot,\chi_\bot,v_\bot \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_\bot,\chi_\bot,v_\bot} \rule{If}{^\bot}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
+    \rho,\mu_e,\nil,v_e \gives^c c_\bot \tto \rho_\bot,\mu_\bot,\chi_\bot,v_\bot \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_\bot,\chi_\bot,v_\bot} \rule{If}{^\bot}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c_\top \tto \rho_\top,\mu_\top,\chi_\top,v_\top \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_\top,\chi_\top,v_\top} \rule{If}{^\top}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives^c c_\top \tto \rho_\top,\mu_\top,\chi_\top,v_\top \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_\top,\chi_\top,v_\top} \rule{If}{^\top}\]
 Note that the branch is allowed to modify the memory and raise flags, but not change the environment: \(\rho\) is preserved.\\
 
 For all other flags, neither of the branches is executed.
 \[\dfrac{\begin{array}{c}
-\rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_e,\chi_e,v_e} \rule{If}{^\chi}\]
+\rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CIF}(e, c_\top, c_\bot) \tto \rho,\mu_e,\chi_e,v_e} \rule{If}{^\chi}\]
 
 \subsection{Blocks}
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho',\mu',\chi',v' \\
-    \rho',\mu',\chi',v' \gives \t{CBLOCK}\ S \tto \rho'',\mu'',\chi'',v''
-\end{array}}{\rho,\mu,\chi,v \gives \t{CBLOCK}(c :: S) \tto \rho,\mu'',\chi'',v''} \rule{Block}{^1}\]
-\[\dfrac{}{\rho,\mu,\chi,v \gives \t{CBLOCK}\ [] \tto \rho,\mu,\chi,v} \rule{Block}{^0}\]
+    \rho,\mu,\chi,v \gives^c c \tto \rho',\mu',\chi',v' \\
+    \rho',\mu',\chi',v' \gives^c \t{CBLOCK}\ S \tto \rho'',\mu'',\chi'',v''
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CBLOCK}(c :: S) \tto \rho,\mu'',\chi'',v''} \rule{Block}{^1}\]
+\[\dfrac{}{\rho,\mu,\chi,v \gives^c \t{CBLOCK}\ [] \tto \rho,\mu,\chi,v} \rule{Block}{^0}\]
 Again for blocks, the memory may be changed and flags may be raised, but the environment is preserved.\\
 
 \subsection{Loops}
@@ -435,117 +435,117 @@ Again for blocks, the memory may be changed and flags may be raised, but the env
 
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\nil,v} \rule{While}{^{\bot,\t{true}}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu',\nil,v} \rule{While}{^{\bot,\t{true}}}\]
 
 Except in the case of a \t{do-while}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\chi_c,v_c \\
-    \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\nil,v_f \\
-    \rho,\mu_f,\nil,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\t{false}}}\]
+    \rho,\mu,\chi,v \gives^c c \tto \rho_c,\mu_c,\chi_c,v_c \\
+    \rho,\mu_c,\chi_c,v_c \gives^{e?} f \tto \rho,\mu_f,\nil,v_f \\
+    \rho,\mu_f,\nil,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\t{false}}}\]
 
 A loop continues normally if its condition is nonzero:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
-    \rho,\mu_c,\chi_c,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{true}}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives^c c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
+    \rho,\mu_c,\chi_c,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{true}}}\]
 
 A flag skips the loop:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e,c,f,\t{true}) \tto \rho,\mu_e,\chi_e,v_e} \rule{While}{^{\chi,\t{true}}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e,c,f,\t{true}) \tto \rho,\mu_e,\chi_e,v_e} \rule{While}{^{\chi,\t{true}}}\]
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e,c,f,\t{false}) \tto \rho,\mu,\chi,v} \rule{While}{^{\chi,\t{false}}}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e,c,f,\t{false}) \tto \rho,\mu,\chi,v} \rule{While}{^{\chi,\t{false}}}\]
 
 \cnt\ executes the finally clause before continuing as normal:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{true}}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives^c c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives f \tto \rho,\mu_f,\chi_f,v_f \\
-    \rho,\mu_f,\chi_f,v_f \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{false}}}\]
+    \rho,\mu,\chi,v \gives^c c \tto \rho_c,\mu_c,\cnt,v_c \\
+    \rho,\mu_c,\nil,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{false}}}\]
 
 \brk\ interrupts the loop but is not retransmitted:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
-    \rho,\mu_e,\nil,v_e \gives c \tto \rho_c,\mu_c,\brk,v_c \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{true}}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
+    \rho,\mu_e,\nil,v_e \gives^c c \tto \rho_c,\mu_c,\brk,v_c \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives c \tto \rho_c,\mu_c,\brk,v_c \\
-\end{array}}{\rho,\mu,\chi,v \gives \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{false}}}\]
+    \rho,\mu,\chi,v \gives^c c \tto \rho_c,\mu_c,\brk,v_c \\
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_c,\nil,v_c} \rule{While}{^{\brk,\t{false}}}\]
 
 \subsection{Control flow}
 \[\dfrac{
-}{\rho,\mu,\nil,v \gives \t{CBREAK} \tto \rho,\mu,\brk,0} \rule{Break}{}\]
+}{\rho,\mu,\nil,v \gives^c \t{CBREAK} \tto \rho,\mu,\brk,0} \rule{Break}{}\]
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CBREAK} \tto \rho,\mu,\chi,v} \rule{Break}{^\chi}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CBREAK} \tto \rho,\mu,\chi,v} \rule{Break}{^\chi}\]
 
 \[\dfrac{
-}{\rho,\mu,\nil,v \gives \t{CCONTINUE} \tto \rho,\mu,\cnt,0} \rule{Continue}{}\]
+}{\rho,\mu,\nil,v \gives^c \t{CCONTINUE} \tto \rho,\mu,\cnt,0} \rule{Continue}{}\]
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CCONTINUE} \tto \rho,\mu,\chi,v} \rule{Continue}{^\chi}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CCONTINUE} \tto \rho,\mu,\chi,v} \rule{Continue}{^\chi}\]
 
 \[\dfrac{
-}{\rho,\mu,\nil,v \gives \t{CRETURN}\ \t{None} \tto \rho,\mu,\ret,0} \rule{Return}{^\t{None}}\]
+}{\rho,\mu,\nil,v \gives^c \t{CRETURN}\ \t{None} \tto \rho,\mu,\ret,0} \rule{Return}{^\t{None}}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
-\end{array}}{\rho,\mu,\nil,v \gives \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\ret,v_e} \rule{Return}{^\t{Some}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e
+\end{array}}{\rho,\mu,\nil,v \gives^c \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\ret,v_e} \rule{Return}{^\t{Some}}\]
 
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CRETURN}\ \t{None} \tto \rho,\mu,\chi,v} \rule{Return}{^{\t{None}\chi}}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CRETURN}\ \t{None} \tto \rho,\mu,\chi,v} \rule{Return}{^{\t{None}\chi}}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
-\end{array}}{\rho,\mu,\nil,v \gives \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Return}{^{\t{Some}\chi}}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+\end{array}}{\rho,\mu,\nil,v \gives^c \t{CRETURN}(\t{Some}\ e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Return}{^{\t{Some}\chi}}\]
 
 \subsection{Local variable declarations}
 
 First, the obvious:
 \[\dfrac{\begin{array}{c}
-\end{array}}{\rho,\mu,\chi,v \gives \t{CLOCAL}\ [] \tto \rho,\mu,\chi,v} \rule{Local}{^0}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ [] \tto \rho,\mu,\chi,v} \rule{Local}{^0}\]
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CLOCAL}\ d \tto \rho,\mu,\chi,v} \rule{Local}{^\chi}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ d \tto \rho,\mu,\chi,v} \rule{Local}{^\chi}\]
 
 There are never functions defined in a \t{CLOCAL}, only \t{CDECL}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e \\
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \\
     k \in alloc^8(\mu_e) \qquad \rho' = \rho[w \mapsto k] \qquad \mu' = \mu_e[k \mapsto v_e] \\
-    \rho',\mu',\nil,v_e \gives \t{CLOCAL}\ S \tto \rho_s,\mu_s,\chi_s,v_s
-\end{array}}{\rho,\mu,\chi,v \gives \t{CLOCAL}(\t{CDECL}(w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
+    \rho',\mu',\nil,v_e \gives^c \t{CLOCAL}\ S \tto \rho_s,\mu_s,\chi_s,v_s
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}(\t{CDECL}(w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
 
 \subsection{Throw}
 If a flag is already raised, skip the \t{CTHROW}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Throw}{^\chi}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CTHROW}(s,e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Throw}{^\chi}\]
 
 Otherwise raise the new exception \(s\in S\):
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\nil,v_e
-\end{array}}{\rho,\mu,\chi,v \gives \t{CTHROW}(s,e) \tto \rho,\mu_e,s,v_e} \rule{Throw}{}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CTHROW}(s,e) \tto \rho,\mu_e,s,v_e} \rule{Throw}{}\]
 
 \subsection{Switch}
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives \t{CBLOCK}(L(v_e)) \tto \rho,\mu_l,\chi_l,v_l
-\end{array}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_l,\chi_l,v_l} \rule{Switch}{}\]
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives^c \t{CBLOCK}(L(v_e)) \tto \rho,\mu_l,\chi_l,v_l
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CSWITCH}(e, L, c) \tto \rho,\mu_l,\chi_l,v_l} \rule{Switch}{}\]
 
 Where for \(L = [(j_1, l_1); \cdots; (j_n,l_n)]\), \(L(v_e)\) is defined as follows : \\
 Let \(I_i =  \{ j_1, \cdots, j_i \}\) for \(1 \leq i \leq n\), \(I_{n+1} = \ZZ_{64}\). \\
