@@ -543,10 +543,6 @@ Otherwise raise the new exception \(s\in S\):
 \subsection{Switch}
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_e,\chi_e,v_e} \rule{Switch}{^\chi}\]
-
-\[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives e \tto \rho,\mu_e,\chi_e,v_e \\
     \rho,\mu_e,\chi_e,v_e \gives \t{CBLOCK}(L(v_e)) \tto \rho,\mu_l,\chi_l,v_l
 \end{array}}{\rho,\mu,\chi,v \gives \t{CSWITCH}(e, L, c) \tto \rho,\mu_l,\chi_l,v_l} \rule{Switch}{}\]
