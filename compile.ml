@@ -341,6 +341,7 @@ let codegen decl_list =
         let stacked = List.init (max 0 (n-6)) (fun i -> Stack (i+2)) in
         let regged = truncate (min 6 n) [RDI; RSI; RDX; RCX; R08; R09] in
         let names = List.map extract_decl_name decs in
+        List.iter (fun name -> Vb.detail (sprintf "argument: %s" name)) names;
         let regged = List.mapi (fun i (loc, name) ->
             let newloc = Stack (-i-1) in
             prog.asm (MOV (Regst loc, newloc)) (sprintf "store %s" name);
@@ -348,7 +349,9 @@ let codegen decl_list =
         ) (zip regged names) in
         let vars = zip names (regged @ stacked) in
         List.iter (fun (name, loc) -> match loc with
-            | Stack k when k > 0 -> prog.asm NOP (sprintf "%s is at RBP+%d*8" name k)
+            | Stack k when k > 0 -> (
+                prog.asm NOP (sprintf "%s is at RBP+%d*8" name k)
+            )
             | _ -> ()
         ) vars;
         vars
@@ -362,6 +365,7 @@ let codegen decl_list =
             | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
         );
         let vars = zip names pos in
+        List.iter (fun name -> Vb.detail (sprintf "local: %s" name)) names;
         vars
     and store depth reg = (* save a temporary value on the top of the stack *)
         prog.asm (MOV (Regst reg, Stack (-depth))) "store"
@@ -731,7 +735,10 @@ let codegen decl_list =
                     prog.asm (MOV (Regst R10, Stack 1)) "put back return address";
                     prog.asm (MOV (Regst R11, Stack 0)) "save previous base pointer";
                     let args = List.mapi (fun i dec -> match dec with
-                        | CDECL (_, name, _) -> (name, Stack (i+2))
+                        | CDECL (_, name, _) -> (
+                            Vb.detail (sprintf "argument: %s" name);
+                            (name, Stack (i+2))
+                        )
                         | _ -> failwith "unreachable @ codegen::gen_decl::CDECL...::_"
                     ) fixed in
                     let _ = gen_code (1, args :: frame, Some nb_fixed) (name, None, None, false) code in
