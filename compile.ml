@@ -311,7 +311,7 @@ let consts = List.filter_map (function
  * <><><> <><> <><><>
  *)
 let codegen decl_list =
-    Vb.info "starting compilation" None;
+    Vb.info None "starting compilation";
     let (label_id, reset_label_cnt) =
         let counter = ref 0 in
         (
@@ -373,7 +373,7 @@ let codegen decl_list =
         let loc = fst code in
         match snd code with
             | CBLOCK code_lst -> (
-                Vb.info "code block" (Some loc);
+                Vb.info (Some loc) "code block";
                 let rec pipe locals = function
                     | [] -> ()
                     | code :: rest -> (
@@ -384,7 +384,7 @@ let codegen decl_list =
                 locals
             )
             | CLOCAL declarations -> (
-                Vb.info "local declaration" (Some loc);
+                Vb.info (Some loc) "local declaration";
                 let newvars = make_scope depth declarations in
                 let newdepth = depth + List.length declarations in
                 let initvals = List.map (function
@@ -402,13 +402,13 @@ let codegen decl_list =
                 (newdepth, newvars :: frame, va_depth)
             )
             | CEXPR expr -> (
-                Vb.info "expression statement" (Some loc);
+                Vb.info (Some loc) "expression statement";
                 let expr = Reduce.redexp consts expr in
                 gen_expr locals (label, tagbrk, tagcont) false expr;
                 locals
             )
             | CIF (cond, do_true, do_false) -> (
-                Vb.info "conditional branching" (Some loc);
+                Vb.info (Some loc) "conditional branching";
                 (* structure::if
                  *
                  *        begin
@@ -431,7 +431,7 @@ let codegen decl_list =
                 locals
             )
             | CWHILE (cond, body, finally, test_at_start) -> (
-                Vb.info "while loop" (Some loc);
+                Vb.info (Some loc) "while loop";
                 (* structure::while
                  *
                  *        begin
@@ -461,7 +461,7 @@ let codegen decl_list =
                 locals
             )
             | CRETURN None -> (
-                Vb.info "return none" (Some loc);
+                Vb.info (Some loc) "return none";
                 if istry then Error.error (Some loc) "you may not use return inside a try block"
                 else (
                     prog.asm (XOR (Regst RAX, Regst RAX)) "return 0";
@@ -470,7 +470,7 @@ let codegen decl_list =
                 locals
             )
             | CRETURN (Some ret) -> (
-                Vb.info "return some" (Some loc);
+                Vb.info (Some loc) "return some";
                 if istry then Error.error (Some loc) "you may not use return inside a try block"
                 else (
                     gen_expr locals (label, tagbrk, tagcont) false (Reduce.redexp consts ret);
@@ -479,7 +479,7 @@ let codegen decl_list =
                 locals
             )
             | CBREAK -> (
-                Vb.info "break statement" (Some loc);
+                Vb.info (Some loc) "break statement";
                 (match tagbrk with
                     | None when istry -> Error.error (Some loc) "break may not reach outside of try."
                     | None -> Error.error (Some loc) "no loop to break out of."
@@ -488,7 +488,7 @@ let codegen decl_list =
                 locals
             )
             | CCONTINUE -> (
-                Vb.info "continue statement" (Some loc);
+                Vb.info (Some loc) "continue statement";
                 (match tagcont with
                     | None when istry -> Error.error (Some loc) "continue may not reach outside of try."
                     | None -> Error.error (Some loc) "no loop to continue."
@@ -497,7 +497,7 @@ let codegen decl_list =
                 locals
             )
             | CSWITCH (e, cases, deflt) -> (
-                Vb.info "switch block" (Some loc);
+                Vb.info (Some loc) "switch block";
                 (* structure::switch
                  *
                  *          begin
@@ -571,7 +571,7 @@ let codegen decl_list =
                 locals
             )
             | CTHROW (name, value) -> (
-                Vb.info "throw statement" (Some loc);
+                Vb.info (Some loc) "throw statement";
                 (if name = "_" then
                     Error.error (Some loc) "wildcard _ exception may not be thrown."
                 );
@@ -584,7 +584,7 @@ let codegen decl_list =
                 locals
             )
             | CTRY (code, catches, finally) -> (
-                Vb.info "try block" (Some loc);
+                Vb.info (Some loc) "try block";
                 (* structure::try
                  *
                  *          begin
@@ -621,7 +621,7 @@ let codegen decl_list =
                 prog.asm (MOV (Regst RBP, Deref RSI)) "new handler base";
                 (* BEGIN TRY *)
                 let _ = gen_code (depth+2, frame, va_depth) (label, None, None, true) code in
-                Vb.info "end try block" None;
+                Vb.info None "end try block";
                 (* END TRY *)
                 prog.asm NOP "# try block exited normally, remove handler";
                 prog.asm (LEA (Globl handler_base, Regst RSI)) "";
@@ -696,9 +696,9 @@ let codegen decl_list =
                 locals
             )
     and gen_decl frame = function
-        | CDECL (loc, name, _) -> Vb.info (sprintf "variable declaration: %s" name) (Some loc)
+        | CDECL (loc, name, _) -> Vb.info (Some loc) (sprintf "variable declaration: %s" name)
         | CFUN (loc, name, decs, code) -> (
-            Vb.info (sprintf "function declaration: %s" name) (Some loc);
+            Vb.info (Some loc) (sprintf "function declaration: %s" name);
             reset_label_cnt ();
             prog.asm (FUN name) "toplevel function";
             (match find_duplicate_decl decs with
@@ -707,7 +707,7 @@ let codegen decl_list =
             );
             match decs with
                 | CDECL (_, "...", _) :: fixed -> (
-                    Vb.detail "function is variadic" None;
+                    Vb.detail "function is variadic";
                     (* variadic *)
                     if name = "main" then Error.error (Some loc) "main may not be variadic";
                     (* Mess with the stack a bit for future convenience :
