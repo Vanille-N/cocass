@@ -680,10 +680,7 @@ let codegen decl_list =
                 prog.asm (TAG (label, tagbase ^ "_finally")) "";
                 store depth RAX;
                 store (depth+1) RDI;
-                (match finally with
-                    | None -> ()
-                    | Some code -> let _ = gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) code in ()
-                );
+                let _ = gen_code (depth+2, frame, va_depth) (label, tagbrk, tagcont, istry) finally in
                 (* MAYBE RETHROW *)
                 retrieve (depth+1) RDI;
                 prog.asm (CMP (Const 0, Regst RDI)) "check if exception was handled";

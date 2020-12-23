@@ -461,8 +461,8 @@ finallykw: FINALLY { getloc () };
 
 finally_option:
     | finallykw statement
-        { Some $2 }
-    | { None }
+        { $2 }
+    | { getloc (), CBLOCK [] }
 
 catch:
     | catchkw OPEN_PAREN_CHR identifier CLOSE_PAREN_CHR statement

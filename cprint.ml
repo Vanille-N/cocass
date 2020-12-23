@@ -120,10 +120,7 @@ let print_ast (out, color) code =
                     print_code_indent (offset ^ curr_empty ^ color_ctrl) true out handle;
                 ) catch;
                 fprintf out "%sfinally%s\n" (offset ^ curr_empty ^ color_ctrl) color_none;
-                (match finally with
-                    | None -> ()
-                    | Some c -> print_code_indent (offset ^ curr_empty ^ color_ctrl) false out c;
-                );
+                print_code_indent (offset ^ curr_empty ^ color_ctrl) false out finally;
             )
     and print_ast_indent offset next out dec_lst =
         let curr_full = if next then bifurc else termin in
