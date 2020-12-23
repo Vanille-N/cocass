@@ -565,6 +565,10 @@ When an exception is raised that is not caught by the current handler:
     \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c \not\in E \\
     \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\nil,v_f
 \end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,s_c,v_c} \rule{Try}{^{\nil'}}\]
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c \not\in E \\
+    \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f \qquad \chi_f\ne\nil
+\end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^{\chi'}}\]
 
 
 \end{document}
