@@ -427,12 +427,6 @@ Again for blocks, the memory may be changed and flags may be raised, but the env
 
 \subsection{Loops}
 
-\[\dfrac{
-}{\rho,\mu,\chi,v \gives^{e?} \t{None} \tto \rho,\mu,\chi,v} \rule{None}{}\]
-\[\dfrac{
-    \rho,\mu,\chi,v \gives^e f \tto \rho_f,\mu_f,\chi_f,v_f
-}{\rho,\mu,\chi,v \gives^{e?} \t{Some}\ f \tto \rho_f,\mu_f,\chi_f,v_f} \rule{Some}{}\]
-
 A loop with a false condition stops:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e = 0 \\
@@ -441,7 +435,7 @@ A loop with a false condition stops:
 Except in the case of a \t{do-while}:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^c c \tto \rho_c,\mu_c,\chi_c,v_c \\
-    \rho,\mu_c,\chi_c,v_c \gives^{e?} f \tto \rho,\mu_f,\nil,v_f \\
+    \rho,\mu_c,\chi_c,v_c \gives^e f \tto \rho,\mu_f,\nil,v_f \\
     \rho,\mu_f,\nil,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\t{false}}}\]
 
@@ -449,7 +443,7 @@ A loop continues normally if its condition is nonzero:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
     \rho,\mu_e,\nil,v_e \gives^c c \tto \rho_c,\mu_c,\chi_c,v_c \qquad \chi_c\not\in\{ \brk, \cnt \} \\
-    \rho,\mu_c,\chi_c,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_c,\chi_c,v_c \gives^e f \tto \rho,\mu_f,\chi_f,v_f \\
     \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\top,\t{true}}}\]
 
@@ -465,13 +459,13 @@ A flag skips the loop:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \qquad v_e \ne 0 \\
     \rho,\mu_e,\nil,v_e \gives^c c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_c,\nil,v_c \gives^e f \tto \rho,\mu_f,\chi_f,v_f \\
     \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{true}}}\]
 
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^c c \tto \rho_c,\mu_c,\cnt,v_c \\
-    \rho,\mu_c,\nil,v_c \gives^{e?} f \tto \rho,\mu_f,\chi_f,v_f \\
+    \rho,\mu_c,\nil,v_c \gives^e f \tto \rho,\mu_f,\chi_f,v_f \\
     \rho,\mu_f,\chi_f,v_f \gives^c \t{CWHILE}(e, c, f, \t{true}) \tto \rho,\mu_w,\chi_w,v_w
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CWHILE}(e, c, f, \t{false}) \tto \rho,\mu_w,\chi_w,v_w} \rule{While}{^{\cnt,\t{false}}}\]
 
