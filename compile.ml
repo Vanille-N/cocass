@@ -453,10 +453,7 @@ let codegen decl_list =
                 prog.asm (TAG (label, tagbase ^ "_start")) "";
                 let _ = gen_code locals (label, Some tagbase, Some tagbase, istry) body in
                 prog.asm (TAG (label, tagbase ^ "_finally")) "";
-                (match finally with
-                    | None -> ()
-                    | Some e -> gen_expr locals (label, Some tagbase, Some tagbase) false (Reduce.redexp consts e) (* only in a for loop *)
-                );
+                gen_expr locals (label, Some tagbase, Some tagbase) false (Reduce.redexp consts finally); (* only in a for loop *)
                 prog.asm (TAG (label, tagbase ^ "_check")) "";
                 gen_expr locals (label, Some tagbase, Some tagbase) false (Reduce.redexp consts cond);
                 prog.asm (TST (Regst RAX, Regst RAX)) "";
