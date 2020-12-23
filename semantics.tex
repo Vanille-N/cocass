@@ -553,14 +553,18 @@ Skip the block when a flag is already raised:
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu,\chi,v} \rule{Try}{^\chi}\]
 
 For \(L = [(e_1, x_1, c_1); \cdots; (e_n, x_n, c_n)]\), let \(E = \{ e_i | 1 \leq i \leq n \} \subset S\).
+
+When no exception is raised:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,\nil,v_c \\
     \rho,\mu_c,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
 \end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^\nil}\]
 
+When an exception is raised that is not caught by the current handler:
 \[\dfrac{\begin{array}{c}
-    \chi\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu,\chi,v} \rule{Try}{^\chi}\]
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c \not\in E \\
+    \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\nil,v_f
+\end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,s_c,v_c} \rule{Try}{^{\nil'}}\]
 
 
 \end{document}
