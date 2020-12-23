@@ -545,4 +545,10 @@ Where for \(L = [(j_1, l_1); \cdots; (j_n,l_n)]\), \(L(v_e)\) is defined as foll
 Let \(I_i =  \{ j_1, \cdots, j_i \}\) for \(1 \leq i \leq n\), \(I_{n+1} = \ZZ_{64}\). \\
 \(\tilde{j} \triangleq \min_{1\leq i \leq n+1} \{ i\ |\ v_e\in I_i \}\), finally \(L(v_e) \triangleq [l_{\tilde{j}}; \cdots; l_n; c]\).
 
+\subsection{Try}
+
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,\nil,v_c \\
+    \rho,\mu_c,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
+\end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^\nil}\]
 \end{document}
