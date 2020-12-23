@@ -547,6 +547,12 @@ Let \(I_i =  \{ j_1, \cdots, j_i \}\) for \(1 \leq i \leq n\), \(I_{n+1} = \ZZ_{
 
 \subsection{Try}
 
+Skip the block when a flag is already raised:
+\[\dfrac{\begin{array}{c}
+    \chi\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu,\chi,v} \rule{Try}{^\chi}\]
+
+For \(L = [(e_1, x_1, c_1); \cdots; (e_n, x_n, c_n)]\), let \(E = \{ e_i | 1 \leq i \leq n \} \subset S\).
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,\nil,v_c \\
     \rho,\mu_c,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
