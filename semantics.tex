@@ -570,5 +570,11 @@ When an exception is raised that is not caught by the current handler:
     \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f \qquad \chi_f\ne\nil
 \end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^{\chi'}}\]
 
+When the handler is able to catch the exception:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c = e_{i_0} \\
+    k\in alloc^8(\mu) \qquad \rho[x_{i_0}\mapsto k],\mu_c[k\mapsto v_c],\nil,v_c \gives^c c_{i_0} \tto \rho_0,\mu_0,\chi_0,v_0 \\
+    \rho,\mu_0,\chi_0,v_0 \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
+\end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^s}\]
 
 \end{document}
