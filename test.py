@@ -24,7 +24,7 @@ assets = [
     ("ptr", [[], ["-O"]],
         "array", "fnptr", "additions",
         "extended_assign", "multifnptr",
-        "addr-deref",
+        "addr-deref", "dbl-array",
     ),
     ("string", [[], ["-O"]],
         "argsort", "cat", "path", "put",
