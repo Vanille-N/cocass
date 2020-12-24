@@ -1215,8 +1215,8 @@ let codegen decl_list =
         | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
     );
     let global = get_global_vars decl_list in
-    let fmt_int = prog.str "Unhandled exception %s(%d)\n" in
-    let fmt_str = prog.str "Unhandled exception %s(\"%s\")\n" in
+    let fmt_int = prog.exc "Unhandled exception %s(%d)\n" in
+    let fmt_str = prog.exc "Unhandled exception %s(\"%s\")\n" in
     let defined = List.map (fun (name, _) -> (name, FnPtr name)) stdlib in
     List.iter (gen_decl (global::defined::universal::[])) decl_list;
     (    (* hand-compiled emergency exception handler: prints exception name and parameter as int *)
