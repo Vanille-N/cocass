@@ -49,6 +49,7 @@ assets = [
     ("decl", [[], ["-O"]],
         "init", "alternate", "typedef",
         "ptr", "scope-switch", "override",
+        "string",
     ),
 ]
 
