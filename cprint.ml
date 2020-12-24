@@ -65,8 +65,8 @@ let print_ast (out, color) code =
         match snd code with
             | CBLOCK (code_lst) -> (
                 fprintf out "%sblock\n" (offset ^ curr_full ^ color_none);
-                List.iter (print_code_indent (offset ^ color_none ^ curr_empty) true out) code_lst;
-                fprintf out "%s(end)\n" (offset ^ curr_empty ^ termin ^ color_none);
+                List.iter (print_code_indent (offset ^ curr_empty ^ color_none) true out) code_lst;
+                fprintf out "%s(end)\n" (offset ^ curr_empty ^ color_none ^ termin ^ color_none);
             )
             | CLOCAL (decl_lst) -> (
                 print_ast_indent (offset ^ color_none) true out decl_lst;
