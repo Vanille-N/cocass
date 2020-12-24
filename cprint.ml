@@ -63,6 +63,7 @@ let print_ast (out, color) code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
         match snd code with
+            | CBLOCK [] -> ()
             | CBLOCK (code_lst) -> (
                 fprintf out "%sblock\n" (offset ^ curr_full ^ color_none);
                 List.iter (print_code_indent (offset ^ curr_empty ^ color_none) true out) code_lst;
