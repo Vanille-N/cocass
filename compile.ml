@@ -1195,18 +1195,21 @@ let codegen decl_list =
         | [] -> []
         | (CFUN (_, name, _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
         | (CDECL (loc, name, initval)) :: tl -> (
-            let value = match initval with
-                | None -> 0
+            (match initval with
+                | None -> prog.int name 0;
                 | Some v -> (
                     match Reduce.redexp ~force:true consts v with
-                        | _, CST c -> c
+                        | _, CST c -> prog.int name c;
+                        | _, STRING s -> (
+                            let tag = prog.str s in
+                            prog.quad name tag
+                        )
                         | _ -> (
                             Error.error (Some loc) "initialisation of global variables must be a compile-time constant";
-                            0
+                            prog.int name 0;
                         )
                 )
-            in
-            prog.int name value;
+            );
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
