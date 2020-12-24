@@ -1234,10 +1234,10 @@ let codegen decl_list =
         (* see if exception parameter is a global string *)
         prog.asm (LEA (Globl ".str_start", Regst RAX)) "first string";
         prog.asm (CMP (Regst RCX, Regst RAX)) "";
-        prog.asm (JGE (handler, "int")) "not a string";
+        prog.asm (JGT (handler, "int")) "not a string";
         prog.asm (LEA (Globl ".str_end", Regst RAX)) "last string";
         prog.asm (CMP (Regst RCX, Regst RAX)) "";
-        prog.asm (JLT (handler, "int")) "not a string";
+        prog.asm (JLE (handler, "int")) "not a string";
         prog.asm (LEA (Globl fmt_str, Regst RSI)) "2nd arg is format";
         prog.asm (JMP (handler, "str")) "";
         (* continue normally *)
