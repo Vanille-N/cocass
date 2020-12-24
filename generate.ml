@@ -130,7 +130,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
         ]
     in
     let generate_ialign (name, value) =
-        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.quad %d%s" color_meta value color_int)]
+        [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.quad %s%s" color_meta value color_int)]
     in
     let generate_salign (contents, tag) =
         [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
@@ -312,6 +312,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
 
 type program = {
     int: string -> int -> unit;
+    quad: string -> string -> unit;
     str: string -> string;
     exc: string -> string;
     asm: instruction -> string -> unit;
@@ -326,6 +327,9 @@ let make_prog () =
     let exc_cnt = ref 0 in
     let text = ref [] in
     let int name value =
+        ints := (name, string_of_int value) :: !ints
+    in
+    let quad name value =
         ints := (name, value) :: !ints
     in
     let str value =
@@ -355,6 +359,7 @@ let make_prog () =
         str = str;
         asm = asm;
         int = int;
+        quad = quad;
         exc = exc;
         gen = fun writer -> generate (List.rev !ints, List.rev !strs, List.rev !excs, List.rev !text) writer;
     }

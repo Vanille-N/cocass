@@ -69,6 +69,7 @@ type instruction =
 (** a list of global declarations and assembler instructions *)
 type program = {
     int: string -> int -> unit; (** declare a global integer variable *)
+    quad: string -> string -> unit; (** a global integer variable initialized with a string descriptor *)
     str: string -> string; (** declare a (possibly new) global string *)
     exc: string -> string; (** declare a (possibly new) exception *)
     asm: instruction -> string -> unit; (** add a new instruction *)
