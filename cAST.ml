@@ -67,12 +67,8 @@ type loc_expr = locator * expr
 and expr = VAR of string (* une variable --- toujours de type int. *)
     | CST of int (* une constante entiere. *)
     | STRING of string (* une constante chaine. *)
-    | SET_VAR of string * loc_expr (* affectation x = e. *)
-    | SET_ARRAY of string * loc_expr * loc_expr (* affectation x[e] = e. *)
-    | SET_DEREF of loc_expr * loc_expr (* affectation *e = e. *)
-    | OPSET_VAR of bin_op * string * loc_expr (* affectation x ?= e. *)
-    | OPSET_ARRAY of bin_op * string * loc_expr * loc_expr (* affectation x[e] ?= e. *)
-    | OPSET_DEREF of bin_op * loc_expr * loc_expr (* affectation *e ?= e. *)
+    | SET of loc_expr * loc_expr (* affectation x = e. *)
+    | OPSET of bin_op * loc_expr * loc_expr (* affectation x ?= e. *)
     | CALL of string * loc_expr list (* appel de fonction f(e1,...,en) *)
     (* operations arithmetiques: *)
     | OP1 of mon_op * loc_expr (* OP1(mop, e) dénote -e, ~e, e++, e--, ++e, ou --e. *)
@@ -226,53 +222,18 @@ let rec bufout_expr buf pri e =
             Buffer.add_string buf (String.escaped s);
             Buffer.add_string buf "\""
         )
-        | SET_VAR (x, e) -> (
+        | SET (x, e) -> (
             bufout_open buf pri setop_prec;
-            Buffer.add_string buf x;
+            bufout_loc_expr buf setop_prec x;
             Buffer.add_string buf "=";
             bufout_loc_expr buf setop_prec e;
             bufout_close buf pri setop_prec
         )
-        | OPSET_VAR (op, x, e) -> (
+        | OPSET (op, x, e) -> (
             bufout_open buf pri setop_prec;
-            Buffer.add_string buf x;
+            bufout_loc_expr buf setop_prec x;
             Buffer.add_string buf (setop_text op);
             bufout_loc_expr buf setop_prec e;
-            bufout_close buf pri setop_prec
-        )
-        | SET_ARRAY (x, e, e') -> (
-            bufout_open buf pri setop_prec;
-            Buffer.add_string buf x;
-            Buffer.add_string buf "[";
-            bufout_loc_expr buf index_prec e;
-            Buffer.add_string buf "]=";
-            bufout_loc_expr buf setop_prec e';
-            bufout_close buf pri setop_prec
-        )
-        | OPSET_ARRAY (op, x, e, e') -> (
-            bufout_open buf pri setop_prec;
-            Buffer.add_string buf x;
-            Buffer.add_string buf "[";
-            bufout_loc_expr buf index_prec e;
-            Buffer.add_string buf "]";
-            Buffer.add_string buf (setop_text op);
-            bufout_loc_expr buf setop_prec e';
-            bufout_close buf pri setop_prec
-        )
-        | SET_DEREF (e, e') -> (
-            bufout_open buf pri setop_prec;
-            Buffer.add_string buf "*";
-            bufout_loc_expr buf star_prec e;
-            Buffer.add_string buf "=";
-            bufout_loc_expr buf setop_prec e';
-            bufout_close buf pri setop_prec
-        )
-        | OPSET_DEREF (op, e, e') -> (
-            bufout_open buf pri setop_prec;
-            Buffer.add_string buf "*";
-            bufout_loc_expr buf star_prec e;
-            Buffer.add_string buf (setop_text op);
-            bufout_loc_expr buf setop_prec e';
             bufout_close buf pri setop_prec
         )
         | CALL (f, l) -> (
