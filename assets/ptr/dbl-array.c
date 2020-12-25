@@ -1,14 +1,21 @@
+int W = 6;
+int H = 5;
+
 int main() {
-    int* arr = malloc(3*QSIZE);
+    int* arr = malloc(H*QSIZE);
     int i;
-    for (i = 0; i < 3; i++) {
-        int* k = malloc(2*QSIZE);
-        k[0] = 2*i+1;
-        k[1] = 2*i+2;
-        arr[i] = k;
+    for (i = 0; i < H; i++) {
+        arr[i] = malloc(W*QSIZE);
+        int j;
+        for (j = 0; j < W; j++) {
+            arr[i][j] = i*W + j;
+        }
     }
-    arr[0][0]++;
-    printf("[ %d %d ]\n", arr[0][0], arr[0][1]);
-    printf("[ %d %d ]\n", arr[1][0], arr[1][1]);
-    printf("[ %d %d ]\n", arr[2][0], arr[2][1]);
+    for (i = 0; i < H; i++) {
+        int j;
+        for (j = 0; j < W; j++) {
+            printf("%d ", arr[i][j]);
+        }
+        putchar('\n');
+    }
 }
