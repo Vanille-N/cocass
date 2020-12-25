@@ -24,3 +24,36 @@ Where options are:
 ## Requirements
 
 `cpp` for the preprocessing, `gcc` for the linking.
+
+## Structure
+
+```
+─┐
+ ├─ assets
+ │  ├─ calc/*.c      arithmetic tests
+ │  ├─ call/*.c      function call tests
+ │  ├─ decl/*.c      variable declaration tests
+ │  ├─ easy/*.c      bootstrapping tests
+ │  ├─ except/*.c    exception tests
+ │  ├─ flow/*.c      control flow tests
+ │  ├─ misc/*.c      tests that are difficult to automate
+ │  ├─ ptr/*.c       array access and dereferences
+ │  ├─ reduce/*.c    optimization tests
+ │  └─ string/*.c    char* manipulation
+ ├─ failures/*.c     files that are expected to be rejected or issue a warning
+ ├─ verify/*/*.py    Python verifiers
+ ├─ cAST.ml          syntax tree builder
+ ├─ clex.mll         lexer
+ ├─ compile.ml       AST -> simplified assembler
+ ├─ cparse.mly       source -> AST
+ ├─ cprint.ml        AST pretty-print
+ ├─ error.ml         error reporting
+ ├─ generate.ml      simplified assembler -> asm source code
+ ├─ genlab.ml        (unused)
+ ├─ main.ml          argument parsing
+ ├─ pigment.ml       color abstraction
+ ├─ reduce.ml        ASM simplifier
+ ├─ test.py          automatic tester
+ ├─ verbose.ml       verbosity control
+ └─ *.mli
+```
