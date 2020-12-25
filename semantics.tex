@@ -272,39 +272,17 @@ When one of the operands raises a non-\nil\ flag:
 \subsection{Extended assignments}
 Let \(op\in \t{bin\_op}\setminus \{ \t{S\_INDEX} \}\).
 
-On variables:
+\[\dfrac{\begin{array}{c}
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP1}(\t{M\_ADDR}, a) \tto \rho,\mu_a,\chi_a,v_a \\
+    v_a\in\dom\mu_a \qquad \mu_a^{64}(v_a) = u \\
+    \rho,\mu_a,\chi_a,v_a \gives^e \t{OP2}(op, \t{CST}\ v_a, \t{CST}\ v_e) \tto \rho,\mu',\nil,w
+\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET}(op, a, e) \tto \rho,\mu'[v_a\mapsto w],\nil,w} \rule{Opset}{}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    x\in\dom\rho \qquad \rho(x)\in\dom(\mu_e) \qquad \rho(x) = k \qquad \mu_e^{64}(k) = u \\
-    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\nil,w
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_VAR}(op, x, e) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Var}{^{\gets op}}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil\\
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_VAR}(op, x, e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Var}{^{\gets op\chi}}\]
-
-On arrays:
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e i\tto \rho,\mu_i,\chi_i,v_i \\
-    t\in\dom\rho \qquad \rho(t)+v_i\times8 = k \qquad k\in\dom\mu_i\\
-    \mu_i^{64}(k) = u \qquad \rho,\mu_i,\chi_i,v_i \gives^e \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\t,\nil,w
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Idx}{^{\gets op}}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e i\tto \rho,\mu_i,\chi_i,v_i \qquad \chi_i\ne\nil\\
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_ARRAY}(op, t, e_1, e_2) \tto \rho,\mu_i,\chi_i,v_i} \rule{Idx}{^{\gets op\chi}}\]
-
-On dereferences:
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e a\tto \rho,\mu_a,\chi_a,v_a \\
-    \rho,\mu_a,\chi_a,v_a \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    v_e\in\dom\mu_e \qquad \mu_e^{64}(v_e) = u \\
-    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP2}(op, \t{CST}\ v, \t{CST}\ u) \tto \rho,\mu',\nil,w
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_DEREF}(op, e_1, e_2) \tto \rho,\mu'[k\mapsto w],\nil,w} \rule{Ptr}{^{\gets op}}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e a\tto \rho,\mu_a,\chi_a,v_a \\
-    \rho,\mu_a,\chi_a,v_a \gives^e e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil \\
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET\_DEREF}(op, e_1, e_2) \tto \rho,\mu_e,\chi_e,v_e} \rule{Ptr}{^{\gets op\chi}}\]
+    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP1}(\t{M\_ADDR}, a) \tto \rho,\mu_a,\chi_a,v_a \\
+    \chi_a\ne\nil \\
+\end{array}}{\rho,\mu,\chi,v \gives^e \t{OPSET}(op, a, e) \tto \rho,\mu_a,\chi_a,v_a} \rule{Opset}{^\chi}\]
 
 \subsection{Ternary operator}
 \[\dfrac{\begin{array}{c}
