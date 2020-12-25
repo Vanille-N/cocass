@@ -79,3 +79,16 @@ code
     CTRY (body, handlers, finally)   (* exception handling block *)
     CTHROW (exc, e)      (* raise exception exc(e) *)
 ```
+
+## Modifications
+
+Constructors that were changed
+```ocaml
+expr
+    SET_VAR (name, value), SET_ARRAY (name, idx, value) -> SET (loc, val)
+var_declaration
+    CDECL (loc, name) -> CDECL (loc, name, init_val)
+code
+    CBLOCK (locals, body) -> CBLOCK (body)
+    CWHILE (cond, body) -> CWHILE (cond, body, finally, check)
+```
