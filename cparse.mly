@@ -271,28 +271,12 @@ assignment_expression:
     | unary_expression EQ_CHR assignment_expression {
         let locvar, left = $1 in
         let loc = sup_locator locvar (loc_of_expr $3) in
-        match left with
-            | VAR x -> loc, SET_VAR (x, $3)
-            | OP2 (S_INDEX, (_, VAR x), i) -> loc, SET_ARRAY (x, i, $3)
-            | OP1 (M_DEREF, lhs) -> loc, SET_DEREF (lhs, $3)
-            | _ -> (
-                Error.error (Some loc)
-                    "Can only write assignments of the form x=e or x[e]=e or *e=e.\n";
-                $3
-            )
-        }
+        loc, SET ($1, $3)
+    }
     | unary_expression extended_assignment_operator assignment_expression {
         let locvar, left = $1 in
         let loc = sup_locator locvar (loc_of_expr $3) in
-        match left with
-            | VAR x -> loc, OPSET_VAR ($2, x, $3)
-            | OP2 (S_INDEX, (_, VAR x), i) -> loc, OPSET_ARRAY ($2, x, i, $3)
-            | OP1 (M_DEREF, lhs) -> loc, OPSET_DEREF ($2, lhs, $3)
-            | _ -> (
-                Error.error (Some loc)
-                    "Can only write assignments of the form x=e or x[e]=e or *e=e or with an extended assignment operator.\n";
-                $3
-            )
+        loc, OPSET ($2, $1, $3)
     }
 ;
 
