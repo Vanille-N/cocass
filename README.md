@@ -57,3 +57,25 @@ Where options are:
  ├─ verbose.ml       verbosity control
  └─ *.mli
 ```
+
+## Extensions
+
+Constructors that were added
+```ocaml
+mon_op
+    M_DEREF                (* dereference *)
+    M_ADDR                 (* indirection *)
+bin_op
+    S_SHL, S_SHR           (* bit shifts *)
+    S_AND, S_OR, S_XOR     (* bitwise operators *)
+cmp_op
+    C_GT, C_GE, C_NE       (* comparisons *)
+expr
+    OPSET (op, var, e)     (* extended assignment var <- var op e *)
+code
+    CBREAK, CCONTINUE      (* control flow keywords *)
+    CLOCAL (decls)         (* variable declaration *)
+    CSWITCH (e, cases, default)   (* selection statement *)
+    CTRY (body, handlers, finally)   (* exception handling block *)
+    CTHROW (exc, e)      (* raise exception exc(e) *)
+```
