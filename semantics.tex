@@ -242,31 +242,13 @@ When one of the operands raises a non-\nil\ flag:
 \subsection{Assignments}
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\nil,v_e \\
-    x\in\dom\rho \qquad \rho(x)\in\dom\mu_e
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_VAR}(x, e) \tto \rho,\mu_e^{64}[\rho(x)\mapsto v_e],\nil,v_e}\rule{Var}{^\gets}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_VAR}(x, e) \tto \rho,\mu_e,\chi_e,v_e}\rule{Var}{^{\gets\chi}}\]
-
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e i\tto \rho,\mu_i,\nil,v_i \\
-    \rho(x)\in\dom\mu_i
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu_i^{64}[\rho(x)+v_i\times 8 \mapsto v_e],\nil,v_e}\rule{Idx}{^\gets}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e\tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e i\tto \rho,\mu_i,\chi_i,v_i \qquad \chi_i\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_ARRAY}(x, i, e) \tto \rho,\mu_i,\chi_i,v_i}\rule{Idx}{^{\gets\chi}}\]
-
+    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP1}(\t{M\_ADDR}, a) \tto \rho,\mu_a,\nil,v_a
+\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET}(a, e) \tto \rho,\mu_a^{64}[v_a\mapsto v_e],\nil,v_e}\rule{Ptr}{^\gets}\]
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e a \tto \rho,\mu_a,\nil,v_a
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_DEREF}(a, e) \tto \rho,\mu_a^{64}[v_a\mapsto v_e],\nil,v_e}\rule{Ptr}{^\gets}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
-    \rho,\mu_e,\chi_e,v_e \gives^e a \tto \rho,\mu_a,\chi_a,v_a \qquad \chi_a\ne\nil
-\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET\_DEREF}(a, e) \tto \rho,\mu_a,\chi_a,v_a}\rule{Ptr}{^{\gets\chi}}\]
+    \rho,\mu_e,\chi_e,v_e \gives^e \t{OP1}(\t{M\_ADDR}, a) \tto \rho,\mu_a,\chi_a,v_a \qquad \chi_a\ne\nil
+\end{array}}{\rho,\mu,\chi,v \gives^e \t{SET}(a, e) \tto \rho,\mu_a,\chi_a,v_a}\rule{Ptr}{^{\gets\chi}}\]
 
 \subsection{Increments}
 On variables:
