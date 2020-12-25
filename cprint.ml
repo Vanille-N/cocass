@@ -147,39 +147,17 @@ let print_ast (out, color) code =
             | VAR name -> fprintf out "%svar <%s>\n" (offset ^ curr_full ^ color_none) (color_var ^ name ^ color_none)
             | CST value -> fprintf out "%sconst <%s>\n" (offset ^ curr_full ^ color_none) (color_const ^ (string_of_int value) ^ color_none)
             | STRING str -> fprintf out "%sconst <%s>\n" (offset ^ curr_full ^ color_none) (color_const ^ "\"" ^ (String.escaped str) ^ "\"" ^ color_none)
-            | SET_VAR (name, expr) -> (
-                fprintf out "%sassign <%s>\n" (offset ^ curr_full ^ color_none) (color_var ^ name ^ color_none);
-                print_expr_indent (offset ^ curr_empty ^ color_none) false out expr;
-            )
-            | SET_ARRAY (name, index, value) -> (
-                fprintf out "%sassign <%s>\n" (offset ^ curr_full ^ color_none) (color_var ^ name ^ color_none);
-                fprintf out "%sindex\n" (offset ^ curr_empty ^ color_none ^ bifurc);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out index;
-                fprintf out "%svalue\n" (offset ^ curr_empty ^ color_none ^ termin);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ blank) false out value;
-            )
-            | SET_DEREF (index, value) -> (
+            | SET (pos, value) -> (
                 fprintf out "%sassign\n" (offset ^ curr_full ^ color_none);
-                fprintf out "%sderef\n" (offset ^ curr_empty ^ color_none ^ bifurc);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out index;
+                fprintf out "%slocation\n" (offset ^ curr_empty ^ color_none ^ bifurc);
+                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out pos;
                 fprintf out "%svalue\n" (offset ^ curr_empty ^ color_none ^ termin);
                 print_expr_indent (offset ^ curr_empty ^ color_none ^ blank) false out value;
             )
-            | OPSET_VAR (op, name, expr) -> (
-                fprintf out "%sassign <%s> extended <%s>\n" (offset ^ curr_full ^ color_none) (color_var ^ name ^ color_none) (color_fun ^ (bin_op_repr op) ^ color_none);
-                print_expr_indent (offset ^ curr_empty ^ color_none) false out expr;
-            )
-            | OPSET_ARRAY (op, name, index, value) -> (
-                fprintf out "%sassign <%s> extended <%s>\n" (offset ^ curr_full ^ color_none) (color_var ^ name ^ color_none) (color_fun ^ (bin_op_repr op) ^ color_none);
-                fprintf out "%sindex\n" (offset ^ curr_empty ^ color_none ^ bifurc);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out index;
-                fprintf out "%svalue\n" (offset ^ curr_empty ^ color_none ^ termin);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ blank) false out value;
-            )
-            | OPSET_DEREF (op, index, value) -> (
+            | OPSET (op, pos, value) -> (
                 fprintf out "%sassign extended <%s>\n" (offset ^ curr_full ^ color_none) (color_fun ^ (bin_op_repr op) ^ color_none);
-                fprintf out "%sderef\n" (offset ^ curr_empty ^ color_none ^ bifurc);
-                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out index;
+                fprintf out "%slocation\n" (offset ^ curr_empty ^ color_none ^ bifurc);
+                print_expr_indent (offset ^ curr_empty ^ color_none ^ cont) false out pos;
                 fprintf out "%svalue\n" (offset ^ curr_empty ^ color_none ^ termin);
                 print_expr_indent (offset ^ curr_empty ^ color_none ^ blank) false out value;
             )
