@@ -767,7 +767,9 @@ let codegen decl_list =
                     leave_stackframe name;
                 )
         )
-    and gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) with_addr expr = match snd expr with
+    and gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) with_addr expr =
+        let loc = fst expr in
+        match snd expr with
         | VAR name -> (match assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s." name)
             | Some (Const k) -> (
@@ -804,83 +806,19 @@ let codegen decl_list =
                 prog.asm (LEA (Globl name, Regst RAX)) (sprintf "read %s" name)
             )
         )
-        | SET_VAR (name, value) -> (
-            gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
-            match assoc name frame with
-                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
-                | Some loc when is_addr loc -> (
-                    if with_addr then (
-                        prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
-                        prog.asm (MOV (Regst RAX, Deref RDI)) (sprintf "write %s" name);
-                    ) else (
-                        prog.asm (MOV (Regst RAX, loc)) (sprintf "write %s" name)
-                    )
-                )
-                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-        )
-        | SET_ARRAY (arr, idx, value) -> (
-            match assoc arr frame with
-                | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s." arr)
-                | Some loc when is_addr loc -> (
-                    gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
-                    store depth RAX;
-                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false idx;
-                    prog.asm (MOV (Regst RAX, Regst RCX)) "move index";
-                    retrieve (depth) RAX;
-                    (* idx is in RCX, value is in RAX *)
-                    if with_addr then (
-                        prog.asm (MOV (loc, Regst RDI)) "access array";
-                        prog.asm (LEA (Index (RDI, RCX), Regst RDI)) " +";
-                        prog.asm (MOV (Regst RAX, Deref RDI)) " +";
-                    ) else (
-                        prog.asm (MOV (loc, Regst RDI)) "access array";
-                        prog.asm (MOV (Regst RAX, Index (RDI, RCX))) " +";
-                    )
-                )
-                | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-        )
-        | SET_DEREF (dest, value) -> (
+        | SET (dest, value) -> (
+            (if not @@ is_lvalue @@ snd @@ dest then Error.error (Some loc) "not an lvalue, cannot assign");
             gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
             store depth RAX;
-            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false dest;
-            prog.asm (MOV (Regst RAX, Regst RDI)) "move address";
+            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) true dest;
             retrieve depth RAX;
             prog.asm (MOV (Regst RAX, Deref RDI)) "write to deref";
         )
-        | OPSET_VAR _ | OPSET_ARRAY _ | OPSET_DEREF _ -> (
-            let (op, value) = (match snd expr with
-                | OPSET_VAR (op, _, value) -> (op, value)
-                | OPSET_ARRAY (op, _, _, value) -> (op, value)
-                | OPSET_DEREF (op, _, value) -> (op, value)
-                | _ -> failwith "unreachable @ compile::codegen::gen_expr::OPSET_*"
-            ) in
+        | OPSET (op, dest, value) -> (
+            (if not @@ is_lvalue @@ snd @@ dest then Error.error (Some loc) "not an lvalue, cannot perform extended assignment");
             gen_expr (depth, frame, va_depth) (label, tagbrk, tagcont) false value;
             store depth RAX;
-            (match snd expr with
-                | OPSET_VAR (op, name, value) -> (
-                    match assoc name frame with
-                        | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
-                        | Some loc when is_addr loc -> (
-                            prog.asm (LEA (loc, Regst RDI)) (sprintf "access %s" name);
-                        )
-                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-                )
-                | OPSET_ARRAY (op, name, idx, value) -> (
-                    match assoc name frame with
-                        | None -> Error.error (Some (fst expr)) (sprintf "cannot assign to undeclared %s.\n" name)
-                        | Some loc when is_addr loc -> (
-                            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false idx;
-                            prog.asm (MOV (loc, Regst RDI)) "access array";
-                            prog.asm (LEA (Index (RDI, RAX), Regst RDI)) " +";
-                        )
-                        | _ -> Error.error (Some (fst expr)) "need an lvalue to assign."
-                )
-                | OPSET_DEREF (op, addr, value) -> (
-                    gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) false addr;
-                    prog.asm (MOV (Regst RAX, Regst RDI)) "load value as address";
-                )
-                | _ -> failwith "unreachable @ compile::codegen::gen_expr::OPSET_*"
-            );
+            gen_expr (depth+1, frame, va_depth) (label, tagbrk, tagcont) true dest;
             (* The address of our expression is in RDI *)
             retrieve depth RAX;
             (match op with

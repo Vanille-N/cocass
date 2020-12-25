@@ -29,13 +29,9 @@ let rec redexp ?force:(force=false) consts e =
                 )
                 | loc, CST c -> (loc, CST c)
                 | loc, STRING s -> (loc, STRING s)
-                | loc, SET_VAR (name, value) -> (loc, SET_VAR (name, aux value))
-                | loc, SET_ARRAY (name, idx, value) -> (loc, SET_ARRAY (name, aux idx, aux value))
-                | loc, SET_DEREF (addr, value) -> (loc, SET_DEREF (aux addr, aux value))
+                | loc, SET (pos, value) -> (loc, SET (aux pos, aux value))
                 | loc, CALL (fn, args) -> (loc, CALL (fn, List.map (aux) args))
-                | loc, OPSET_VAR (op, name, value) -> (loc, OPSET_VAR (op, name, aux value))
-                | loc, OPSET_ARRAY (op, name, idx, value) -> (loc, OPSET_ARRAY (op, name, aux idx, aux value))
-                | loc, OPSET_DEREF (op, addr, value) -> (loc, OPSET_DEREF (op, aux addr, aux value))
+                | loc, OPSET (op, pos, value) -> (loc, OPSET (op, aux pos, aux value))
                 | loc, ESEQ lst -> (loc, ESEQ (List.map (aux) lst))
                 | loc, CMP (op, lhs, rhs) -> (
                     let lhs = aux lhs in
