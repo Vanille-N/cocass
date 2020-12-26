@@ -79,14 +79,16 @@ and expr = VAR of string (* une variable --- toujours de type int. *)
     | ESEQ of loc_expr list (* e1, ..., en [sequence, analogue a e1;e2 au niveau code];
                             si n=0, represente skip. *)
 
-type var_declaration =
-    | CDECL of locator * string * loc_expr option (* declaration de variable de type int. *)
-    | CFUN of locator * string * var_declaration list * loc_code
+type top_declaration =
+    | CDECL of var_declaration * loc_expr option (* declaration de variable de type int. *)
+    | CFUN of var_declaration * var_declaration list * loc_code
         (* fonction avec ses arguments, et son code. *)
+and var_declaration = locator * string
+and local_declaration = var_declaration * loc_expr option
 and loc_code = locator * code
 and code =
     | CBLOCK of loc_code list (* { code; } *)
-    | CLOCAL of var_declaration list (* declarations *)
+    | CLOCAL of local_declaration list (* declarations *)
     | CEXPR of loc_expr (* une expression e; vue comme instruction. *)
     | CIF of loc_expr * loc_code * loc_code (* if (e) c1; else c2; *)
     | CWHILE of loc_expr * loc_code * loc_expr * bool (* test_at_start? while (e) c; finally; *)
