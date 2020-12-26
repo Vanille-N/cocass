@@ -449,7 +449,7 @@ First, the obvious:
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ d \tto \rho,\mu,\chi,v} \rule{Local}{^\chi}\]
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \\
+    \rho,\mu,\chi,v \gives^e e \tto \mu_e,\nil,v_e \\
     k \in alloc^8(\mu_e) \qquad \rho' = \rho[w \mapsto k] \qquad \mu' = \mu_e[k \mapsto v_e] \\
     \rho',\mu',\nil,v_e \gives^c \t{CLOCAL}\ S \tto \rho_s,\mu_s,\chi_s,v_s
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}((w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
@@ -457,18 +457,18 @@ First, the obvious:
 \subsection{Throw}
 If a flag is already raised, skip the \t{CTHROW}:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
+    \rho,\mu,\chi,v \gives^e e \tto \mu_e,\chi_e,v_e \qquad \chi_e\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CTHROW}(s,e) \tto \rho,\mu_e,\chi_e,v_e} \rule{Throw}{^\chi}\]
 
 Otherwise raise the new exception \(s\in S\):
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e
+    \rho,\mu,\chi,v \gives^e e \tto \mu_e,\nil,v_e
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CTHROW}(s,e) \tto \rho,\mu_e,s,v_e} \rule{Throw}{}\]
 
 \subsection{Switch}
 
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\chi_e,v_e \\
+    \rho,\mu,\chi,v \gives^e e \tto \mu_e,\chi_e,v_e \\
     \rho,\mu_e,\chi_e,v_e \gives^c \t{CBLOCK}(L(v_e)) \tto \rho,\mu_l,\chi_l,v_l
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CSWITCH}(e, L, c) \tto \rho,\mu_l,\chi_l,v_l} \rule{Switch}{}\]
 
@@ -493,17 +493,20 @@ When no exception is raised:
 
 When an exception is raised that is not caught by the current handler:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c \not\in E \\
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \\
+    s_c \not\in E \qquad \t{\_}\not\in E \\
     \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\nil,v_f
 \end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,s_c,v_c} \rule{Try}{^{\nil'}}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c \not\in E \\
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \\
+    s_c \not\in E \qquad \t{\_}\not\in E \\
     \rho,\mu,\nil,v_c \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f \qquad \chi_f\ne\nil
 \end{array}}{\rho,\mu,\nil,v \gives^c \tto \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^{\chi'}}\]
 
 When the handler is able to catch the exception:
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \qquad s_c = e_{i_0} \\
+    \rho,\mu,\nil,v \gives^c c \tto \rho_c,\mu_c,s_c,v_c \\
+    s_c = e_{i_0} \qquad x_{i_0} \ne \t{\_} \\
     k\in alloc^8(\mu) \qquad \rho[x_{i_0}\mapsto k],\mu_c[k\mapsto v_c],\nil,v_c \gives^c c_{i_0} \tto \rho_0,\mu_0,\chi_0,v_0 \\
     \rho,\mu_0,\chi_0,v_0 \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
 \end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^s}\]
