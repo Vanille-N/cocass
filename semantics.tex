@@ -2,7 +2,7 @@
 
 \newcommand{\Cmp}{\(\pm\)C}
 \newcommand{\Cmm}{C\textminus\textminus}
-\newcommand{\fun}{\text{fun}_\pi^n}
+\newcommand{\fun}{\text{fun}_\pi}
 \newcommand{\fnptr}{\text{fun}_\mu^n}
 \newcommand{\gives}{\vdash_\pi}
 \newcommand{\brk}{\t{brk}}
@@ -38,7 +38,7 @@ However we will usually use \(\mu^{64}[x\mapsto v] \triangleq\mu[x+k\mapsto v_k\
 
 A similar notation is used for \(\rho\), \(\rho_g\) and \(\fun\).
 
-\(alloc^i: \mathcal{M}\to \ZZ_{64}\sqcup\{\bot\}\) is such that if \(k = alloc^i(\mu) \ne \bot\) then \(\forall 0\leq j < i, k+j\not\in\dom\mu\). In what follows we assume that \(alloc^i(\mu)\) is never \(\bot\), i.e. all rules that use \(k = alloc^i(\mu)\) have the implicit precondition \(k\ne\bot\).
+\(alloc^i: \mathcal{M}\to \mathcal{P}(\ZZ_{64})\) is such that if \(k \in alloc^i(\mu) \ne \bot\) then \(\forall 0\leq j < i, k+j\not\in\dom\mu\).
 
 The domains as well are ommitted : "\(\rho\in P\)", "\(\mu\in\mathcal{M}\)", etc. are not explicit.
 
