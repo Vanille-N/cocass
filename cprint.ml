@@ -69,8 +69,8 @@ let print_ast (out, color) code =
                 List.iter (print_code_indent (offset ^ curr_empty ^ color_none) true out) code_lst;
                 fprintf out "%s(end)\n" (offset ^ curr_empty ^ color_none ^ termin ^ color_none);
             )
-            | CLOCAL (decl_lst) -> (
-                print_ast_indent (offset ^ color_none) true out decl_lst;
+            | CLOCAL decl_lst -> (
+                List.iter (print_local_indent (offset ^ color_none) true out) decl_lst;
             )
             | CEXPR expr -> (
                 fprintf out "%sexpr\n" (offset ^ curr_full ^ color_none);
@@ -127,19 +127,32 @@ let print_ast (out, color) code =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
         List.iter (function
-            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
-            | CDECL (_, name, Some init) -> (
+            | CDECL ((_, name), None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL ((_, name), Some init) -> (
                 fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
                 fprintf out "%sinit\n" (offset ^ curr_empty ^ termin);
                 print_expr_indent (offset ^ curr_empty ^ blank) false out init;
             )
-            | CFUN (_, name, decs, code) -> (
+            | CFUN ((_, name), decs, code) -> (
                 fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (color_fun ^ name ^ color_none);
-                print_ast_indent (offset ^ curr_empty) true out decs;
+                List.iter (print_var_indent (offset ^ curr_empty) true out) decs;
                 fprintf out "%sbody\n" (offset ^ blank ^ curr_full);
                 print_code_indent (offset ^ blank ^ curr_empty) false out code;
             )
         ) dec_lst
+    and print_local_indent offset next out dec =
+        let curr_full = if next then bifurc else termin in
+        let curr_empty = if next then cont else blank in
+        match dec with
+            | ((_, name), None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | ((_, name), Some init) -> (
+                fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
+                fprintf out "%sinit\n" (offset ^ curr_empty ^ termin);
+                print_expr_indent (offset ^ curr_empty ^ blank) false out init;
+            )
+    and print_var_indent offset next out (_, name) =
+        let curr_full = if next then bifurc else termin in
+        fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
     and print_expr_indent offset next out expr =
         let curr_full = if next then bifurc else termin in
         let curr_empty = if next then cont else blank in
@@ -201,17 +214,20 @@ let print_declarations (out, color) code =
         let curr_empty = if next then cont else blank in
         let curr_full = if next then bifurc else termin in
         List.iter (function
-            | CDECL (_, name, None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
-            | CDECL (_, name, Some init) -> (
+            | CDECL ((_, name), None) -> fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
+            | CDECL ((_, name), Some init) -> (
                 fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none);
                 fprintf out "%s(init)\n" (offset ^ blank ^ curr_full);
             )
-            | CFUN (_, name, decs, code) -> (
+            | CFUN ((_, name), decs, code) -> (
                 fprintf out "%sfunc <%s>\n" (offset ^ curr_full) (color_fun ^ name ^ color_none);
-                print_ast_indent (offset ^ curr_empty) true out decs;
+                List.iter (print_var_indent (offset ^ curr_empty) true out) decs;
                 fprintf out "%s(body)\n" (offset ^ blank ^ curr_full);
             )
         ) dec_lst
+    and print_var_indent offset next out (_, name) =
+        let curr_full = if next then bifurc else termin in
+        fprintf out "%svar <%s>\n" (offset ^ curr_full) (color_var ^ name ^ color_none)
     in print_ast_indent "" false out code
 
 let print_locator out nom fl fc ll lc =
