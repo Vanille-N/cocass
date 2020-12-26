@@ -524,4 +524,11 @@ When the handler is able to catch the exception:
     \rho,\mu_c,\nil,v_c \gives^c c_{i_0} \tto \rho_0,\mu_0,\chi_0,v_0 \\
     \rho,\mu_0,\chi_0,v_0 \gives^c f \tto \rho_f,\mu_f,\chi_f,v_f
 \end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^s}\]
+
+\section{Declarations}
+\section{Global variables}
+
+\[\dfrac{\begin{array}{c}
+    k\not\in\dom\rho \qquad k \in alloc^8(\mu)
+\end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{None}) \tto \rho[x\mapsto k],\mu[k\mapsto 0],\fun} \rule{Decl}{^\t{None}}\]
 \end{document}
