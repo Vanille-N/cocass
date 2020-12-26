@@ -54,7 +54,7 @@ let parse_error msg =
 %token TRY THROW CATCH FINALLY
 %token ASM
 
-%type <(CAST.var_declaration list)> translation_unit
+%type <(CAST.top_declaration list)> translation_unit
 
 %start translation_unit
 %%
@@ -308,14 +308,14 @@ init_declarator_list:
 declarative_statement: declaration { getloc (), CLOCAL $1 }
 
 init_declarator:
-    | identifier EQ_CHR assignment_expression { let loc, x = $1 in CDECL (loc, x, Some $3) }
-    | identifier { let loc, x = $1 in CDECL (loc, x, None) }
-    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) }
+    | identifier EQ_CHR assignment_expression { let loc, x = $1 in ((loc, x), Some $3) }
+    | identifier { let loc, x = $1 in ((loc, x), None) }
+    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in ((loc, x), None) }
 ;
 
 declarator:
-    | identifier { let loc, x = $1 in CDECL (loc, x, None) }
-    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { let loc, x = $1 in CDECL (loc, x, None) }
+    | identifier { $1 }
+    | identifier OPEN_PAREN_CHR CLOSE_PAREN_CHR { $1 }
 ;
 
 type_specifier:
@@ -500,7 +500,7 @@ translation_unit:
 
 external_declaration:
     | function_definition { [$1] }
-    | declaration { $1 }
+    | declaration { List.map (fun (id, init) -> CDECL (id, init)) $1 }
 ;
 
 parameter_declaration: type_specifier declarator { $2 };
@@ -513,7 +513,7 @@ parameter_list:
         { $3 :: $1 }
 ;
 
-ellipsis: ELLIPSIS { CDECL (getloc (), "...", None) }
+ellipsis: ELLIPSIS { (getloc (), "...") }
 
 parameter_type_list:
     | parameter_list { List.rev $1}
@@ -534,7 +534,7 @@ function_declarator:
 function_definition:
     | function_declarator compound_statement {
         let (loc, var), decls = $1 in
-        CFUN (loc, var, decls, $2)
+        CFUN ((loc, var), decls, $2)
     }
 ;
 
