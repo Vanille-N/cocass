@@ -531,4 +531,8 @@ When the handler is able to catch the exception:
 \[\dfrac{\begin{array}{c}
     k\not\in\dom\rho \qquad k \in alloc^8(\mu)
 \end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{None}) \tto \rho[x\mapsto k],\mu[k\mapsto 0],\fun} \rule{Decl}{^\t{None}}\]
+
+\[\dfrac{\begin{array}{c}
+    x\not\in\dom\rho \qquad k \in alloc^8(\mu)
+\end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{Some}(\t{CST}\ c)) \tto \rho[x\mapsto k],\mu[k\mapsto c],\fun} \rule{Decl}{^\t{CST}}\]
 \end{document}
