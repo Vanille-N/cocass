@@ -107,20 +107,18 @@ let reserved = ["va_start"; "va_arg"; "assert"]
 let predefs = ["SIG_IGN"]
 
 (* detect conflicting declaration *)
-let find_duplicate_decl decls =
+let find_duplicate_decl extractor decls =
     let rec dup = function
         | [] -> None
         | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
         | _ :: tl -> dup tl
     in
-    let names = List.map (function
-        | CFUN (loc, name, _, _) when List.mem name reserved || List.mem name predefs ->
-            (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
-        | CDECL (loc, name, _) when List.mem name reserved || List.mem name predefs ->
-            (Error.error (Some loc) (sprintf "%s is a reserved name" name); (loc, name))
-        | CDECL (loc, name, _) -> (loc, name)
-        | CFUN (loc, name, _, _) -> (loc, name)
-    ) decls in
+    let names = List.map extractor decls in
+    List.iter (function
+        | (loc, name) when List.mem name reserved || List.mem name predefs ->
+            (Error.error (Some loc) (sprintf "%s is a reserved name" name))
+        | _ -> ()
+    ) names;
     dup (List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) names)
 
 (* determine if expression is trivial,
@@ -133,9 +131,11 @@ let is_single_step = function
     | _ -> false
 
 (* get declaration name from var_declaration *)
-let extract_decl_name = function
-    | CDECL (_, name, _) -> name
-    | CFUN (_, name, _, _) -> name
+let extract_decl_id = function
+    | CDECL (id, _) -> id
+    | CFUN (id, _, _) -> id
+
+let extract_decl_name d = snd @@ extract_decl_id @@ d
 
 (* predefined variables *)
 let universal = [
@@ -256,9 +256,9 @@ let stdlib = [
 let defined_functions decl_lst =
     let rec aux = function
         | [] -> stdlib
-        | (CFUN (_, name, CDECL (_, "...", _) :: fixed, _)) :: tl ->
+        | (CFUN ((_, name), (_, "...") :: fixed, _)) :: tl ->
             (name, (More (List.length fixed), false)) :: aux tl
-        | (CFUN (_, name, params, _)) :: tl ->
+        | (CFUN ((_, name), params, _)) :: tl ->
             (name, (Exact (List.length params), false)) :: aux tl
         | _ :: tl -> aux tl
     in
@@ -340,7 +340,7 @@ let codegen decl_list =
         let n = List.length decs in
         let stacked = List.init (max 0 (n-6)) (fun i -> Stack (i+2)) in
         let regged = truncate (min 6 n) [RDI; RSI; RDX; RCX; R08; R09] in
-        let names = List.map extract_decl_name decs in
+        let names = List.map snd decs in
         List.iter (fun name -> Vb.detail (sprintf "argument: %s" name)) names;
         let regged = List.mapi (fun i (loc, name) ->
             let newloc = Stack (-i-1) in
@@ -355,12 +355,12 @@ let codegen decl_list =
             | _ -> ()
         ) vars;
         vars
-    and make_scope depth decls =
+    and make_scope depth (decls:local_declaration list) =
         (* allocate space for local variables and record their position *)
         let n = List.length decls in
         let pos = List.init n (fun i -> Stack (-i-depth)) in
-        let names = List.map extract_decl_name decls in
-        (match find_duplicate_decl decls with
+        let names = List.map (fun x -> snd @@ fst @@ x) decls in
+        (match find_duplicate_decl fst decls with
             | None -> ()
             | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
         );
@@ -392,8 +392,7 @@ let codegen decl_list =
                 let newvars = make_scope depth declarations in
                 let newdepth = depth + List.length declarations in
                 let initvals = List.map (function
-                    | CDECL (_, _, i) -> i
-                    | CFUN _ -> failwith "unreachable @ compile::codegen::gen_code::CLOCAL::initvals"
+                    ((_, _), i) -> i
                 ) declarations in
                 List.iter (fun ((name, pos), init) ->
                     match init with
@@ -694,17 +693,17 @@ let codegen decl_list =
                 locals
             )
     and gen_decl frame = function
-        | CDECL (loc, name, _) -> Vb.info (Some loc) (sprintf "variable declaration: %s" name)
-        | CFUN (loc, name, decs, code) -> (
+        | CDECL ((loc, name), _) -> Vb.info (Some loc) (sprintf "variable declaration: %s" name)
+        | CFUN ((loc, name), decs, code) -> (
             Vb.info (Some loc) (sprintf "function declaration: %s" name);
             reset_label_cnt ();
             prog.asm (FUN name) "toplevel function";
-            (match find_duplicate_decl decs with
+            (match find_duplicate_decl (fun x -> x) decs with
                 | None -> ()
                 | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
             );
             match decs with
-                | CDECL (_, "...", _) :: fixed -> (
+                | (_, "...") :: fixed -> (
                     Vb.detail "function is variadic";
                     (* variadic *)
                     if name = "main" then Error.error (Some loc) "main may not be variadic";
@@ -728,12 +727,9 @@ let codegen decl_list =
                     let nb_fixed = List.length fixed in
                     prog.asm (MOV (Regst R10, Stack 1)) "put back return address";
                     prog.asm (MOV (Regst R11, Stack 0)) "save previous base pointer";
-                    let args = List.mapi (fun i dec -> match dec with
-                        | CDECL (_, name, _) -> (
-                            Vb.detail (sprintf "argument: %s" name);
-                            (name, Stack (i+2))
-                        )
-                        | _ -> failwith "unreachable @ codegen::gen_decl::CDECL...::_"
+                    let args = List.mapi (fun i (_, name) ->
+                        Vb.detail (sprintf "argument: %s" name);
+                        (name, Stack (i+2))
                     ) fixed in
                     let _ = gen_code (1, args :: frame, Some nb_fixed) (name, None, None, false) code in
                     leave_stackframe name;
@@ -1131,8 +1127,8 @@ let codegen decl_list =
     in
     let rec get_global_vars = function
         | [] -> []
-        | (CFUN (_, name, _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
-        | (CDECL (loc, name, initval)) :: tl -> (
+        | (CFUN ((_, name), _, _)) :: tl -> (name, FnPtr name) :: (get_global_vars tl)
+        | (CDECL ((loc, name), initval)) :: tl -> (
             (match initval with
                 | None -> prog.int name 0;
                 | Some v -> (
@@ -1151,7 +1147,7 @@ let codegen decl_list =
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
-    (match find_duplicate_decl decl_list with
+    (match find_duplicate_decl extract_decl_id decl_list with
         | None -> ()
         | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
     );

@@ -1,1 +1,1 @@
-val compile : (out_channel * bool) -> CAST.var_declaration list -> unit;;
+val compile : (out_channel * bool) -> CAST.top_declaration list -> unit;;
