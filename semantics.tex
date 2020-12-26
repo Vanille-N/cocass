@@ -448,12 +448,11 @@ First, the obvious:
     \chi\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ d \tto \rho,\mu,\chi,v} \rule{Local}{^\chi}\]
 
-There are never functions defined in a \t{CLOCAL}, only \t{CDECL}:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \rho,\mu_e,\nil,v_e \\
     k \in alloc^8(\mu_e) \qquad \rho' = \rho[w \mapsto k] \qquad \mu' = \mu_e[k \mapsto v_e] \\
     \rho',\mu',\nil,v_e \gives^c \t{CLOCAL}\ S \tto \rho_s,\mu_s,\chi_s,v_s
-\end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}(\t{CDECL}(w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
+\end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}((w,e)::S) \tto \rho_s,\mu_s,\chi_s,v_s} \rule{Local}{^1}\]
 
 \subsection{Throw}
 If a flag is already raised, skip the \t{CTHROW}:
