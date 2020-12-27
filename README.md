@@ -125,6 +125,17 @@ OPSET
         x []= 2    -> parsing error
         2 += 2     -> Extended assignment needs an lvalue
 ```
+```ocaml
+CBREAK, CCONTINUE, CTHROW
+    Examples
+        break;       -> CBREAK
+        continue;    -> CCONTINUE
+        throw E(x);  -> CTHROW("E", VAR "x")
+        throw E;     -> CTHROW("E", VAR "NULL")
+    Errors
+        try { break; }  -> break may not reach outside of try
+        try { continue; }  -> continue may not reach outside of try
+```
 ## Modifications
 
 Constructors that were changed
