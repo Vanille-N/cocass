@@ -2,9 +2,8 @@
 
 \newcommand{\Cmp}{\(\pm\)C}
 \newcommand{\Cmm}{C\textminus\textminus}
-\newcommand{\fun}{\text{fun}_\pi}
-\newcommand{\fnptr}{\text{fun}_\mu^n}
-\newcommand{\gives}{\vdash_\pi}
+\newcommand{\fun}{\text{fun}}
+\newcommand{\gives}{\vdash}
 \newcommand{\brk}{\t{brk}}
 \newcommand{\ret}{\t{ret}}
 \newcommand{\cnt}{\t{cnt}}
@@ -313,8 +312,8 @@ Works for both a toplevel function and a function pointer:
     \rho,\mu_{n+1},\chi_{n+1},v_{n+1} \gives^e e_n \tto \mu_n,\chi_n,v_n \\
     \cdots \\
     \rho,\mu_2,\chi_2,v_2 \gives^e e_1 \tto \mu_1,\nil,v_1 \\
-    f\in\dom\fun \\
-    \rho_g,\mu_1,\nil,0 \gives^e \fun(f)(v_1, \cdots, v_n) \tto \rho_f,\mu_f,\chi_f,v_f
+    f\in\dom\rho \qquad \rho(f)\in\dom\fun \\
+    \rho_g,\mu_1,\nil,0 \gives^e \fun(\rho(f))(v_1, \cdots, v_n) \tto \rho_f,\mu_f,\chi_f,v_f
 \end{array}}{\rho,\mu_n,\chi_n,v_n \gives^e \t{CALL}(f, [e_1; \cdots; e_n]) \tto \mu_f,\chi_f,v_f} \rule{Call}{^n}\]
 
 \[\dfrac{\begin{array}{c}
