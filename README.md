@@ -115,6 +115,16 @@ C_GT, C_GE, C_NE
         EIF(CMP(C_LE, a, b), 0, 1) -> CMP(C_GT, a, b)
         EIF(CMP(C_LT, a, b), 0, 1) -> CMP(C_GE, a, b)
 ```
+```ocaml
+OPSET
+    Examples
+        x += 2     -> OPSET(M_ADD, VAR "x", CST 2)
+        x *= 2     -> OPSET(M_MUL, VAR "x", CST 2)
+        etc...
+    Errors
+        x []= 2    -> parsing error
+        2 += 2     -> Extended assignment needs an lvalue
+```
 ## Modifications
 
 Constructors that were changed
