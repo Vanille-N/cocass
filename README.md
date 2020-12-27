@@ -99,6 +99,22 @@ M_ADDR
         &"abc"     -> Indirection needs an lvalue
 
 ```
+```ocaml
+S_SHL, S_SHR, S_OR, S_XOR, S_AND
+    Examples
+        x << 2     -> OP2(S_SHL, VAR "x", CST 2)
+        x >> 2     -> OP2(S_SHR, VAR "x", CST 2)
+        x | 2      -> OP2(S_OR, VAR "x", CST 2)
+        x ^ 2      -> OP2(S_XOR, VAR "x", CST 2)
+        x & 2      -> OP2(S_AND, VAR "x", CST 2)
+```
+```ocaml
+C_GT, C_GE, C_NE
+    Reduction
+        EIF(CMP(C_EQ, a, b), 0, 1) -> CMP(C_NE, a, b)
+        EIF(CMP(C_LE, a, b), 0, 1) -> CMP(C_GT, a, b)
+        EIF(CMP(C_LT, a, b), 0, 1) -> CMP(C_GE, a, b)
+```
 ## Modifications
 
 Constructors that were changed
