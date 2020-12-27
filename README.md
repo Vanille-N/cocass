@@ -79,7 +79,26 @@ code
     CTRY (body, handlers, finally)   (* exception handling block *)
     CTHROW (exc, e)      (* raise exception exc(e) *)
 ```
+Examples
 
+```ocaml
+M_DEREF
+    Examples
+        *x          -> OP1(M_DEREF, VAR "x")
+        *(x+1)      -> OP1(M_DEREF, OP2(S_ADD, VAR "x", CST 1))
+```
+```ocaml
+M_ADDR
+    Examples
+        &x         -> OP1(M_ADDR, VAR "x")
+        &x[10]     -> OP1(M_ADDR, OP2(M_INDEX, VAR "x", CST 10))
+        &*x        -> OP1(M_ADDR, OP1(M_DEREF, VAR "x"))
+    Errors
+        &10
+        &(x+1)
+        &"abc"     -> Indirection needs an lvalue
+
+```
 ## Modifications
 
 Constructors that were changed
