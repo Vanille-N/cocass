@@ -156,6 +156,23 @@ CSWITCH
              (2, CBLOCK [])
            ], CBLOCK [])
 ```
+```ocaml
+CTRY
+    Examples
+        try {
+        } catch (E x) {
+        } catch (F _) {
+        } catch (G) {
+        } finally {
+        }
+        -> CTRY (CBLOCK [], [
+             ("E", "x", CBLOCK []);
+             ("F", "_", CBLOCK []);
+             ("G", "_", CBLOCK [])
+           ], CBLOCK [])
+```
+
+
 ## Modifications
 
 Constructors that were changed
