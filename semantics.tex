@@ -525,7 +525,7 @@ When the handler is able to catch the exception:
 \end{array}}{\rho,\mu,\nil,v \gives^c \t{CTRY}(c, L, f) \tto \rho,\mu_f,\chi_f,v_f} \rule{Try}{^s}\]
 
 \section{Declarations}
-\section{Global variables}
+\subsection{Global variables}
 
 \[\dfrac{\begin{array}{c}
     k\not\in\dom\rho \qquad k \in alloc^8(\mu)
@@ -536,8 +536,7 @@ When the handler is able to catch the exception:
 \end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{Some}(\t{CST}\ c)) \tto \rho[x\mapsto k],\mu[k\mapsto c],\fun} \rule{Decl}{^\t{CST}}\]
 
 \[\dfrac{\begin{array}{c}
-    s\text{ stored at }a\in Addr \\
-    x\not\in\dom\rho \\
+    s\text{ stored at }a\in Addr \qquad x\not\in\dom\rho \\
 \end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{Some}(\t{STRING}\ s)) \tto \rho[x\mapsto a],\mu,\fun} \rule{Decl}{^\t{STRING}}\]
 
 \subsection{Functions}
