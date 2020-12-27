@@ -136,6 +136,13 @@ CBREAK, CCONTINUE, CTHROW
         try { break; }  -> break may not reach outside of try
         try { continue; }  -> continue may not reach outside of try
 ```
+```ocaml
+CLOCAL
+    Examples
+        int x;       -> CLOCAL[("x", None)]
+        int x, y;    -> CLOCAL[("x", None), ("y", None)]
+        int x = 1;   -> CLOCAL[("x", Some (CST 1))]
+```
 ## Modifications
 
 Constructors that were changed
