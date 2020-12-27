@@ -143,6 +143,19 @@ CLOCAL
         int x, y;    -> CLOCAL[("x", None), ("y", None)]
         int x = 1;   -> CLOCAL[("x", Some (CST 1))]
 ```
+```ocaml
+CSWITCH
+    Examples
+        switch (x) {
+            case 1:
+            case 2:
+            default:
+        }
+        -> CSWITCH (VAR x, [
+             (1, CBLOCK []);
+             (2, CBLOCK [])
+           ], CBLOCK [])
+```
 ## Modifications
 
 Constructors that were changed
