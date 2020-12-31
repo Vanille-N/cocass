@@ -224,3 +224,22 @@ With the addition of `*x`, `SET_DEREF (x, e)` was first added but required much 
 Also, `t[x][y] = 1;` was a parsing error, but `t[x][y]` was a valid expression.
 Since `M_DEREF` added the (ugly) workaround `*&t[x][y] = 1`, I decided it was time to allow more expressions to be treated as lvalues. Changing assignment was deemed the best course of action.
 At the same time, formerly `OPSET_VAR`, `OPSET_ARRAY` and `OPSET_DEREF` became `OPSET`.
+
+### Blocks
+```ocaml
+CBLOCK
+    Code
+        {
+            int x;
+            x = 1;
+        }
+    Old
+        CBLOCK (CDECL "x", [CEXPR (SET_VAR ("x", CST 1))])
+    New
+        CBLOCK [
+            CLOCAL ("x", None);
+            CEXPR (SET (VAR "x", CST 1))
+        ]
+```
+Justification:
+As soon as `int x;` and `int x = 1;` were allowed anywhere in the code, it made no more sense to have blocks carry information on the variables defined inside of them.
