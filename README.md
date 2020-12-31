@@ -243,3 +243,23 @@ CBLOCK
 ```
 Justification:
 As soon as `int x;` and `int x = 1;` were allowed anywhere in the code, it made no more sense to have blocks carry information on the variables defined inside of them.
+
+### Loops
+```ocaml
+CWHILE
+    Code
+        for (e1; e2; e3) { c }
+        while (e) { c }
+        do { c } while (e);
+    Old
+        e1; CWHILE (e2, c @ [e3])
+        CWHILE (e, c)
+        error
+    New
+        e1; CWHILE (e2, c, e3, true)
+        CWHILE (e, c, ESEQ [], true)
+        CWHILE (e, c, ESEQ [], false)
+```
+Justification:
+The addition of `do-while` required some information on whether the test should be done at the start of the loop, a boolean was chosen.
+At the same time, wanting to implement `break` and `continue`, it was deemed necessary to separate the body block and the finally clause of `for`. This is what the third argument accomplishes.
