@@ -206,3 +206,21 @@ code
     CWHILE (cond, body) -> CWHILE (cond, body, finally, check)
 var_declaration
 ```
+### Assignments
+```ocaml
+SET
+    Code
+        x = 1;
+        t[0] = 1;
+    Old
+        SET_VAR("x", CST 1)
+        SET_ARRAY("t", CST 0, CST 1)
+    New
+        SET (VAR "x", CST 1)
+        SET (OP2 (S_INDEX, VAR "t", CST 1))
+```
+Justification:
+With the addition of `*x`, `SET_DEREF (x, e)` was first added but required much code duplication.
+Also, `t[x][y] = 1;` was a parsing error, but `t[x][y]` was a valid expression.
+Since `M_DEREF` added the (ugly) workaround `*&t[x][y] = 1`, I decided it was time to allow more expressions to be treated as lvalues. Changing assignment was deemed the best course of action.
+At the same time, formerly `OPSET_VAR`, `OPSET_ARRAY` and `OPSET_DEREF` became `OPSET`.
