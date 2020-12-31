@@ -285,6 +285,17 @@ let consts = List.filter_map (function
     | _ -> None
 ) universal
 
+type generation_target = Value | Address | Both
+let needs_address t = t <> Value
+let needs_value t = t <> Address
+
+let sup_target a b =
+    match (needs_value a || needs_value b, needs_address a || needs_address b) with
+        | true, true -> Both
+        | true, false -> Value
+        | false, true -> Address
+        | _ -> failwith "unreachable @ sup_target::_"
+
 (* <><><> NOTE <><><>
  * Accross all the program, the following conventions are used:
  * *** RAX is last evaluated expression
