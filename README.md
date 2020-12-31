@@ -263,3 +263,25 @@ CWHILE
 Justification:
 The addition of `do-while` required some information on whether the test should be done at the start of the loop, a boolean was chosen.
 At the same time, wanting to implement `break` and `continue`, it was deemed necessary to separate the body block and the finally clause of `for`. This is what the third argument accomplishes.
+
+### Declarations
+```ocaml
+type top_declaration =
+  | CDECL of var_declaration * loc_expr option
+  | CFUN of var_declaration * var_declaration list * loc_code
+and var_declaration = Error.locator * string
+and local_declaration = var_declaration * loc_expr option
+```
+Justification:
+The addition of optional initialisation values made no sense for function parameters, also `CDECL | CFUN` matches were required in many places where `CFUN` were impossible anyway.
+To streamline the typing `var_declaration` was renamed to `top_declaration`, the name `var_declaration` was reserved for function arguments, and `local_declaration` for local variables.
+
+```c
+int x;               // CDECL ((_,"x"), None)
+int y = 1;           // CDECL ((_,"y"), Some (CST 1))
+
+int foo (int z) {    // CFUN (_, "foo", [(_,"z")], ...)
+    int i;           // CLOCAL [((_,"i"), None)]
+    int j = 0;       // CLOCAL [((_,"j"), Some (CST 0))]
+}
+```
