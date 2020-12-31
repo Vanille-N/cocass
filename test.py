@@ -4,49 +4,49 @@ from subprocess import run
 import sys
 
 assets = [
-    ("easy", [[], ["-O"]],
+    ("easy", [["--no-reduce"], []],
         "ex0", "ex1", "ex2", "add",
         "ret", "scoped_ret", "isdigit",
         "ex3", "ex4", "ex5", "ex6", "ex7",
         "ex8", "ex9", "ex10", "ex11", "ex12",
     ),
-    ("call", [[], ["-O"]],
+    ("call", [["--no-reduce"], []],
         "argcount", "noreturn", "multicall",
         "has_args", "hello", "call",
         "exit", "printglob", "max",
         "varargs", "assert",
     ),
-    ("calc", [[], ["-O"]],
+    ("calc", [["--no-reduce"], []],
         "fact", "binops", "bitwise", "cmp",
         "ordre", "incdec", "cmp_order", "shifts",
         "calc",
     ),
-    ("ptr", [[], ["-O"]],
+    ("ptr", [["--no-reduce"], []],
         "array", "fnptr", "additions",
         "extended_assign", "multifnptr",
         "addr-deref", "dbl-array",
     ),
-    ("string", [[], ["-O"]],
+    ("string", [["--no-reduce"], []],
         "argsort", "cat", "path", "put",
         "quine", "sprintf", "string", "strret",
     ),
-    ("flow", [[], ["-O"]],
+    ("flow", [["--no-reduce"], []],
         "break", "continue", "count", "loops",
         "switch_loop", "seq",
     ),
-    ("reduce", [[], ["-O"]],
+    ("reduce", [["--no-reduce"], []],
         "reduce_eif", "reduce_monops", "reduce_binops",
         "reduce_cmp", "big_switch", "single_step",
         "array",
     ),
-    ("except", [[], ["-O"]],
+    ("except", [["--no-reduce"], []],
         "exc1", "exc2", "exc3", "except",
         "loop_try", "try_loop",
         "try_switch", "any_catch",
         "nothrow", "uncaught-str",
         "assert-catch",
     ),
-    ("decl", [[], ["-O"]],
+    ("decl", [["--no-reduce"], []],
         "init", "alternate", "typedef",
         "ptr", "scope-switch", "override",
         "string",
@@ -166,9 +166,9 @@ def main():
 
     if len(args) >= 1:
         for fbase in args:
-            if len(fbase) >= 2 and fbase[0:2] == "--":
+            if len(fbase) >= 1 and fbase[-1] == "/":
                 for (category, more_args, *tests) in assets:
-                    if category == fbase[2:]:
+                    if category == fbase[:-1]:
                         for fbase in tests:
                             nb_files += 1
                             for more in more_args:

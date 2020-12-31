@@ -557,4 +557,9 @@ Finally, here's how the whole program executes:
     \rho_{n-1},\mu_{n-1},\fun_{n-1} \gives^d d_n \tto \rho_n,\mu_n,\fun_n \\
     \rho_n,\mu_n,\nil,0 \gives^e \t{CALL}(\t{main}, [\t{argc}; \t{argv}]) \tto \mu',\chi',v' \\
 \end{array}}{\rho_0,\mu_0,\fun_0 \gives^\pi [d_1; \cdots; d_n] \tto \mu',\chi',v'} \rule{Prog}{}\]
+
+\(\rho_0\), \(\mu_0\) and \(\fun_0\) initially contain some predefined globals and constants such as \t{NULL}, \t{stdout}, \t{EOF}, \t{true}, \t{BYTE}, \t{QSIZE}, ..., as well as standard library functions (\t{malloc}, \t{atol}, \t{rand}, \t{sleep}, \t{qsort}, ...)\\
+
+% varargs
+
 \end{document}
