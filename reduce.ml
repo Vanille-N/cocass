@@ -1,6 +1,6 @@
 open CAST
 
-let reduce_exprs = ref false
+let reduce_exprs = ref true
 
 let cmp_rev = function
     | C_NE -> C_EQ

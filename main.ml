@@ -8,7 +8,7 @@ let c_prefix = ref "a.out"
 let c_D = ref false
 let c_A = ref false
 let c_S = ref false
-let c_O = ref false
+let c_Reduce = ref false
 let c_Color = ref false
 
 let basename s =
@@ -23,7 +23,7 @@ let () =
          ("-D",  Unit (fun () -> c_D:=true),  "print declarations");
          ("-A",  Unit (fun () -> c_A:=true),  "print abstract syntax tree");
          ("-S",  Unit (fun () -> c_S:=true),  "output assembler dump");
-         ("-O",  Unit (fun () -> c_O:=true),  "turn on expression optimisation");
+         ("--no-reduce",  Unit (fun () -> c_Reduce:=true),  "turn off expression optimisation");
          ("--no-color", Unit (fun () -> c_Color:=true), "do not add syntax coloring")]
         (fun s ->
             c_prefix := basename s;
@@ -40,8 +40,8 @@ let () =
     in
     Error.flush_error ();
 
-    if !c_O then (
-        Reduce.reduce_exprs := true
+    if !c_Reduce then (
+        Reduce.reduce_exprs := false
     );
     if !c_D then (
         Cprint.print_declarations (Format.std_formatter, Pigment.has_color && (not !c_Color)) c
