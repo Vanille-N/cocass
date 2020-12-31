@@ -8,6 +8,14 @@ Make targets:
 - `make` builds `mcc`
 - `make test` runs `mcc` on the tests: test files in `assets/`, verifiers in `verify/`. Each test is a `.c` file and a `.py` verifier, the output of the compiled executable is checked against the verifier for each set of command line arguments.
 
+Note: `make test` executes `./test.py`, which you can also invoke directly:
+`./test.py [TESTS]` where `TESTS` is a list of
+- `category/` (e.g. `except/`) to run a full category of tests
+- `file` (e.g. `except/exc1`) to run a single test
+
+or is left empty to run all tests.
+
+
 ## Usage
 
 `mcc [OPTIONS] [FILE]`
@@ -18,8 +26,10 @@ Where options are:
 - `-S` dump assembler and exit
 - `-v`, `-v1` report structural items
 - `-v2` report details
-- `-O` enables reduction of expressions whose result is known at compile-time
-- `--no-color` turn off syntax highlighting (if your terminal doesn't support it or if you want to pipe the output to a file)
+- `--no-reduce` disables reduction of expressions whose result is known at compile-time
+    (added because reduction was required for toplevel initialisation, and I decided to make it available for all expressions. Nevertheless having the ability to turn it on and off is useful for verification)
+- `--no-color` turn off syntax highlighting
+    (added because I wanted to add color, but still needed the option of turning it off if the terminal doesn't support it or in order to pipe the output to a file)
 
 ## Requirements
 
@@ -79,7 +89,8 @@ code
     CTRY (body, handlers, finally)   (* exception handling block *)
     CTHROW (exc, e)      (* raise exception exc(e) *)
 ```
-Examples
+
+### Unary operators
 
 ```ocaml
 M_DEREF
@@ -99,6 +110,8 @@ M_ADDR
         &"abc"     -> Indirection needs an lvalue
 
 ```
+### Binary operators and comparisons
+
 ```ocaml
 S_SHL, S_SHR, S_OR, S_XOR, S_AND
     Examples
@@ -115,6 +128,8 @@ C_GT, C_GE, C_NE
         EIF(CMP(C_LE, a, b), 0, 1) -> CMP(C_GT, a, b)
         EIF(CMP(C_LT, a, b), 0, 1) -> CMP(C_GE, a, b)
 ```
+
+### Extended assignment
 ```ocaml
 OPSET
     Examples
@@ -125,6 +140,8 @@ OPSET
         x []= 2    -> parsing error
         2 += 2     -> Extended assignment needs an lvalue
 ```
+
+### Control flow
 ```ocaml
 CBREAK, CCONTINUE, CTHROW
     Examples
@@ -136,6 +153,8 @@ CBREAK, CCONTINUE, CTHROW
         try { break; }  -> break may not reach outside of try
         try { continue; }  -> continue may not reach outside of try
 ```
+
+### Declarations
 ```ocaml
 CLOCAL
     Examples
@@ -143,6 +162,8 @@ CLOCAL
         int x, y;    -> CLOCAL[("x", None), ("y", None)]
         int x = 1;   -> CLOCAL[("x", Some (CST 1))]
 ```
+
+### Switch
 ```ocaml
 CSWITCH
     Examples
@@ -156,6 +177,8 @@ CSWITCH
              (2, CBLOCK [])
            ], CBLOCK [])
 ```
+
+### Try
 ```ocaml
 CTRY
     Examples
@@ -175,13 +198,11 @@ CTRY
 
 ## Modifications
 
-Constructors that were changed
 ```ocaml
 expr
     SET_VAR (name, value), SET_ARRAY (name, idx, value) -> SET (loc, val)
-var_declaration
-    CDECL (loc, name) -> CDECL (loc, name, init_val)
 code
     CBLOCK (locals, body) -> CBLOCK (body)
     CWHILE (cond, body) -> CWHILE (cond, body, finally, check)
+var_declaration
 ```
