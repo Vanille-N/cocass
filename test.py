@@ -4,7 +4,7 @@ from subprocess import run
 import sys
 
 assets = [
-    ("easy", [["--no-reduce"], []],
+    ("boot", [["--no-reduce"], []],
         "ex0", "ex1", "ex2", "add",
         "ret", "scoped_ret", "isdigit",
         "ex3", "ex4", "ex5", "ex6", "ex7",

@@ -43,7 +43,7 @@ Where options are:
  │  ├─ calc/*.c      arithmetic tests
  │  ├─ call/*.c      function call tests
  │  ├─ decl/*.c      variable declaration tests
- │  ├─ easy/*.c      bootstrapping tests
+ │  ├─ boot/*.c      tests to get started
  │  ├─ except/*.c    exception tests
  │  ├─ flow/*.c      control flow tests
  │  ├─ misc/*.c      tests that are difficult to automate
