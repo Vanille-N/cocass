@@ -201,35 +201,14 @@ All are the same as in \Cmm.
 For optimisation purposes mostly, the comparison operators \(\t{C\_NE}\), \(\t{C\_GT}\), \(\t{C\_GE}\) may be introduced by the compiler (not by the parser, however).\\
 They are defined as
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 = v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \mu_1,\nil,0}\rule{Ne}{^\bot}\]
+    \rho,\mu,\chi,v \gives^e \t{OP1}(\t{M\_NOT}, \t{CMP}(\t{C\_EQ}, e_1, e_2)) \tto \mu',\chi',v'
+\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \mu',\chi',v'}\rule{Ne}{}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 \leq v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \mu_1,\nil,0}\rule{Gt}{^\bot}\]
+    \rho,\mu,\chi,v \gives^e \t{OP1}(\t{M\_NOT}, \t{CMP}(\t{C\_LE}, e_1, e_2)) \tto \mu',\chi',v'
+\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \mu',\chi',v'}\rule{Gt}{}\]
 \[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 < v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \mu_1,\nil,0}\rule{Ge}{^\bot}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 \ne v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_NE}, e_1, e_2) \tto \mu_1,\nil,1}\rule{Ne}{^\top}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 \not\leq v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GT}, e_1, e_2) \tto \mu_1,\nil,1}\rule{Gt}{^\top}\]
-\[\dfrac{\begin{array}{c}
-    \rho,\mu,\chi,v \gives^e e_2\tto \mu_2,\chi_2,v_2 \\
-    \rho,\mu_2,\chi_2,v_2 \gives^e e_1\tto \mu_1,\nil,v_1 \\
-    \qquad v_1 \not< v_2
-\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \mu_1,\nil,1}\rule{Ge}{^\top}\]
+    \rho,\mu,\chi,v \gives^e \t{OP1}(\t{M\_NOT}, \t{CMP}(\t{C\_LT}, e_1, e_2)) \tto \mu',\chi',v'
+\end{array}}{\rho,\mu,\nil,v \gives^e \t{CMP}(\t{C\_GE}, e_1, e_2) \tto \mu',\chi',v'}\rule{Ge}{}\]
 
 When one of the operands raises a non-\nil\ flag:
 \[\dfrac{\begin{array}{c}
