@@ -419,13 +419,16 @@ A flag skips the loop:
 
 \subsection{Local variable declarations}
 
-First, the obvious:
+When there are none:
 \[\dfrac{\begin{array}{c}
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ [] \tto \rho,\mu,\chi,v} \rule{Local}{^0}\]
+
+When an error occurs:
 \[\dfrac{\begin{array}{c}
     \chi\ne\nil
 \end{array}}{\rho,\mu,\chi,v \gives^c \t{CLOCAL}\ d \tto \rho,\mu,\chi,v} \rule{Local}{^\chi}\]
 
+Otherwise:
 \[\dfrac{\begin{array}{c}
     \rho,\mu,\chi,v \gives^e e \tto \mu_e,\nil,v_e \\
     k \in alloc^8(\mu_e) \qquad \rho' = \rho[w \mapsto k] \qquad \mu' = \mu_e[k \mapsto v_e] \\
