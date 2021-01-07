@@ -25,3 +25,35 @@ The parsing step produces a list of declarations, which the reduction slightly m
     \item \t{reduce.ml}: expression reduction
     \item \t{pigment.ml}: color management
 \end{itemize}
+
+\subsection{Scope management}
+
+The scope is managed throughout \t{compile.ml} with the three parameters
+\begin{itemize}
+    \item \t{envt}, an associative list that yields a location for each identifier
+    \item \t{depth}, an integer that tells the current number of local or temporary variables on the stack
+    \item \t{va\_depth}, either \t{None} or the number of non-optional parameters
+\end{itemize}
+
+To locate a variable, \t{envt} is scanned and yields a \t{location}:
+\begin{minted}{ocaml}
+type location =
+    | Stack of int (* variable is on the stack at the given depth *)
+    | Const of int (* known constant value *)
+    | Globl of string (* global variable *)
+    | FnPtr of string (* function pointer *)
+    | Hexdc of string (* hexadecimal constant *)
+    | Regst of register (* variable is in a register *)
+    | Deref of register (* variable is at the address given by a register *)
+    | Index of register * register (* variable is at an index with offset given by the two registers *)
+\end{minted}
+
+\subsection{Register distribution}
+
+Throughout the main function of \t{compile.ml}, the following conventions are used:
+\begin{itemize}
+    \item \t{RAX} contains the last evaluated expression
+    \item \t{RDI} contains the last evaluated address
+    \item \t{RCX} is an extra register for 2-register operations
+    \item \t{R10} is used whenever a function pointer is needed
+\end{itemize}
