@@ -28,3 +28,16 @@ Note:
     \item \forall \t{e} with an address, \ml{OP1(M_DEREF, OP1(M_ADDR, e))} is equivalent to \t{e}
 \end{itemize}
 
+
+\subsection{Binary operators}
+The following binary operators were added:
+\t{S\_SHL}, \t{S\_SHR}, \t{S\_OR}, \t{S\_XOR}, \t{S\_AND}
+Examples
+\begin{itemize}
+    \item \t{x << 2} \to\ \ml{OP2(S_SHL, VAR "x", CST 2)}
+    \item \t{x >> 2} \to\ \ml{OP2(S_SHR, VAR "x", CST 2)}
+    \item \t{x | 2} \to\ \ml{OP2(S_OR, VAR "x", CST 2)}
+    \item \t{x \textasciicircum\ 2} \to\ \ml{OP2(S_XOR, VAR "x", CST 2)}
+    \item \t{x \& 2} \to\ \ml{OP2(S_AND, VAR "x", CST 2)}
+\end{itemize}
+
