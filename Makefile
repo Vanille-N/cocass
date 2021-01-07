@@ -8,8 +8,6 @@
 %.cmi: %.mli
 	ocamlc -g -c $<
 
-.PHONY: all
-
 # Compilation parameters:
 CAMLOBJS=error.cmo cAST.cmo pigment.cmo reduce.cmo cprint.cmo \
 	cparse.cmo clex.cmo verbose.cmo genlab.cmo generate.cmo compile.cmo \
@@ -25,8 +23,6 @@ FILES=clex.mll cAST.ml cAST.mli cparse.mly \
 	  error.ml verbose.ml verbose.mli genlab.ml main.ml \
 	  Makefile README.md test.py
 TESTS=assets failures verify
-
-all: mcc
 
 mcc: $(CAMLOBJS)
 	ocamlc -g -o mcc unix.cma $(CAMLOBJS)
@@ -51,8 +47,17 @@ projet:
 test: mcc
 	./test.py
 
-tex:
-	pdflatex --interaction=nonstopmode --halt-on-error semantics.tex
+TEX_ARGS=--interaction=nonstopmode --halt-on-error
+PDFLATEX_ARGS=$(TEX_ARGS)
+LUALATEX_ARGS=$(TEX_ARGS) --shell-escape
+
+semantics:
+	cd docs ; \
+		pdflatex $(PDFLATEX_ARGS) semantics.tex
+
+report:
+	cd docs ; \
+		lualatex $(LUALATEX_ARGS) report.tex
 
 cparse.ml: cparse.mly
 	ocamlyacc -v cparse.mly
