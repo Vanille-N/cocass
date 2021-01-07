@@ -50,3 +50,15 @@ For any \t{a}, \t{b}:
     \item \ml{EIF(CMP(C_LT, a, b), 0, 1)} \to\ \ml{CMP(C_GE, a, b)}
 \end{itemize}
 
+\subsection{Extended assignment}
+Examples
+\begin{itemize}
+    \item \t{x += 2} \to\ \ml{OPSET(M_ADD, VAR "x", CST 2)}
+    \item \t{x *= 2} \to\ \ml{OPSET(M_MUL, VAR "x", CST 2)}
+    \item etc...
+\end{itemize}
+Errors
+\begin{itemize}
+    \item \t{x []= 2} \to\ parsing error
+    \item \t{2 += 2} \to\ `Extended assignment needs an lvalue'
+\end{itemize}
