@@ -62,3 +62,27 @@ Errors
     \item \t{x []= 2} \to\ parsing error
     \item \t{2 += 2} \to\ `Extended assignment needs an lvalue'
 \end{itemize}
+
+\subsection{Control flow}
+\t{CBREAK} (exit loop or switch), \t{CCONTINUE} (skip to next iteration of loop), \t{CTHROW} (raise exception)\\
+Examples
+\begin{itemize}
+    \item \t{break;} \to\ \ml{CBREAK}
+    \item \t{continue;} \to\ \ml{CCONTINUE}
+    \item \t{throw E(x);} \to\ \ml{CTHROW("E", VAR "x")}
+    \item \t{throw E;} \to\ \ml{CTHROW("E", VAR "NULL")}
+\end{itemize}
+Errors
+\begin{itemize}
+    \item \t{try \{ break; \}} \to\ `break may not reach outside of try'
+    \item \t{try \{ continue; \}} \to\ `continue may not reach outside of try'
+\end{itemize}
+
+\subsection{Declarations}
+\t{CLOCAL} is used to declare a local variable in the middle of a block.
+Examples
+\begin{itemize}
+    \item \t{int x;} \to\ \ml{CLOCAL[("x", None)]}
+    \item \t{int x, y;} \to\ \ml{CLOCAL[("x", None), ("y", None)]}
+    \item \t{int x = 1;} \to\ \ml{CLOCAL[("x", Some (CST 1))]}
+\end{itemize}
