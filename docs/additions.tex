@@ -1,0 +1,30 @@
+\section{Additions}
+
+The following constructs were added to the supported language:
+
+\subsection{Unary operators}
+\t{M\_DEREF}: accesses the address given by the expression.\\
+Examples:
+\begin{itemize}
+    \item \t{*x} \to\ \ml{OP1(M_DEREF, VAR "x")}
+    \item \t{*(x+1)} \to\ \ml{OP1(M_DEREF, OP2(S_ADD, VAR "x", CST 1))}
+\end{itemize}
+
+\t{M\_ADDR}: yields the address of an expression\\
+Examples
+\begin{itemize}
+    \item \t{\&x} \to\ \ml{OP1(M_ADDR, VAR "x")}
+    \item \t{\&x[10]} \to\ \ml{OP1(M_ADDR, OP2(M_INDEX, VAR "x", CST 10))}
+    \item \t{\&*x} \to\ \ml{OP1(M_ADDR, OP1(M_DEREF, VAR "x"))}
+\end{itemize}
+Errors
+\begin{itemize}
+    \item \t{\&10}, \t{\&(x+1)}, \t{\&"abc"} \to\ `Indirection needs an lvalue'
+\end{itemize}
+
+Note:
+\begin{itemize}
+    \item \forall \t{e}, \ml{OP1(M_ADDR, OP1(M_DEREF, e))} is equivalent to \t{e}
+    \item \forall \t{e} with an address, \ml{OP1(M_DEREF, OP1(M_ADDR, e))} is equivalent to \t{e}
+\end{itemize}
+
