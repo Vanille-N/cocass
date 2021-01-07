@@ -69,3 +69,15 @@ Tags also have rules:
 \end{itemize}
 
 Some parameters are passed around in the generating functions to record which tags to jump to at various steps.
+
+\subsection{Function skeleton}
+All functions have the same basic structure, they :
+\begin{itemize}
+    \item start by storing their callee-saved registers
+    \item keep their frame pointer equal to their base pointer except during subroutine calls
+    \item have a \t{return} tag that they jump to in order to return
+\end{itemize}
+
+\subsection{For convenience}
+To avoid some mistakes and avoid redefining all common constant values, the compiler includes a fixed list of known functions selected from the standard library and some constant values. These functions are spell-checked, and their number of arguments is validated.\\
+Constants include common values such as \t{NULL} and \t{EOF} as well as non-standard ones like \t{BYTE} (255).
