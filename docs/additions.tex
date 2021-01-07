@@ -41,3 +41,12 @@ Examples
     \item \t{x \& 2} \to\ \ml{OP2(S_AND, VAR "x", CST 2)}
 \end{itemize}
 
+\subsection{Comparisons}
+To simplify some expressions, the reduction step is allowed to perform the following transformations.\\
+For any \t{a}, \t{b}:
+\begin{itemize}
+    \item \ml{EIF(CMP(C_EQ, a, b), 0, 1)} \to\ \ml{CMP(C_NE, a, b)}
+    \item \ml{EIF(CMP(C_LE, a, b), 0, 1)} \to\ \ml{CMP(C_GT, a, b)}
+    \item \ml{EIF(CMP(C_LT, a, b), 0, 1)} \to\ \ml{CMP(C_GE, a, b)}
+\end{itemize}
+
