@@ -104,3 +104,22 @@ CSWITCH (VAR x, [
     (2, CBLOCK [CEXPR (CST 2)])
 ], CBLOCK [CEXPR (CST 3)])
 \end{minted}
+
+\subsection{Try}
+\t{CTRY} declares an exception handling block.
+Example:
+\begin{minted}{c}
+try { 1; }
+catch (E x) { 2; }
+catch (F _) { 3; }
+catch (G) { 4; }
+finally { 5; }
+\end{minted}
+parses to
+\begin{minted}{ocaml}
+CTRY (CBLOCK [CEXPR (CST 1)], [
+    ("E", "x", CBLOCK [CEXPR (CST 2)]);
+    ("F", "_", CBLOCK [CEXPR (CST 3)]);
+    ("G", "_", CBLOCK [CEXPR (CST 4)])
+], CBLOCK [CEXPR (CST 5)])
+\end{minted}
