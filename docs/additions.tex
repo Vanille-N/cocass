@@ -86,3 +86,21 @@ Examples
     \item \t{int x, y;} \to\ \ml{CLOCAL[("x", None), ("y", None)]}
     \item \t{int x = 1;} \to\ \ml{CLOCAL[("x", Some (CST 1))]}
 \end{itemize}
+
+\subsection{Switch}
+\t{CSWITCH} declares a switch block.
+Example:
+\begin{minted}{c}
+switch (x) {
+    case 1: 1;
+    case 2: 2;
+    default: 3;
+}
+\end{minted}
+parses to
+\begin{minted}{ocaml}
+CSWITCH (VAR x, [
+    (1, CBLOCK [CEXPR (CST 1)]);
+    (2, CBLOCK [CEXPR (CST 2)])
+], CBLOCK [CEXPR (CST 3)])
+\end{minted}
