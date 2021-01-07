@@ -1,0 +1,27 @@
+\section{Major design choices}
+
+\subsection{Compiler passes}
+
+The compiler does the following passes:
+\begin{enumerate}
+    \item lex and parse source code into ASM
+    \item reduce expressions
+    \item generate abstract assembler
+    \item translate to text
+    \item print aligned instructions
+    \item assemble and link
+\end{enumerate}
+
+Reduction and generation are partly merged : each time an expression is encountered it is reduced (only once) before being generated.
+
+The parsing step produces a list of declarations, which the reduction slightly modifies. The generation outputs the abstract assembler defined in \t{generate.ml}. Translation and printing combined produce ascii text. The assembly step is external.
+
+\subsection{File distribution}
+
+\begin{itemize}
+    \item \t{cAST.ml}: text to AST translation
+    \item \t{compile.ml}: AST to \t{program}
+    \item \t{generate.ml}: \t{program} to \t{alignment} to string representation
+    \item \t{reduce.ml}: expression reduction
+    \item \t{pigment.ml}: color management
+\end{itemize}
