@@ -1,0 +1,17 @@
+\section{Modifications}
+The following changes were made to existing constructs of the AST.\\
+Each comes with an explanation of why it was deemed necessary in the context of other additions to the language.
+
+\subsection{Assignments}
+\t{SET} replaces both \t{SET\_VAR} and \t{SET\_ARRAY} as well as what was for some time \t{SET\_DEREF}.\\
+\begin{itemize}
+    \item \t{x = 1;}
+    \not\to\ \ml{SET_VAR("x", CST 1)}
+    \to\ \ml{SET(VAR "x", CST 1)}
+    \item \t{t[0] = 1;}
+    \not\to\ \ml{SET_ARRAY("t", CST 0, CST 1)}
+    \to\ \ml{SET(OP2(S_INDEX, VAR "t", CST 0), CST 1)}
+    \item \t{*x = 1}
+    \not\to\ \ml{SET_DEREF("x", CST 1)}
+    \to\ \ml{SET(OP1(M_DEREF, VAR "x"), CST 1)}
+\end{itemize}
