@@ -15,3 +15,11 @@ Each comes with an explanation of why it was deemed necessary in the context of 
     \not\to\ \ml{SET_DEREF("x", CST 1)}
     \to\ \ml{SET(OP1(M_DEREF, VAR "x"), CST 1)}
 \end{itemize}
+
+Justification:\\
+With the addition of \t{*x}, \ml{SET_DEREF(x, e)} was first added but required much code duplication (all code related to assignment needed to appear thrice).\\
+At first, \t{t[x][y] = 1;} was a parsing error, even though \t{t[x][y]} was a valid expression.\\
+Since \t{M\_DEREF} added the horrible workaround \t{*(\&t[x][y]) = 1;}, allowing any expression to be assigned to, I decided it was time to allow more expressions to be treated as lvalues. Changing assignment was deemed the best course of action.\\
+At the same time, former constructors \t{OPSET\_VAR}, \t{OPSET\_ARRAY} and \t{OPSET\_DEREF} were all merged into \t{OPSET}.
+
+\end{document}
