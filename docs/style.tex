@@ -67,4 +67,6 @@
 \newcommand{\cc}[1]{\mintinline{c}{#1}}
 
 
-\let\olditemize=\itemize \let\endolditemize=\enditemize \renewenvironment{itemize}{\olditemize \itemsep0em}{\endolditemize}
+\let\olditemize=\itemize \let\endolditemize=\enditemize \renewenvironment{itemize}{\olditemize \itemsep-0.4em}{\endolditemize}
+
+\let\oldenumerate=\enumerate \let\endoldenumerate=\endenumerate \renewenvironment{enumerate}{\oldenumerate \itemsep-0.4em}{\endoldenumerate}
