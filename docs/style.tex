@@ -1,0 +1,70 @@
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[cache=false]{minted}
+
+\usepackage{fontspec}
+\setmonofont{JetBrains Mono}[
+    Contextuals = Alternate,
+    % Ligatures = TeX,
+    Scale=0.8,
+]
+
+\usepackage{listings}
+\lstset{
+    basicstyle = \ttfamily,
+    columns = flexible,
+}
+\makeatletter
+\renewcommand*\verbatim@nolig@list{}
+\makeatother
+
+
+
+\newcommand{\clang}{\lstset{language=C,
+        basicstyle=\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{green}\ttfamily,
+        commentstyle=\color{gray},
+        morecomment=[l][\color{gray}]{\#},
+        numberstyle=\tiny\color{orange},
+        breaklines=true,
+}}
+
+\newcommand{\shell}{\lstset{
+    language=,
+    basicstyle=\ttfamily,
+    stringstyle=\color{black}\ttfamily,
+}}
+
+
+\lstdefinelanguage
+   [x64]{Assembler}     % add a "x64" dialect of Assembler
+   [x86masm]{Assembler} % based on the "x86masm" dialect
+   % with these extra keywords:
+   {morekeywords={rax,rdx,rcx,rbx,rsi,rdi,rsp,rbp, %
+                  r8,r8d,r8w,r8b,r9,r9d,r9w,r9b, %
+                  r10,r10d,r10w,r10b,r11,r11d,r11w,r11b, %
+                  r12,r12d,r12w,r12b,r13,r13d,r13w,r13b, %
+                  r14,r14d,r14w,r14b,r15,r15d,r15w,r15b,cmpb,retq}} % etc.
+
+
+\newcommand{\asm}{\lstset{
+    language=[x64]Assembler,
+    morecomment=[l][\color{gray}]{\#},
+    keywordstyle=\color{blue}\ttfamily,
+}}
+
+\definecolor{lightgray}{gray}{.95}
+\setminted[c]{
+    bgcolor=lightgray,
+}
+
+\setminted[ocaml]{
+    bgcolor=lightgray,
+}
+
+\newcommand{\ml}[1]{\mintinline{ocaml}{#1}}
+\newcommand{\cc}[1]{\mintinline{c}{#1}}
+
+
+\let\olditemize=\itemize \let\endolditemize=\enditemize \renewenvironment{itemize}{\olditemize \itemsep0em}{\endolditemize}
