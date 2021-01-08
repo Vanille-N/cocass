@@ -81,3 +81,10 @@ All functions have the same basic structure, they :
 \subsection{For convenience}
 To avoid some mistakes and avoid redefining all common constant values, the compiler includes a fixed list of known functions selected from the standard library and some constant values. These functions are spell-checked, and their number of arguments is validated.\\
 Constants include common values such as \t{NULL} and \t{EOF} as well as non-standard ones like \t{BYTE} (255).
+
+\subsection{Exception management}
+Exceptions are handled roughly as follows.\\
+When a \t{try} block is encountered a handler is built: the current value for \t{\%rbp} is stored in \t{.ebase}, the tag to jump to in the case of a \t{throw} is stored in \t{.eaddr}. A similar handler is set up at the start of main.\\
+If the block exits without an exception, the handler is restored to its previous value (\t{.eaddr} and \t{.ebase} were saved on the stack during setup) and the \t{finally} clause is executed.\\
+If an exception is raised the \t{throw} instruction restores the base pointer and jumps to the handler address. The handler is saved in temporary registers then restored to its previous value. Handler name (determined by the address at which it is stored) is compared sequentially to the handlers. A variable binding is created with the value thrown. There are two exceptions to these rules: \t{\_} as an exception name can match any exception (but can't be thrown); \t{\_} as a variable produces no binding. A \t{catch (\_) \{\}} statement is a surefire way to ensure the program will not crash.\\
+The emergency handler (setup during main) flushes the output then prints its own error message with the name and value of the exception. It uses a criteria on the value to guess whether it should be printed as an integer or a string. Strings created dynamically will wrongly be displayed as integers, and integers that happen to equal an address at which a static string is stored will wrongly be displayed as strings.
