@@ -1,6 +1,7 @@
 open CAST
 open Format
 
+(* box drawing characters for pretty-printing the tree *)
 let indent offset = String.make (offset*2) ' '
 let bifurc = "  ├── "
 let termin = "  └── "

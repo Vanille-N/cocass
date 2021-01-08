@@ -268,6 +268,7 @@ extended_assignment_operator:
     | RIGHT_ASSIGN { S_SHR }
 ;
 
+/* either plain assignment or extended assignment */
 assignment_expression:
     | conditional_expression { $1 }
     | unary_expression EQ_CHR assignment_expression {
@@ -354,7 +355,7 @@ compound_statement:
         { sup_locator $1 $3, snd $2 }
 ;
 
-/* Une statement_list est une liste inversee de statement */
+/* A statement_list is a (possibly empty) reversed list of statements */
 statement_list:
     | statement { [$1] }
     | statement_list statement { $2 :: $1 }
@@ -400,6 +401,7 @@ switch_block : open_block case_list close_block { $2 };
 ifkw     : IF     { getloc () };
 switchkw : SWITCH { getloc () };
 
+/* if {} OR if {} else {} OR switch {} */
 selection_statement:
     | ifkw OPEN_PAREN_CHR expression CLOSE_PAREN_CHR statement
         { sup_locator $1 (fst $5), CIF ($3, $5, (getloc (), CBLOCK [])) }
@@ -414,6 +416,7 @@ whilekw : WHILE { getloc () };
 forkw   : FOR   { getloc () };
 dokw    : DO    { getloc () };
 
+/* while () {} OR for (;;) {} OR do {} while () */
 iteration_statement:
     | whilekw OPEN_PAREN_CHR expression close_paren statement {
         let loc = sup_locator $1 (fst $5) in
@@ -452,6 +455,7 @@ finally_option:
 
 catch:
     | catchkw OPEN_PAREN_CHR identifier CLOSE_PAREN_CHR statement
+        /* catch (Foo) is a shortcut for catch (Foo _) */
         { $1, snd $3, "_", $5 }
     | catchkw OPEN_PAREN_CHR identifier identifier CLOSE_PAREN_CHR statement
         { $1, snd $3, snd $4, $6 }
@@ -489,6 +493,7 @@ jump_statement:
     | continue SEMI_CHR
         { $1, CCONTINUE }
     | throw identifier SEMI_CHR
+        /* throw Foo; is a shortcut for throw Foo(NULL) */
         { $1, CTHROW (snd $2, (fst $2, VAR "NULL")) }
     | throw identifier OPEN_PAREN_CHR expression CLOSE_PAREN_CHR SEMI_CHR
         { $1, CTHROW (snd $2, $4) }
@@ -508,7 +513,7 @@ external_declaration:
 parameter_declaration: type_specifier declarator { $2 };
 
 /*!!!should check no repeated param name! */
-/* Une parameter_list est une liste inversee de parameter_list. */
+/* A parameter_list is a reversed, comma-separated list of parameters */
 parameter_list:
     | parameter_declaration { [$1] }
     | parameter_list COMMA_CHR parameter_declaration

@@ -1,3 +1,5 @@
+(** ANSI codes for color output *)
+
 val has_color : bool
 
 val red : string
