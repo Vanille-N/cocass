@@ -4,6 +4,7 @@
  * Copyright (c) 2005 by Laboratoire Spécification et Vérification
  * (LSV), UMR 8643 CNRS & ENS Cachan.
  * Written by Jean Goubault-Larrecq.  Derived from the csur project.
+ * Adapted by Neven Villani
  *
  * Permission is granted to anyone to use this software for any
  * purpose on any computer system, and to redistribute it freely,
@@ -18,6 +19,7 @@
  *
  * 3. Altered versions must be plainly marked as such, and must not
  *    be misrepresented as being the original software.
+ *    NOTE: This is an altered version
  *
  * 4. This software is restricted to non-commercial use only.  Commercial
  *    use is subject to a specific license, obtainable from LSV.
