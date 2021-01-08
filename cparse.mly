@@ -347,7 +347,6 @@ close_block : close_brace { $1 };
 scope_block:
     | statement_list
         { getloc (), CBLOCK (List.rev $1) }
-    | { getloc (), CBLOCK [] }
 ;
 
 compound_statement:
@@ -357,7 +356,7 @@ compound_statement:
 
 /* A statement_list is a (possibly empty) reversed list of statements */
 statement_list:
-    | statement { [$1] }
+    | { [] }
     | statement_list statement { $2 :: $1 }
 ;
 
@@ -376,10 +375,6 @@ case :
         { $1, $2, ($1, CBLOCK (List.rev $4)) }
     | casekw SUB_CHR CONSTANT COLON_CHR statement_list
         { $1, -$3, ($1, CBLOCK (List.rev $5)) }
-    | casekw CONSTANT COLON_CHR
-        { $1, $2, ($1, CBLOCK []) }
-    | casekw SUB_CHR CONSTANT COLON_CHR
-        { $1, -$3, ($1, CBLOCK []) }
 ;
 
 default :
