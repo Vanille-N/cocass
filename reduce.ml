@@ -2,6 +2,7 @@ open CAST
 
 let reduce_exprs = ref true
 
+(* reverse a comparison *)
 let cmp_rev = function
     | C_NE -> C_EQ
     | C_EQ -> C_NE
@@ -23,6 +24,7 @@ let rec redexp ?force:(force=false) consts e =
             in
             match e with
                 | loc, VAR name -> (
+                    (* variables can be reduced if they are constants *)
                     match List.assoc_opt name consts with
                         | None -> (loc, VAR name)
                         | Some k -> (loc, CST k)
@@ -34,6 +36,7 @@ let rec redexp ?force:(force=false) consts e =
                 | loc, OPSET (op, pos, value) -> (loc, OPSET (op, aux pos, aux value))
                 | loc, ESEQ lst -> (loc, ESEQ (List.map (aux) lst))
                 | loc, CMP (op, lhs, rhs) -> (
+                    (* comparisons can be reduced if both operands are integer constants *)
                     let lhs = aux lhs in
                     let rhs = aux rhs in
                     match (result lhs, result rhs) with
@@ -50,6 +53,8 @@ let rec redexp ?force:(force=false) consts e =
                         | _ -> (loc, CMP (op, lhs, rhs))
                 )
                 | loc, OP1 (op, value) -> (
+                    (* unary operators can be reduced if they have no side-effects
+                     * and the operand is an integer constant *)
                     let value = aux value in
                     match result value with
                         | Some x -> (
@@ -62,6 +67,8 @@ let rec redexp ?force:(force=false) consts e =
                         | None -> (loc, (OP1 (op, value)))
                 )
                 | loc, OP2 (op, lhs, rhs) -> (
+                    (* binary operators can be reduced if they are not S_INDEX
+                     * and if both operands are integer constants *)
                     let lhs = aux lhs in
                     let rhs = aux rhs in
                     match (result lhs, result rhs) with
@@ -107,6 +114,7 @@ let rec redexp ?force:(force=false) consts e =
                         | _ -> (loc, OP2 (op, lhs, rhs))
                 )
                 | loc, EIF (cond, etrue, efalse) -> (
+                    (* EIF can be reduced if the condition is an integer constant *)
                     match (cond, etrue, efalse) with
                         | (_, CMP (op, lt, rt)), (_, CST 0), (_, CST 1) -> aux (loc, CMP (cmp_rev op, lt, rt))
                         | _ -> (
