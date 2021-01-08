@@ -46,3 +46,20 @@ CBLOCK [
 \end{minted}
 Justification:\\
 As soon as \t{int x;} and \t{int x = 1;} were allowed anywhere in the code and not just at the start of blocks, it made no more sense to have blocks carry information on the variables defined inside of them in a different form.
+
+\subsection{Loops}
+\begin{itemize}
+    \item \t{for (e1; e2; e3) \{ c \}}
+    \not\to\ \ml{e1; CWHILE (e2, c @ [e3])}
+    \to\ \ml{e1; CWHILE (e2, c, e3, true)}
+    \item \t{while (e) \{ c \}}
+    \not\to\ \ml{CWHILE (e, c)}
+    \to\ \ml{CWHILE (e, c, ESEQ [], true)}
+    \item \t{do \{ c \} while (e);}
+    \not\to\ (parsing error)
+    \to\ \ml{CWHILE (e, c, ESEQ [], false)}
+\end{itemize}
+Justification:\\
+The addition of do-while required some information on whether the test should be done at the start of the loop, a boolean was chosen.\\
+At the same time, wanting to implement \t{break} and \t{continue}, I deemed it necessary to separate the body block and the finally clause of \t{for}. This is what the third argument accomplishes.
+
