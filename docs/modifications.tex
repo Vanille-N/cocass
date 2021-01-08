@@ -22,4 +22,27 @@ At first, \t{t[x][y] = 1;} was a parsing error, even though \t{t[x][y]} was a va
 Since \t{M\_DEREF} added the horrible workaround \t{*(\&t[x][y]) = 1;}, allowing any expression to be assigned to, I decided it was time to allow more expressions to be treated as lvalues. Changing assignment was deemed the best course of action.\\
 At the same time, former constructors \t{OPSET\_VAR}, \t{OPSET\_ARRAY} and \t{OPSET\_DEREF} were all merged into \t{OPSET}.
 
-\end{document}
+\subsection{Blocks}
+This code
+\begin{minted}{c}
+{
+    int x, y;
+    x = 1;
+}
+\end{minted}
+used to parse to
+\begin{minted}{ocaml}
+CBLOCK (
+    [CDECL "x", CDECL "y"],
+    [CEXPR (SET_VAR ("x", CST 1))]
+)
+\end{minted}
+It now yields
+\begin{minted}{ocaml}
+CBLOCK [
+    CLOCAL [("x", None); ("y", None)];
+    CEXPR (SET (VAR "x", CST 1))
+]
+\end{minted}
+Justification:\\
+As soon as \t{int x;} and \t{int x = 1;} were allowed anywhere in the code and not just at the start of blocks, it made no more sense to have blocks carry information on the variables defined inside of them in a different form.
