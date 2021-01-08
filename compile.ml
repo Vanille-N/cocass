@@ -1,6 +1,5 @@
 open Cparse
 open CAST
-open Genlab
 open Generate
 open Printf
 
@@ -914,11 +913,6 @@ let codegen decl_list =
                     prog.asm (MOV (Globl handler_base, Regst RBP)) "restore base pointer for handler";
                     prog.asm (MOV (Globl handler_addr, Regst RSI)) "restore stackframe for handler";
                     prog.asm (JMP ("", "*%rsi")) "";
-                    (* prog.asm (MOV (Globl "stderr", Regst RDI)) "print to stderr";
-                    prog.asm (LEA (Globl s, Regst RSI)) "load error message";
-                    prog.asm (CAL "fprintf") "print error message"; *)
-                    (* prog.asm (MOV (Const 1, Regst RDI)) ""; *)
-                    (* prog.asm (CAL "exit") "abort"; *)
                     prog.asm (TAG (label, tagbase ^ "_ok")) "successful assertion";
                 )
                 | _ -> Error.error (Some (fst expr)) "assert expects exactly one argument"
