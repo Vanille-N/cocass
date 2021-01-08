@@ -937,42 +937,25 @@ let codegen decl_list =
             let nb_in_reg = min 6 nb_args in
             let nb_on_stk = nb_args - nb_in_reg in
             let reg_dests = truncate nb_in_reg (List.map (fun r -> Regst r) [RDI;RSI;RDX;RCX;R08;R09]) in
-            let (nb_nontrivial, expr_nontrivial) = (
-                let nb_nontrivial = ref 0 in
-                let lst = List.map (fun e ->
-                    if is_single_step e then (-1, e, false)
-                    else (incr nb_nontrivial; (!nb_nontrivial, e, true))
-                ) expr_lst
-                in (!nb_nontrivial, lst)
-            ) in
-            let nbvars = depth + nb_nontrivial + nb_on_stk in
-            let offset = nbvars + (nbvars mod 2) in
-            let stk_dests = List.init nb_on_stk (fun i -> Stack (-offset+i)) in
-            let dests = reg_dests @ stk_dests in
-            (* calculate all nontrivial parameters *)
-            List.iter (fun (i, e, is_nontrivial) ->
-                if is_nontrivial then (
-                    gen_expr (depth+nb_nontrivial+1, frame, va_depth) tags Value e;
-                    store (depth+i) RAX;
-                )
-            ) (List.rev expr_nontrivial);
-            (* now load all nontrivial and calculate all trivial (1-step, won't mess with already set registers *)
-            List.iteri (fun j ((i, e, is_nontrivial), dest) ->
-                if is_nontrivial then (
-                    match dest with
-                        | Stack k -> (
-                            retrieve (depth+i) RAX;
-                            prog.asm (MOV (Regst RAX, dest)) (sprintf "nontrivial arg %d (#%d)" i (j+1));
-                        )
-                        | Regst r -> retrieve (depth+i) r;
-                        | _ -> failwith "unreachable @ compile::generate_asm::gen_expr::CALL::iter::_"
-                ) else (
-                    gen_expr (depth+nb_nontrivial+1, frame, va_depth) tags Value e;
-                    prog.asm (MOV (Regst RAX, dest)) (sprintf "trivial arg #%d" (j+1));
-                )
-            ) (zip expr_nontrivial dests);
+            let offset = (let base = depth + nb_on_stk in base + (base mod 2)) in (* 16-byte aligned *)
+            (* temporary layout:
+             * ...|addr|base| (locals) (temp) ...|arg9|arg8|arg7|arg6|arg5|...|arg1
+             *                                                  ^move RSP here before call.
+             *                                                   will overwrite register arguments
+             *                                                                ^RSP+offset+nb_in_reg
+             *)
+            let stk_dests = List.init nb_args (fun i -> offset + nb_in_reg - i) in
+            (* calculate all parameters *)
+            List.iter (fun (e, d) ->
+                gen_expr (d, frame, va_depth) tags Value e;
+                store d RAX;
+            ) (List.rev (zip expr_lst stk_dests));
+            (* now load the first 6 into registers *)
+            List.iter (fun (d, r) ->
+                prog.asm (MOV (Stack (-d), r)) "";
+            ) (zip stk_dests reg_dests);
+            (* update stack pointer then call *)
             prog.asm (SUB (Const (8*offset), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
-            (* prog.asm (MOV (Const nb_on_stk, Regst RAX)) (sprintf "varargs: %d on the stack" nb_on_stk); *)
             prog.asm (XOR (Regst RAX, Regst RAX)) "";
             (match assoc fname frame with
                 | None | Some (FnPtr _) -> prog.asm (CAL fname) " +" (* unknown or known by tag *)
