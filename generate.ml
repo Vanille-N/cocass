@@ -1,5 +1,6 @@
 open Printf
 
+(* non-exhaustive list of registers *)
 type register =
     | RAX
     | RBX
@@ -16,6 +17,7 @@ type register =
     | R12
     | RIP
 
+(* kinds of data representation/location the assembler can manage *)
 type location =
     | Stack of int
     | Const of int
@@ -26,6 +28,7 @@ type location =
     | Deref of register
     | Index of register * register
 
+(* non-exhaustive list of assembler instructions *)
 type instruction =
     | RET
     | QTO
@@ -62,12 +65,14 @@ type instruction =
     | CMP of location * location
     | TST of location * location
 
+(* description of text alignment *)
 type alignment =
     | TextRt of string
     | TextLt of string
     | Node of alignment list
     | Skip of int
 
+(* dump text from abstract assembler *)
 let generate (ints, strs, excs, text) ((out:out_channel), color) =
     let color_reg = if color then Pigment.purple else "" in
     let color_int = if color then Pigment.blue else "" in
@@ -76,6 +81,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
     let color_tag = if color then Pigment.green else "" in
     let color_instr = if color then Pigment.yellow else "" in
     let color_comment = if color then Pigment.gray else "" in
+    (* real name of each register *)
     let regname r =
         color_reg ^ (
             match r with
@@ -97,48 +103,60 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
     in
     let locate = function
         | Stack k -> [
+            (* Stack k represents -(8*k)(%rbp) *)
             TextRt (sprintf "%s%d(%s" color_int (8*k) (regname RBP));
             TextLt (color_int ^ ")")
         ]
         | Globl v -> [
+            (* Globl v represents v(%rip) *)
             TextRt (sprintf "%s%s(%s" color_var v (regname RIP));
             TextLt (color_var ^ ")")
         ]
         | Regst r -> [
+            (* Regst r represents %r *)
             TextRt (sprintf "%s" (regname r));
             Skip 1
         ]
         | Deref r -> [
+            (* Deref r represents (%r) *)
             TextRt (sprintf "%s(%s" color_int (regname r));
             TextLt (color_int ^ ")")
         ]
         | Const c -> [
+            (* Const c represents $c *)
             TextRt (sprintf "%s$%d" color_int c);
             Skip 1
         ]
         | Hexdc h -> [
+            (* Hexdc h represents $0xh *)
             TextRt (sprintf "%s$0x%s" color_int h);
             Skip 1
         ]
         | Index (addr, idx) -> [
+            (* Index (a, i) represents (a,i,8) *)
             TextRt (sprintf "%s(%s%s,%s%s" color_int (regname addr) color_int (regname idx) color_int);
             TextLt ",8)"
         ]
         | FnPtr f -> [
+            (* FnPtr f represents f(%rip) *)
             TextRt (sprintf "%s%s(%s" color_int f (regname RIP));
             TextLt (color_int ^ ")")
         ]
     in
     let generate_ialign (name, value) =
+        (* a global integer is declared as name: .quad value *)
         [TextLt (color_var ^ name ^ ": "); TextLt (sprintf "%s.quad %s%s" color_meta value color_int)]
     in
     let generate_salign (contents, tag) =
+        (* a global string is declared as tag: .string contents *)
         [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
     in
     let generate_ealign (contents, tag) =
+        (* an exception is the same as a string *)
         [TextLt (color_var ^ tag ^ ": "); TextLt (sprintf "%s.string %s\"%s\"" color_meta color_var (String.escaped contents))]
     in
     let generate_talign (instr, info) =
+        (* translate each instruction to its representation *)
         let fmtinfo = TextLt (
             color_comment
             ^ (match instr with FUN _ -> " " | _ -> "")
@@ -246,7 +264,7 @@ let generate (ints, strs, excs, text) ((out:out_channel), color) =
                 TextLt (sprintf "%s%s.%s" color_tag fn tag); Skip 4; fmtinfo]
     in
     let display_align out marks text =
-        (* printf "newline\n"; *)
+        (* string manipulation to insert whitespace so that columns are properly aligned *)
         let current = ref 0 in
         let target = ref 0 in
         let marks = ref marks in

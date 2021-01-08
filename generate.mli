@@ -76,5 +76,5 @@ type program = {
     gen: (out_channel * bool) -> unit; (** dump formatted assembler *)
 }
 
-(** empty program *)
+(** blank program *)
 val make_prog: unit -> program
