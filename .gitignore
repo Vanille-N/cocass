@@ -1,6 +1,6 @@
-assets/**/*
-!assets/**/
-!assets/**/*.c
+tests/**/*
+!tests/**/
+!tests/**/*.c
 failures/*
 !failures/*.c
 arch-sys/*

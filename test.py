@@ -63,8 +63,8 @@ class Module:
             exec(instr)
 
 def compile(cc, fbase, more=[]):
-    print("  compile: {} assets/{}.c {}".format(cc, fbase, "".join(more)))
-    res = run([cc, "assets/{}.c".format(fbase), *more], capture_output=True)
+    print("  compile: {} tests/{}.c {}".format(cc, fbase, "".join(more)))
+    res = run([cc, "tests/{}.c".format(fbase), *more], capture_output=True)
     success = True
     if res.returncode != 0:
         print("Errored: retcode {}".format(res.returncode))
@@ -89,7 +89,7 @@ def check(fbase):
     module = Module("verify/{}.py".format(fbase))
     ok = 0
     ko = 0
-    prog = "./assets/{}".format(fbase)
+    prog = "./tests/{}".format(fbase)
     for d in module.data:
         res = run([prog, *d], capture_output=True)
         code, out, err = res.returncode, res.stdout, res.stderr
