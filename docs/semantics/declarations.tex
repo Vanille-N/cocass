@@ -1,0 +1,23 @@
+\section{Declarations}
+
+\subsection{Global variables}
+
+\[\dfrac{\begin{array}{c}
+    k\not\in\dom\rho \qquad k \in alloc^8(\mu)
+\end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{None}) \tto \rho[x\mapsto k],\mu[k\mapsto 0],\fun} \rule{Decl}{^\t{None}}\]
+
+\[\dfrac{\begin{array}{c}
+    x\not\in\dom\rho \qquad k \in alloc^8(\mu)
+\end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{Some}(\t{CST}\ c)) \tto \rho[x\mapsto k],\mu[k\mapsto c],\fun} \rule{Decl}{^\t{CST}}\]
+
+\[\dfrac{\begin{array}{c}
+    s\text{ stored at }a\in Addr \qquad x\not\in\dom\rho \\
+\end{array}}{\rho,\mu,\fun \gives^d \t{CDECL}(x, \t{Some}(\t{STRING}\ s)) \tto \rho[x\mapsto a],\mu,\fun} \rule{Decl}{^\t{STRING}}\]
+
+\subsection{Functions}
+\[\dfrac{\begin{array}{c}
+    f\not\in\dom\rho \qquad \phi_A(b)\text{ stored at } k
+\end{array}}{\rho,\mu,\fun \gives^d \t{CFUN}(f, A, b) \tto \rho[f\mapsto k],\mu,\fun[k\mapsto \phi_A(b)]} \rule{Fun}{}\]
+
+Let \([a_1; \cdots; a_n] = A\), then \(\phi_A(b): \ZZ_{64}^n\to \t{code}\) is defined as
+\[\phi_A(b)(v_1, \cdots, v_n) = \t{CBLOCK}(\t{CLOCAL}[(a_1, \t{Some}\ (\t{CST}\ v_1)); \cdots; (a_n, \t{Some}\ (\t{CST}\ v_n))] :: b)\]

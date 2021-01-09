@@ -1,0 +1,21 @@
+\section*{Notation}
+
+\(\ZZ_{64}\) is the set of 64-bit signed integers, in which all calculations are done when not specified otherwise.\\
+
+We write \((\rho: \mathcal{S}\to\ZZ_{64})\in \mathcal{P}\) the environment, where \(\mathcal{S}\) is the set of names of variables and functions, \((\mu: \ZZ_{64}\to\ZZ_{8})\in \mathcal{M}\) the memory.\\
+\(\mu\) is read by blocks of 8 bytes : \(\mu^{64}(i) \triangleq \sum_{k=0}^7 2^{8k}\mu(i+k)\).\\
+\(\rho_g\in\mathcal{P}\) is the global environment.\\
+
+A flag is defined as an element of \(\mathcal{E} \triangleq S \sqcup \{ \brk, \ret, \cnt, \nil \}\): either an exception string or a special control flow keyword.\\
+Intuitively, \(\rho,\mu,\chi,v \gives c \tto \rho',\mu',\chi',v'\) means that when \(c\) is executed under the environment \(\rho\) with the memory \(\mu\), the flag \(\chi\), and the previous value \(v\), it updates it to the new environment and memory \(\rho'\) and \(\mu'\), raises \(\chi'\), and changes the value to \(v'\). Variants are used for toplevel declarations (no \(\chi\) nor \(v\) but \(\fun\) is added), and expressions (\(\rho\) is never modified and thus does not appear on the right side)\\
+
+In addition, we write \(\fun: \ZZ_{64}\to \t{code}\), a wrapper around \Cmp\ functions: \(\fun(a)(p_1, \cdots, p_n) = c\) updates the environment with \(p_1, \cdots, p_n\) and executes the body of the function whose definition was given by the code \(c\) and stored at \(a\). This way of considering functions allows in particular for function pointers.\\
+
+For \(\mu\in\mathcal{M}, v\in\ZZ_{8}, x\in\ZZ_{64}\) we write \(\mu[x\mapsto v]: \left\{\begin{array}{ll}x\mapsto v & \\ y\mapsto \mu(y) & y\in \dom\mu\setminus\{x\}\end{array}\right.\)\\
+However we will usually use \(\mu^{64}[x\mapsto v] \triangleq\mu[x+k\mapsto v_k\ |\  0\leq k<8,\ v = \sum_{k=0}^8 2^{8k}v_k]\), i.e. the memory is written 8 bytes at a time.\\
+
+A similar notation is used for \(\rho\), \(\rho_g\) and \(\fun\).
+
+\(alloc^i: \mathcal{M}\to \mathcal{P}(\ZZ_{64})\) is such that if \(k \in alloc^i(\mu) \ne \bot\) then \(\forall 0\leq j < i, k+j\not\in\dom\mu\).
+
+The domains as well are ommitted : "\(\rho\in P\)", "\(\mu\in\mathcal{M}\)", etc. are not explicit.
