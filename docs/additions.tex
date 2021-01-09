@@ -123,3 +123,15 @@ CTRY (CBLOCK [CEXPR (CST 1)], [
     ("G", "_", CBLOCK [CEXPR (CST 4)])
 ], CBLOCK [CEXPR (CST 5)])
 \end{minted}
+
+\subsection{Other}
+Some other features:
+\begin{itemize}
+    \item Variadic arguments are supported. They are declared with \t{...} then can be used with \t{va\_start} and \t{va\_arg}.
+    \item Function pointers are supported. The original goal was to enable calling \t{qsort}.
+    \item \t{switch} uses a jump table in the form of a binary tree. Its number of comparisons is logarithmic with regards to the number of \t{case} statements.
+    \item \t{void} and \t{long} have been added as valid type declarations. They are equivalent to \t{int} but allow being more explicit.
+    \item The \t{assert} builtin has been implemented. It may raise an \t{AssertionFailure} exception which the user can catch.
+    \item Color output is available by default, \t{--no-color} disables it.
+    \item Expressions are reduced when possible by default, \t{--no-reduce} disables it.
+\end{itemize}
