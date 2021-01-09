@@ -6,7 +6,7 @@
 \setmonofont{JetBrains Mono}[
     Contextuals = Alternate,
     % Ligatures = TeX,
-    Scale=0.8,
+    Scale=0.7,
 ]
 
 \usepackage{listings}
@@ -55,18 +55,22 @@
 }}
 
 \definecolor{lightgray}{gray}{.95}
-\setminted[c]{
+\setminted{
     bgcolor=lightgray,
+    baselinestretch=0.75,
 }
 
+\setminted[c]{
+}
 \setminted[ocaml]{
-    bgcolor=lightgray,
 }
 
 \newcommand{\ml}[1]{\mintinline{ocaml}{#1}}
 \newcommand{\cc}[1]{\mintinline{c}{#1}}
 
+\AtBeginEnvironment{minted}{\vspace{-0.5em}\setlength{\parskip}{-0.8em}}
 
-\let\olditemize=\itemize \let\endolditemize=\enditemize \renewenvironment{itemize}{\olditemize \itemsep-0.4em}{\endolditemize}
 
-\let\oldenumerate=\enumerate \let\endoldenumerate=\endenumerate \renewenvironment{enumerate}{\oldenumerate \itemsep-0.4em}{\endoldenumerate}
+\let\olditemize=\itemize \let\endolditemize=\enditemize \renewenvironment{itemize}{\vspace{-0.8em}\olditemize \itemsep-0.4em}{\endolditemize}
+
+\let\oldenumerate=\enumerate \let\endoldenumerate=\endenumerate \renewenvironment{enumerate}{\vspace{-0.8em}\oldenumerate \itemsep-0.4em}{\endoldenumerate}
