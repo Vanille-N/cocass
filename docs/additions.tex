@@ -1,6 +1,6 @@
 \section{Additions}
 
-The following constructs were added to the supported language:
+The following constructs were added to those already defined in the \t{CAST.ml} given to us, of which all have been implemented and thoroughly tested (80+ files, 2680+ lines, 300+ tests).
 
 \subsection{Unary operators}
 \t{M\_DEREF}: accesses the address given by the expression.\\
@@ -11,13 +11,13 @@ Examples:
 \end{itemize}
 
 \t{M\_ADDR}: yields the address of an expression\\
-Examples
+Examples:
 \begin{itemize}
     \item \t{\&x} \to\ \ml{OP1(M_ADDR, VAR "x")}
     \item \t{\&x[10]} \to\ \ml{OP1(M_ADDR, OP2(M_INDEX, VAR "x", CST 10))}
     \item \t{\&*x} \to\ \ml{OP1(M_ADDR, OP1(M_DEREF, VAR "x"))}
 \end{itemize}
-Errors
+Errors:
 \begin{itemize}
     \item \t{\&10}, \t{\&(x+1)}, \t{\&"abc"} \to\ `Indirection needs an lvalue'
 \end{itemize}
@@ -32,7 +32,7 @@ Note:
 \subsection{Binary operators}
 The following binary operators were added:
 \t{S\_SHL}, \t{S\_SHR}, \t{S\_OR}, \t{S\_XOR}, \t{S\_AND}
-Examples
+Examples:
 \begin{itemize}
     \item \t{x << 2} \to\ \ml{OP2(S_SHL, VAR "x", CST 2)}
     \item \t{x >> 2} \to\ \ml{OP2(S_SHR, VAR "x", CST 2)}
@@ -51,13 +51,13 @@ For any \t{a}, \t{b}:
 \end{itemize}
 
 \subsection{Extended assignment}
-Examples
+Examples:
 \begin{itemize}
     \item \t{x += 2} \to\ \ml{OPSET(M_ADD, VAR "x", CST 2)}
     \item \t{x *= 2} \to\ \ml{OPSET(M_MUL, VAR "x", CST 2)}
     \item etc...
 \end{itemize}
-Errors
+Errors:
 \begin{itemize}
     \item \t{x []= 2} \to\ parsing error
     \item \t{2 += 2} \to\ `Extended assignment needs an lvalue'
@@ -65,14 +65,14 @@ Errors
 
 \subsection{Control flow}
 \t{CBREAK} (exit loop or switch), \t{CCONTINUE} (skip to next iteration of loop), \t{CTHROW} (raise exception)\\
-Examples
+Examples:
 \begin{itemize}
     \item \t{break;} \to\ \ml{CBREAK}
     \item \t{continue;} \to\ \ml{CCONTINUE}
     \item \t{throw E(x);} \to\ \ml{CTHROW("E", VAR "x")}
     \item \t{throw E;} \to\ \ml{CTHROW("E", VAR "NULL")}
 \end{itemize}
-Errors
+Errors:
 \begin{itemize}
     \item \t{try \{ break; \}} \to\ `break may not reach outside of try'
     \item \t{try \{ continue; \}} \to\ `continue may not reach outside of try'
@@ -80,7 +80,7 @@ Errors
 
 \subsection{Declarations}
 \t{CLOCAL} is used to declare a local variable in the middle of a block.
-Examples
+Examples:
 \begin{itemize}
     \item \t{int x;} \to\ \ml{CLOCAL[("x", None)]}
     \item \t{int x, y;} \to\ \ml{CLOCAL[("x", None), ("y", None)]}
@@ -88,7 +88,7 @@ Examples
 \end{itemize}
 
 \subsection{Switch}
-\t{CSWITCH} declares a switch block.
+\t{CSWITCH} declares a switch block.\\
 Example:
 \begin{minted}{c}
 switch (x) {
@@ -106,7 +106,7 @@ CSWITCH (VAR x, [
 \end{minted}
 
 \subsection{Try}
-\t{CTRY} declares an exception handling block.
+\t{CTRY} declares an exception handling block.\\
 Example:
 \begin{minted}{c}
 try { 1; }
