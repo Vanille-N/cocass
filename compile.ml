@@ -972,8 +972,8 @@ let codegen decl_list =
         )
         | OP1 (op, expr) -> (
             let op_requirements = match op with
-                | M_PRE_DEC | M_PRE_INC | M_POST_DEC | M_POST_INC -> Both
-                | M_ADDR -> Address
+                | M_POST_DEC | M_POST_INC -> Both
+                | M_PRE_DEC | M_PRE_INC | M_ADDR -> Address
                 | _ -> Value
             in (* these operators require us to know the address of our expression *)
             gen_expr envt tags (sup_target target op_requirements) expr;
@@ -989,12 +989,12 @@ let codegen decl_list =
                 | M_PRE_INC -> if is_lvalue (snd expr)
                     then (
                         prog.asm (INC (Deref RDI)) "incr (pre)";
-                        prog.asm (INC (Regst RAX)) " +";
+                        prog.asm (MOV (Deref RDI, Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "increment needs an lvalue."
                 | M_PRE_DEC -> if is_lvalue (snd expr)
                     then (
                         prog.asm (DEC (Deref RDI)) "decr (pre)";
-                        prog.asm (DEC (Regst RAX)) " +";
+                        prog.asm (MOV (Deref RDI, Regst RAX)) " +";
                     ) else Error.error (Some (fst expr)) "decrement needs an lvalue."
                 | M_DEREF -> (
                     prog.asm (MOV (Regst RAX, Regst RDI)) "deref";
