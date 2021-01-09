@@ -64,7 +64,7 @@ The addition of do-while required some information on whether the test should be
 At the same time, wanting to implement \t{break} and \t{continue}, I deemed it necessary to separate the body block and the finally clause of \t{for}. This is what the third argument accomplishes.
 
 \subsection{Declarations}
-New typing:
+New declaration typing:
 \begin{minted}{ocaml}
 type top_declaration =
   | CDECL of var_declaration * loc_expr option

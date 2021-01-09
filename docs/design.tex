@@ -18,6 +18,7 @@ The parsing step produces a list of declarations, which the reduction slightly m
 
 \subsection{File distribution}
 
+Roles are distributed as such:
 \begin{itemize}
     \item \t{cAST.ml}: text to AST translation
     \item \t{compile.ml}: AST to \t{program}
@@ -35,18 +36,7 @@ The scope is managed throughout \t{compile.ml} with the three parameters
     \item \t{va\_depth}, either \t{None} or the number of non-optional parameters
 \end{itemize}
 
-To locate a variable, \t{envt} is scanned and yields a \t{location}:
-\begin{minted}{ocaml}
-type location =
-    | Stack of int (* variable is on the stack at the given depth *)
-    | Const of int (* known constant value *)
-    | Globl of string (* global variable *)
-    | FnPtr of string (* function pointer *)
-    | Hexdc of string (* hexadecimal constant *)
-    | Regst of register (* variable is in a register *)
-    | Deref of register (* variable is at the address given by a register *)
-    | Index of register * register (* variable is at an index with offset given by the two registers *)
-\end{minted}
+To locate a variable, \t{envt} is scanned and yields a \t{location}, which denotes any of the supported ways to access the value/address of a variable.
 
 \subsection{Register distribution}
 

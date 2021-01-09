@@ -1,0 +1,17 @@
+\section{Issues encountered}
+
+During the development process very few issues were serious enough to slow down notably the progress of the compiler.\\
+Some minor inconveniences were:\vspace{-0.8em}
+\begin{itemize}
+    \item figuring out the right x86 instructions for lack of beginner-friendly documentation on the internet (at least 1h)
+    \item experimenting with the stack to figure out the exact location of all arguments (several hours)
+    \item setting up the assembler header instructions (\t{.text}, \t{.align 8}, ...) (at least 30min)
+\end{itemize}
+
+More anecdotally:\vspace{-0.8em}
+\begin{itemize}
+    \item more than 30min spent figuring out why \t{printf} segfaults when \t{rax} is not zeroed before the call
+    \item more than 1h spent identifying and fixing a stack alignment issue (\t{rsp} has to be a multiple of 16)
+\end{itemize}
+
+Although I believe I succeeded in specifying the complete (apart from variadic arguments) semantics of extended C\textminus\textminus, I tried and failed to implement them in Coq. The main reason for that failure is the semantic abstraction of the memory: each value being spread over 8 bytes makes it very difficult to establish the required properties of the memory.
