@@ -58,7 +58,7 @@ projet:
 
 # automatic tester
 test: mcc
-	./test.py
+	./check.py
 
 # LaTeX arguments
 TEX_ARGS=--interaction=nonstopmode --halt-on-error

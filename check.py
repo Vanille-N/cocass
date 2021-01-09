@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from subprocess import run
 import sys
@@ -14,12 +14,12 @@ assets = [
         "argcount", "noreturn", "multicall",
         "has_args", "hello", "call",
         "exit", "printglob", "max",
-        "varargs", "assert",
+        "varargs", "assert", "bsearch",
     ),
     ("calc", [["--no-reduce"], []],
         "fact", "binops", "bitwise", "cmp",
         "ordre", "incdec", "cmp_order", "shifts",
-        "calc",
+        "calc", "mean", "wmean",
     ),
     ("ptr", [["--no-reduce"], []],
         "array", "fnptr", "additions",
@@ -32,7 +32,7 @@ assets = [
     ),
     ("flow", [["--no-reduce"], []],
         "break", "continue", "count", "loops",
-        "switch_loop", "seq",
+        "switch_loop", "seq", "triangle",
     ),
     ("reduce", [["--no-reduce"], []],
         "reduce_eif", "reduce_monops", "reduce_binops",
@@ -177,10 +177,10 @@ def main():
                                 nb_tests += ok
             else:
                 nb_files += 1
-                ok, ko = fulltest(cc, fbase)
+                ok, ko = fulltest(cc, fbase, more=['--no-reduce'])
                 nb_error += ko
                 nb_tests += ok
-                ok, ko = fulltest(cc, fbase, more=['-O'])
+                ok, ko = fulltest(cc, fbase)
                 nb_error += ko
                 nb_tests += ok
     else:
