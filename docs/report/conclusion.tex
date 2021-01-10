@@ -1,8 +1,8 @@
 \section{Conclusion}
 I very much enjoyed working on this compiler, although I had a bit of a hard time at first trying to adapt to this assembler different from the one I knew previously.\\
-I do find it a bit disappointing that \t{gcc} is a dependency, even if only for the assembly and linking steps, if I had a bit more time I probably would attempt to make \t{mcc} more autonomous.\\
+I do find it a bit disappointing that \t{gcc} is a dependency, even if only for the assembly and linking steps. If I had a bit more time I probably would attempt to make \t{mcc} more autonomous.\\
 
 Development process was somewhat test-driven: the typical workflow consisted of deciding on a syntax feature to support, writing several C files using this feature, designing its AST representation, adding it to the grammar of the parser (with the help of \t{cprint} to ensure correct parsing), implementing its compilation file-by-file, running the automatic tester to detect and fix regressions.\\
 The same automatic tester and the wide range of tests were incredibly useful in checking that no issues were introduced during big refactorings.\\
 
-The aspect of the compiler I am most content with is without a doubt the abstract assembler. Its interface allowed me to have a less error-prone way of generating assembler (in particular having type-checked assembler instructions), with a lot fewer \t{sprintf} polluting the compilation logic than otherwise. Without it I have no doubt that the alignment and syntax highlighting of the assembler dump would have been impossible.
+The aspect of the compiler I am most content with is without a doubt the abstract assembler. Its interface allowed me to have a less error-prone way of generating assembler (in particular having type-checked assembler instructions), with a lot fewer \t{sprintf} polluting the compilation logic than otherwise. Without it I have no doubt that the alignment and syntax highlighting of the assembler dump would have been impossible, and it was also essential in easily implementing the few hand-compiled chunks of code I use (mostly for exception handling).
