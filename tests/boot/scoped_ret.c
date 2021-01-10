@@ -5,12 +5,10 @@ int main() {
     {
         int i;
         {
-            int i;
-            i = 1;
+            int i = 1;
         }
         {
-            int k;
-            k = 5;
+            int k = 5;
             i = k;
         }
         j = i;

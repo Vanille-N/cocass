@@ -1,8 +1,7 @@
 int str_to_int(char* s) {
-    int acc, len, i;
-    acc = 0;
-    len = strlen(s);
-    i = ((*s&BYTE) == '-');
+    int acc = 0;
+    int len = strlen(s);
+    int i = ((*s&BYTE) == '-');
     for (; i < len; i++) {
         if (isdigit(*(s+i)&BYTE)) {
             acc = acc * 10 + (*(s+i)&BYTE) - '0';
@@ -14,19 +13,17 @@ int str_to_int(char* s) {
 }
 
 int main(int argc, char** argv) {
-    int m, n;
-    int i;
-    int result;
     if (argc == 1 || argc % 3 != 1) {
         fprintf(stderr, "Usage: calc <op> <m> <n> [<op> <m> <n> ...]\n  where <m>, <n>: integers; <op>: +, x, /, %, -");
         exit(1);
     }
-    for (i = 0; 3*i+1 < argc; i++) {
+    for (int i = 0; 3*i+1 < argc; i++) {
+        int m, n;
+        int result;
         try {
-            int op;
             m = str_to_int(argv[3*i+2]);
             n = str_to_int(argv[3*i+3]);
-            op = *argv[3*i+1]&BYTE;
+            int op = *argv[3*i+1]&BYTE;
             switch (op) {
                 case '+': result = m + n; break;
                 case '-': result = m - n; break;

@@ -1,14 +1,13 @@
 int main(int argc, char** argv) {
     int* items = malloc(QSIZE*argc);
-    int i;
     int mask = ('-' | ('w'<<8));
     int total = 0, count = 0;
-    for (i = 1; i < argc; i++) {
-        int wht = 1, itm;
+    for (int i = 1; i < argc; i++) {
+        int wht = 1;
         if ((*argv[i] & WORD) == mask) {
             wht = atol(argv[i++]+WSIZE);
         }
-        itm = atol(argv[i]);
+        int itm = atol(argv[i]);
         count += wht;
         total += wht * itm;
     }

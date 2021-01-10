@@ -15,9 +15,8 @@ int not(int x) {
 }
 
 int main() {
-    int i, j;
-    for (i = 0; i < 200; i++) {
-        for (j = i; j < 200; j++) {
+    for (int i = 0; i < 200; i++) {
+        for (int j = i; j < 200; j++) {
             and(i, j);
             or(i, j);
             xor(i, j);

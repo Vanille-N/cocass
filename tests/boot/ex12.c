@@ -1,4 +1,4 @@
 int main() {
-  write(1,"ok",2);
-  return 0;
+    write(1, "ok", 2);
+    return 0;
 }

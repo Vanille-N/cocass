@@ -1,8 +1,7 @@
 int i;
 int main() {
-    int j;
     i = 5;
-    j = 6;
+    int j = 6;
     printf("Yes:\n");
     printf("\ti < j: %d\n", i < j);
     printf("\ti <= j: %d\n", i <= j);
