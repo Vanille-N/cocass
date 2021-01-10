@@ -1,6 +1,5 @@
 int main() {
-    int i;
-    for (i = 0; 1; i++) {
+    for (int i = 0; 1; i++) {
         switch (i) {
             case 1: continue;
             case 3:

@@ -2,8 +2,7 @@ char chr = '*';
 int amount = 1;
 
 void line() {
-    int i;
-    for (i = 0; i < amount; i++) {
+    for (int i = 0; i < amount; i++) {
         putchar(chr);
     }
     putchar('\n');
