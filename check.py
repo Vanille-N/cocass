@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from subprocess import run
+from subprocess import run, Popen, PIPE
 import sys
 
 assets = [
@@ -51,12 +51,29 @@ assets = [
         "ptr", "scope-switch", "override",
         "string",
     ),
+    ("misc", [["--no-reduce"], []],
+        "dowhile",
+        "scan",
+        "scan-fun",
+        "execvp",
+        "fork",
+        "guessnum",
+        "mwc",
+        "rsort",
+        "sieve",
+        "sort",
+        "sudoku_solver",
+        "survive",
+        "switch",
+        "testsuite_we",
+    ),
 ]
 
 class Module:
     def __init__(self, path, **kwargs):
         d = kwargs
-        exec(open(path).read(), d)
+        src = open(path).read()
+        exec(src, d)
         # d.pop("__builtins__")
         for k in d.keys():
             instr = "self.{elem} = d['{elem}']".format(elem=k)
@@ -64,7 +81,7 @@ class Module:
 
 def compile(cc, fbase, more=[]):
     print("  compile: {} tests/{}.c {}".format(cc, fbase, "".join(more)))
-    res = run([cc, "tests/{}.c".format(fbase), *more], capture_output=True)
+    res = run([cc, "tests/{}.c".format(fbase), *more], stdout=PIPE, stderr=PIPE)
     success = True
     if res.returncode != 0:
         print("Errored: retcode {}".format(res.returncode))
