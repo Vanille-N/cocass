@@ -9,19 +9,18 @@ void strset(char* str, int index, int newval) {
 char* fmt;
 
 int check(char* str) {
-    int len, i, val;
     fmt = "str[%*d] = <%c> (%*d)\n";
-    len = strlen(str);
-    for (i = 0; i < len; i++) {
-        val = strget(str, i),
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        char val = strget(str, i);
         printf(fmt, 2, i, val, 3, val);
     }
     putchar('\n');
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         strset(str, i, 'a' + i);
     }
-    for (i = 0; i < len; i++) {
-        val = strget(str, i),
+    for (int i = 0; i < len; i++) {
+        char val = strget(str, i);
         printf(fmt, 2, i, val, 3, val);
     }
 }

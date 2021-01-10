@@ -5,8 +5,7 @@ void strset(char* str, int index, int newval) {
 
 int main() {
     char* s = malloc(100);
-    int i;
-    for (i = 0; i < 100; i++) strset(s, i, i);
+    for (int i = 0; i < 100; i++) strset(s, i, i);
     printf("0x%08X\n", *(s+BSIZE));
     printf("0x%08X\n", *(s+WSIZE));
     printf("0x%08X\n", *(s+DSIZE));

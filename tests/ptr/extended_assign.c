@@ -1,7 +1,6 @@
 int main() {
-    int i, j;
-    i = malloc(QSIZE*3);
-    j = 1;
+    int i = malloc(QSIZE*3);
+    int j = 1;
     i[0] = 5; i[1] = 7; i[2] = 3;
 
     printf("ADD\n");

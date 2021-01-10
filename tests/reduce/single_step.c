@@ -1,6 +1,5 @@
 int main() {
-    int x, y;
-    x = 3; y = 4;
+    int x = 3, y = 4;
     assert(x + y == 7);
     assert((x+1) + y == 8);
     assert(x + (y+1) == 8);

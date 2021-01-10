@@ -1,8 +1,8 @@
 int main() {
-    int x, y;
+    int y;
+    int x = 10;
     printf("Enter y > "); fflush(stdout);
     scanf("%ld", &y);
-    x = 10;
     switch (y) {
         case -1: printf("Received y = -1\n");
         case -2:
@@ -15,9 +15,8 @@ int main() {
         case 4: x = 15;
         case 5:
         case 3: {
-            int i;
             printf("Reached 3/4/5\n");
-            for (i = 0; i < x; i++) {
+            for (int i = 0; i < x; i++) {
                 if (i == 5) continue;
                 printf("%d ", i);
                 if (i == 13) break;

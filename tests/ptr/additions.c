@@ -1,6 +1,5 @@
 int main() {
-    int i, j, k;
-    i = malloc(QSIZE*3);
+    int i = malloc(QSIZE*3);
     *i = 52;
     printf("%d ?= 52\n", *i);
     *(i+QSIZE) = (*i)++ + 2;
@@ -8,7 +7,7 @@ int main() {
     *(i+2*QSIZE) = ++(*(i+QSIZE)) + 2;
     printf("%d ?= 53, %d ?= 55, %d ?= 57\n\n", *i, *(i+QSIZE), *(i+2*QSIZE));
 
-    k = &i[1];
+    int k = &i[1];
     printf("%d ?= %d ?= 55\n", i[1], *k);
     *k = 3;
     printf("%d ?= %d ?= 3\n", i[1], *k);
@@ -16,7 +15,7 @@ int main() {
     printf("%d ?= 53\n\n", **k);
     free(i);
 
-    j = 1;
+    int j = 1;
     i = &j;
     printf("%d ?= %d ?= 1\n", *i, j);
     j = 3;
