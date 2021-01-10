@@ -1,6 +1,7 @@
 tests/**/*
 !tests/**/
 !tests/**/*.c
+!tests/**/*.txt
 failures/*
 !failures/*.c
 arch-sys/*
