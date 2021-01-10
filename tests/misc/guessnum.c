@@ -14,10 +14,9 @@ int choose() {
 }
 
 int strindex(char* str, int index) {
-    int base, loc, val;
-    base = index / QSIZE;
-    loc = index % QSIZE;
-    val = str[base];
+    int base = index / QSIZE;
+    int loc = index % QSIZE;
+    int val = str[base];
     while (loc--) {
         val = val / 256;
     }
@@ -25,10 +24,9 @@ int strindex(char* str, int index) {
 }
 
 int isnumber(char* str) {
-    int len, i, val;
-    len = strlen(str);
-    for (i = 0; i < len; i++) {
-        val = strindex(str, i);
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        int val = strindex(str, i);
         if (!('0' <= val && val <= '9' && val)) {
             return false;
         }
@@ -54,11 +52,9 @@ int compare(int guess, int real) {
 }
 
 int play() {
-    int real, found;
-    int* guess;
-    guess = malloc(QSIZE);
-    real = choose();
-    found = false;
+    int real = choose();
+    int found = false;
+    int* guess = malloc(QSIZE);
     printf("I want to make you guess a number.\n");
     printf("It's between 0 and %d.\n", max);
     while (!found) {
@@ -70,10 +66,9 @@ int play() {
 }
 
 int check(char* str) {
-    int len, i, val;
-    len = strlen(str);
-    for (i = 0; i < len; i++) {
-        val = strindex(str, i),
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        int val = strindex(str, i),
         printf("str[%d] = <%c> (%d)\n", i, val, val);
     }
 }
