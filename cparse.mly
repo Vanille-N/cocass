@@ -411,25 +411,30 @@ whilekw : WHILE { getloc () };
 forkw   : FOR   { getloc () };
 dokw    : DO    { getloc () };
 
+initialisation_statement:
+    | expression_statement { getloc (), CEXPR $1 }
+    | declarative_statement { $1 }
+;
+
 /* while () {} OR for (;;) {} OR do {} while () */
 iteration_statement:
     | whilekw OPEN_PAREN_CHR expression close_paren statement {
         let loc = sup_locator $1 (fst $5) in
         loc, CWHILE ($3, $5, (loc, ESEQ []), true)
     }
-    | forkw OPEN_PAREN_CHR expression_statement expression_statement close_paren statement
+    | forkw OPEN_PAREN_CHR initialisation_statement expression_statement close_paren statement
     /* for (e0; e; ) c == e0; while (e) c; */ {
         let loc = sup_locator $1 (fst $6) in
         loc, CBLOCK ([
-            (loc_of_expr $3, CEXPR $3);
+            $3;
             (loc, CWHILE ($4, $6, (loc, ESEQ []), true))
         ])
     }
-    | forkw OPEN_PAREN_CHR expression_statement expression_statement expression close_paren statement
+    | forkw OPEN_PAREN_CHR initialisation_statement expression_statement expression close_paren statement
     /* for (e0; e; e1) c == e0; while (e) { c; e1 } */ {
         let loc = sup_locator $1 (fst $7) in
         loc, CBLOCK ([
-            (loc_of_expr $3, CEXPR $3);
+            $3;
             loc, CWHILE ($4, $7, $5, true)
         ])
     }
