@@ -90,33 +90,48 @@ def check(fbase):
     ok = 0
     ko = 0
     prog = "./tests/{}".format(fbase)
-    for d in module.data:
-        res = run([prog, *d], capture_output=True)
-        code, out, err = res.returncode, res.stdout, res.stderr
-        (expect_code, expect_out, expect_err) = module.expect(prog, *d)
-        expect_out, expect_err = bytes(expect_out, 'UTF-8'), bytes(expect_err, 'UTF-8')
-        if expect_code == code and expect_err == err and expect_out == out:
-            print("    \x1b[32m[OK]\x1b[0m {}".format(d))
-            ok += 1
-        else:
-            print("    \x1b[31m[KO]\x1b[0m {}".format(d))
-            ko += 1
-            if expect_code != code:
-                print("        \x1b[33mWrong code:")
-                print("              \x1b[32m[{}]".format(expect_code))
-                print("              \x1b[31m[{}]\x1b[0m".format(code))
-            diff = compare(expect_out, out)
-            if diff is not None:
-                print("        \x1b[33mWrong stdout:")
-                print("              \x1b[32m[{}]".format(expect_out))
-                print("              \x1b[31m[{}]\x1b[0m".format(out))
-                print("        Difference at {}: [{}] vs [{}]".format(*diff))
-            diff = compare(expect_err, err)
-            if diff is not None:
-                print("        \x1b[33mWrong stderr:")
-                print("              \x1b[32m[{}]".format(expect_err))
-                print("              \x1b[31m[{}]\x1b[0m".format(err))
-                print("        Difference at {}: [{}] vs [{}]".format(*diff))
+    try:
+        _ = module.expect
+        expect = True
+    except AttributeError:
+        expect = False
+    if expect:
+        for d in module.data:
+            (expect_code, expect_out, expect_err) = module.expect(prog, *d)
+            expect_out, expect_err = bytes(expect_out, 'UTF-8'), bytes(expect_err, 'UTF-8')
+            res = run([prog, *d], stdout=PIPE, stderr=PIPE)
+            code, out, err = res.returncode, res.stdout, res.stderr
+            if expect_code == code and expect_err == err and expect_out == out:
+                print("    \x1b[32m[OK]\x1b[0m {}".format(d))
+                ok += 1
+            else:
+                print("    \x1b[31m[KO]\x1b[0m {}".format(d))
+                ko += 1
+                if expect_code != code:
+                    print("        \x1b[33mWrong code:")
+                    print("              \x1b[32m[{}]".format(expect_code))
+                    print("              \x1b[31m[{}]\x1b[0m".format(code))
+                diff = compare(expect_out, out)
+                if diff is not None:
+                    print("        \x1b[33mWrong stdout:")
+                    print("              \x1b[32m[{}]".format(expect_out))
+                    print("              \x1b[31m[{}]\x1b[0m".format(out))
+                    print("        Difference at {}: [{}] vs [{}]".format(*diff))
+                diff = compare(expect_err, err)
+                if diff is not None:
+                    print("        \x1b[33mWrong stderr:")
+                    print("              \x1b[32m[{}]".format(expect_err))
+                    print("              \x1b[31m[{}]\x1b[0m".format(err))
+                    print("        Difference at {}: [{}] vs [{}]".format(*diff))
+    else:
+        for d in module.cfg:
+            res = module.verify(prog, *d)
+            if res:
+                ok += 1
+                print("    \x1b[32m[OK]\x1b[0m {}".format(d))
+            else:
+                ko += 1
+                print("    \x1b[31m[KO]\x1b[0m {}".format(d))
     return (ok, ko)
 
 
