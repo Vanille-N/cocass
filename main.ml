@@ -61,7 +61,7 @@ let () =
         let command =
             let prefix = String.escaped !c_prefix in
             Printf.sprintf
-                "gcc -ggdb -o \"%s\" \"%s.s\" -lc -lm"
+                "gcc -ggdb -o \"%s\" \"%s.s\" -lc -lm -lpthread"
                 prefix prefix
         in
         ignore (Unix.system command)
