@@ -35,13 +35,9 @@ open CAST
 
 let string_buf = Buffer.create 256
 
-let string_iter f s = (* = String.iter; pas present en OCaml 2.04. *)
-    let n = String.length s in
-    for i=0 to n-1 do f (s.[i]) done
-
 let count yytext =
     oldcline := !cline; oldccol := !ccol;
-    string_iter (fun c -> match c with
+    String.iter (fun c -> match c with
         | '\n' -> (cline := !cline+1; ccol := 0)
             (* | '\t' -> (ccol := !ccol + 8 - (!ccol mod 8)) *)
         | _ -> ccol := !ccol+1
