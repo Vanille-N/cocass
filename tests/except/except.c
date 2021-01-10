@@ -8,8 +8,7 @@ int test_throw(int i) {
 }
 
 int test_catch(int i) {
-    int j;
-    j = -1;
+    int j = -1;
     try {
         j = test_throw(i);
     } catch (Foo x) {
@@ -19,8 +18,7 @@ int test_catch(int i) {
 }
 
 int test_catch_finally (int i) {
-    int j;
-    j = -1;
+    int j = -1;
     try {
         j = test_throw(i);
     } catch (Bar x) {
@@ -32,8 +30,7 @@ int test_catch_finally (int i) {
 }
 
 int test_finally (int i) {
-    int j;
-    j = -1;
+    int j = -1;
     try {
         j = test_throw(i);
     } finally {
@@ -43,8 +40,7 @@ int test_finally (int i) {
 }
 
 int test_multi_catch (int i) {
-    int j;
-    j = -1;
+    int j = -1;
     try {
         j = test_throw(i);
     } catch (Foo x) {

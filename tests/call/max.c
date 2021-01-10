@@ -1,14 +1,9 @@
-#ifndef MCC
-#include <stdio.h>
-#include <stdarg.h>
-#endif
-
 int max(int count, ...) {
     int* ap;
-    int best, j, arg;
+    int best;
     va_start(ap);
-    for (j = 0; j < count; j++) {
-        arg = va_arg(ap);
+    for (int j = 0; j < count; j++) {
+        int arg = va_arg(ap);
         if (j > 0) {
             best = (best > arg) ? best : arg;
         } else {

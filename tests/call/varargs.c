@@ -23,9 +23,8 @@ int bar(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, ...) {
 
 void write(int nb, ...) {
     int* ap;
-    int i;
     va_start(ap);
-    for (i = 0; i < nb; i++) {
+    for (int i = 0; i < nb; i++) {
         printf("argument #%d: %d\n", i, va_arg(ap));
     }
     putchar('\n');
@@ -33,10 +32,9 @@ void write(int nb, ...) {
 
 void twice(int nb, ...) {
     int* ap1, ap2;
-    int i;
     va_start(ap1);
     va_start(ap2);
-    for (i = 0; i < nb; i++) {
+    for (int i = 0; i < nb; i++) {
         printf("two at once: %d %d\n", va_arg(ap1), va_arg(ap2));
     }
     putchar('\n');

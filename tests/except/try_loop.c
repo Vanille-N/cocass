@@ -1,7 +1,6 @@
 int foo() {
-    int i;
     try {
-        for (i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             if (i == 5) {
                 // break; // OK
                 continue; // OK

@@ -1,6 +1,5 @@
 int foo() {
-    int i;
-    for (i = 0; 1; i++) {
+    for (int i = 0; 1; i++) {
         try {
             printf("i = %d\n", i);
             switch (i) {

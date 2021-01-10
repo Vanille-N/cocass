@@ -3,8 +3,7 @@ int cmp(int* a, int* b) {
 }
 
 void assert_increase(int* arr, int len) {
-    int i;
-    for (i = 1; i < len; i++) {
+    for (int i = 1; i < len; i++) {
         assert(arr[i-1] < arr[i]);
     }
 }
@@ -12,8 +11,8 @@ void assert_increase(int* arr, int len) {
 int main(int argc, char** argv) {
     int* items = malloc(QSIZE*argc);
     int key;
-    int i, j = 0;
-    for (i = 1; i < argc; i++) {
+    int j = 0;
+    for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--key") == 0) {
             key = atol(argv[++i]);
         } else {
