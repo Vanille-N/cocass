@@ -21,19 +21,16 @@ CAMLSRC=$(addsuffix .ml,$(basename $(CAMLOBJS)))
 PJ=NVILLANI-COCass
 
 # non-generated files
-FILES=clex.mll cAST.ml cAST.mli cparse.mly \
-	  pigment.ml pigment.mli \
-	  generate.ml generate.mli \
-	  reduce.ml reduce.mli \
-	  compile.ml compile.mli \
-	  cprint.ml cprint.mli \
-	  error.ml verbose.ml verbose.mli main.ml \
-	  Makefile README.md test.py
+SRC=clex.mll cAST.ml cAST.mli cparse.mly \
+	pigment.ml pigment.mli cprint.ml cprint.mli \
+	generate.ml generate.mli reduce.ml reduce.mli \
+	verbose.ml verbose.mli compile.ml compile.mli \
+	error.ml main.ml
+AUX=Makefile README.md test.py
+DOCS=docs report.pdf semantics.pdf
+TESTS=tests failures verify
 
-# test-related directories
-TESTS=assets failures verify
-
-# main beild
+# main build
 mcc: $(CAMLOBJS)
 	ocamlc -g -o mcc unix.cma $(CAMLOBJS)
 
@@ -44,7 +41,7 @@ clean:
 	rm -f depend
 	rm -rf $(PJ).tar.gz $(PJ)
 	find . -name '*.s' -type f -exec rm {} +
-	find assets ! -name '*.*' -type f -exec rm {} +
+	find tests ! -name '*.*' -type f -exec rm {} +
 	find failures ! -name '*.*' -type f -exec rm {} +
 	rm docs/*.log docs/*.aux docs/*.out
 
@@ -53,7 +50,9 @@ projet:
 	make clean
 	mkdir $(PJ)
 	cp -r $(TESTS) $(PJ)/
-	cp $(FILES) $(PJ)/
+	cp $(SRC) $(PJ)/
+	cp $(AUX) $(PJ)/
+	cp -r $(DOCS) $(PJ)/
 	tar czf $(PJ).tar.gz $(PJ)
 
 # automatic tester
