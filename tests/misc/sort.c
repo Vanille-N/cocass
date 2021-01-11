@@ -6,8 +6,9 @@ int cmp (int* a, int* b) {
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
     int len = 5000;
+    if (argc > 1) len = atol(argv[1]);
     int* arr = malloc(len*QSIZE);
     for (int i = 0; i < len; i++) {
         arr[i] = rand() % 10000;

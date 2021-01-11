@@ -34,7 +34,6 @@ int isnumber(char* str) {
     return true;
 }
 
-
 int compare(int guess, int real) {
     if (guess < 0) {
         printf("The number has to be positive, are you even trying ?\n");
