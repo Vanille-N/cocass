@@ -416,26 +416,25 @@ initialisation_statement:
     | declarative_statement { $1 }
 ;
 
+maybe_expression:
+    | expression { $1 }
+    | { getloc (), ESEQ [] }
+;
+
 /* while () {} OR for (;;) {} OR do {} while () */
 iteration_statement:
     | whilekw OPEN_PAREN_CHR expression close_paren statement {
         let loc = sup_locator $1 (fst $5) in
         loc, CWHILE ($3, $5, (loc, ESEQ []), true)
     }
-    | forkw OPEN_PAREN_CHR initialisation_statement expression_statement close_paren statement
-    /* for (e0; e; ) c == e0; while (e) c; */ {
-        let loc = sup_locator $1 (fst $6) in
-        loc, CBLOCK ([
-            $3;
-            (loc, CWHILE ($4, $6, (loc, ESEQ []), true))
-        ])
-    }
-    | forkw OPEN_PAREN_CHR initialisation_statement expression_statement expression close_paren statement
+    | forkw OPEN_PAREN_CHR initialisation_statement expression_statement maybe_expression close_paren statement
     /* for (e0; e; e1) c == e0; while (e) { c; e1 } */ {
         let loc = sup_locator $1 (fst $7) in
         loc, CBLOCK ([
             $3;
-            loc, CWHILE ($4, $7, $5, true)
+            loc, CWHILE (
+                (match $4 with (loc, ESEQ []) -> (loc, CST 1) | x -> x),
+                $7, $5, true)
         ])
     }
     | dokw statement whilekw expression SEMI_CHR {

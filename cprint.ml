@@ -202,8 +202,8 @@ let print_ast (out, color) code =
                 print_expr_indent (offset ^ curr_empty ^ blank ^ color_none) false out expr_false;
             )
             | ESEQ exprs -> (
-                fprintf out "%sseq\n" (offset ^ curr_full);
-                print_block print_expr_indent (offset ^ blank) out exprs;
+                fprintf out "%sseq\n" (offset ^ curr_full ^ color_none);
+                print_block print_expr_indent (offset ^ curr_empty ^ color_none) out exprs;
             )
     in print_ast_indent "" false out code
 

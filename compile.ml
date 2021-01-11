@@ -148,6 +148,7 @@ let universal = [
     ("O_RDONLY", Const 0); ("O_WRONLY", Const 1); ("O_RDWR", Const 2);
     ("O_APPEND", Const 1024); ("O_CREAT", Const 64); ("O_TRUNC", Const 512);
     ("STDIN_FILENO", Const 0); ("STDOUT_FILENO", Const 1); ("STDERR_FILENO", Const 2);
+    ("SEEK_END", Const 2); ("SEEK_CUR", Const 1); ("R_OK", Const 4);
     ("RAND_MAX", Const 2147483647);
     ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
     ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Const 255);
@@ -165,6 +166,7 @@ type fn_descriptor = arity * bool
 (* a selection of functions from the standard library *)
 (* format : (name, (arity, needs-conversion?)) *)
 let stdlib = [
+    ("access", (Exact 2, true));
     ("abs", (Exact 1, true));
     ("atoi", (Exact 1, true));
     ("atol", (Exact 1, false));
@@ -212,6 +214,7 @@ let stdlib = [
     ("isxdigit", (Exact 1, true));
     ("kill", (Exact 2, false));
     ("labs", (Exact 1, false));
+    ("lseek", (Exact 3, true));
     ("malloc", (Exact 1, false));
     ("memchr", (Exact 3, false));
     ("memcmp", (Exact 3, true));
@@ -222,6 +225,9 @@ let stdlib = [
     ("perror", (Exact 1, false));
     ("pipe", (Exact 1, false));
     ("printf", (More 1, false));
+    ("pthread_create", (Exact 4, true));
+    ("pthread_exit", (Exact 1, true));
+    ("pthread_join", (Exact 2, true));
     ("putc", (Exact 2, false));
     ("putchar", (Exact 1, false));
     ("putenv", (Exact 1, false));
