@@ -256,6 +256,23 @@ def fulltest(cc, fbase, more=[]):
         exit(100)
     return False
 
+def verify_failure(cc, fbase):
+    print("Checking {}".format(fbase))
+    okE = koE = 0
+    okW = koW = 0
+    fname = "{}.c".format(fbase)
+    print("  compile: {} {}".format(cc, fname))
+    msg = run([cc, fname], stderr=PIPE, stdout=PIPE).stderr.decode('utf-8')
+    fails = {}
+    for l in msg.split('\n'):
+        if "parser:" in l:
+            ff, more = l.split(', line')
+            loc, msg = more.split('): ')
+            line = int(loc.split('(')[0])
+            if "FATAL" in l:
+                fails[(line, "err")] = [msg, False]
+            else:
+                fails[(line, "wrn")] = [msg, False]
 def main():
     if len(sys.argv) >= 2:
         if sys.argv[1] in ["--help", "-h"]:
