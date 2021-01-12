@@ -4,7 +4,7 @@ from subprocess import run, Popen, PIPE
 import sys
 
 assets = [
-    ("boot", [["--no-reduce"], []],
+    ("boot", [
         "ex0",
         "ex1",
         "ex2",
@@ -22,8 +22,8 @@ assets = [
         "ret",
         "scoped_ret",
         "isdigit",
-    ),
-    ("call", [["--no-reduce"], []],
+    ]),
+    ("call", [
         "hello",
         "has_args",
         "argcount",
@@ -36,8 +36,8 @@ assets = [
         "printglob",
         "bsearch",
         "varargs",
-    ),
-    ("calc", [["--no-reduce"], []],
+    ]),
+    ("calc", [
         "cmp",
         "calc",
         "shifts",
@@ -45,21 +45,24 @@ assets = [
         "bitwise",
         "incdec",
         "ordre",
+        "minimax",
         "cmp_order",
+        "syracuse",
         "mean",
         "wmean",
         "fact",
-    ),
-    ("ptr", [["--no-reduce"], []],
+    ]),
+    ("ptr", [
         "array",
+        "swap",
         "dbl-array",
         "additions",
         "addr-deref",
         "extended_assign",
         "fnptr",
         "multifnptr",
-    ),
-    ("string", [["--no-reduce"], []],
+    ]),
+    ("string", [
         "put",
         "quine",
         "sprintf",
@@ -70,11 +73,12 @@ assets = [
         "path",
         "argsort",
         "paren",
+        "binconv",
         "cat",
         "memlib",
         "concise",
-    ),
-    ("flow", [["--no-reduce"], []],
+    ]),
+    ("flow", [
         "loops",
         "count",
         "seq",
@@ -84,8 +88,8 @@ assets = [
         "triangle",
         "dowhile",
         "infinite",
-    ),
-    ("reduce", [["--no-reduce"], []],
+    ]),
+    ("reduce", [
         "reduce_eif",
         "reduce_monops",
         "reduce_binops",
@@ -93,8 +97,8 @@ assets = [
         "big_switch",
         "single_step",
         "array",
-    ),
-    ("except", [["--no-reduce"], []],
+    ]),
+    ("except", [
         "exc1",
         "exc2",
         "exc3",
@@ -106,8 +110,8 @@ assets = [
         "nothrow",
         "uncaught-str",
         "assert-catch",
-    ),
-    ("decl", [["--no-reduce"], []],
+    ]),
+    ("decl", [
         "init",
         "ptr",
         "typedef",
@@ -115,53 +119,24 @@ assets = [
         "scope-switch",
         "override",
         "string",
-    ),
-    ("sys", [["--no-reduce"], []],
+    ]),
+    ("sys", [
         "fork",
         "execvp",
         "exec",
         "alarm",
-        # "ansiposix",
-        # "closed_pipe",
-        # "conversion",
-        # "duel",
-        # "dup-redir",
-        # "dup-write",
-        # "exo-1",
-        # "exo-2",
-        # "fdtest",
-        # "fetch",
-        # "groups",
-        # "hello",
-        # "incr",
-        # "input",
-        # "macromax",
-        # "malloc",
-        # "max",
-        # "minimax",
-        # "mystere-2",
-        # "openfork",
-        # "pfork",
-        # "pipe-simple",
-        # "pipe-use",
+        "dup-redir",
+        "pipe-simple",
         "read",
-        # "scan",
-        # "showids",
-        # "sigtransfer",
-        # "sleep-run",
-        # "survive",
-        # "syracuse",
-        # "victime",
-    ),
-    ("misc", [["--no-reduce"], []],
-        # "guessnum",
+    ]),
+    ("misc", [
         "mwc",
-        # "rsort",
         "sieve",
         "sort",
         "sudoku_solver",
-        # "switch",
-    ),
+    ]),
+]
+
 failures = [
     "arity",
     "assignment",
@@ -262,8 +237,13 @@ def check(fbase):
                 print("    \x1b[31m[KO]\x1b[0m {}".format(d))
     return (ok, ko)
 
-
 def fulltest(cc, fbase, more=[]):
+    try:
+        with open("verify/{}.py".format(fbase)) as f:
+            pass
+    except FileNotFoundError:
+        print("No such test: {}".format(fbase))
+        exit(50)
     print("Checking {}:".format(fbase))
     if compile(cc, fbase, more=more):
         ok, ko = check(fbase)
