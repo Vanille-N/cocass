@@ -288,6 +288,27 @@ def verify_failure(cc, fbase):
                 else:
                     print("    Expected a warning at line {}".format(i))
                     koW += 1
+    for key in fails:
+        (line, type) = key
+        msg, handled = fails[key]
+        if handled:
+            if type == "err":
+                okE += 1
+            else:
+                okW += 1
+        else:
+            if type == "err":
+                print("    Did not expect the error '{}' at line {}".format(msg, line))
+                koE += 1
+            else:
+                print("    Did not expect the warning '{}' at line {}".format(msg, line))
+                koW += 1
+    if koE + koW == 0:
+        print("    \x1b[32m[OK]\x1b[0m {}".format(fbase))
+    else:
+        print("    \x1b[31m[KO]\x1b[0m {}".format(fbase))
+    return ((okW, koW), (okE, koE))
+
 def main():
     if len(sys.argv) >= 2:
         if sys.argv[1] in ["--help", "-h"]:
