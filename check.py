@@ -257,23 +257,33 @@ def fulltest(cc, fbase, more=[]):
     return False
 
 def main():
-    if len(sys.argv) == 2:
-        if sys.argv[1] == "help":
-            print("Automated tester for a C-- compiler")
-            print("  usage:")
-            print("      test file [file2, ...]")
-            print("              check the compiled output by mcc")
-            print("              of assets/file.c against the specification in verify/file.py")
-            print("      test --category")
-            print("              execute check for all tests from the given category")
-            print("      test")
-            print("              execute all checks")
-            print("      test help")
-            print("              print this help")
-            print("      test categ")
-            print("              print all categories")
-            print("      test list")
-            print("              print all files")
+    if len(sys.argv) >= 2:
+        if sys.argv[1] in ["--help", "-h"]:
+            print("""Automated tester for a C-- compiler
+      usage:
+          check [TARGET ...]
+              either:
+                - compare the compiled output by mcc of tests/(TARGET).c
+                  against the specification in verify/(TARGET).py
+                  where TARGET is one of
+                    CATEGORY/         a registered category
+                    CATEGORY/FILE     a single file path
+                - assert that all warnings and errors have been emitted
+                  by scanning the source file for //! and //? comments
+          check [-h|--help]
+              print this help message
+          check [-c|--categ]
+              print all categories
+          check [-l|--list] [CATEGORY ...]
+              print all available files, only list those in certain categories
+              if extra arguments are provided
+
+      examples:
+          check -l
+          check -l sys ptr decl
+          check sys/alarm string/ ptr/additions
+          check failures/undeclared
+    """)
             return
         elif sys.argv[1] == "categ":
             for (category, *tests) in assets:
