@@ -331,8 +331,15 @@ def main():
                     ok, ko = fulltest(cc, category + '/' + fbase, more=more)
                     nb_tests += ok
                     nb_error += ko
+    print("\x1b[32m" if nb_error == 0 else "\x1b[31m")
+    print("=====================================")
+    print("Ran tests on {} files".format(nb_files))
+    print("  {} failed tests".format(nb_error))
     print()
-    print("Ran {} successful tests on {} test files".format(nb_tests, nb_files))
-    print("{} errors".format(nb_error))
+    print("  {} calculation checks, {} incorrect".format(nb_okC, nb_koC))
+    print("  {} warning checks, {} incorrect".format(nb_okW, nb_koW))
+    print("  {} error checks, {} incorrect".format(nb_okE, nb_koE))
+    print("=====================================")
+    print("\x1b[0m", end="")
 
 main()
