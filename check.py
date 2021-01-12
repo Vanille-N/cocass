@@ -162,6 +162,22 @@ assets = [
         "sudoku_solver",
         # "switch",
     ),
+failures = [
+    "arity",
+    "assignment",
+    "break_try",
+    "break",
+    "decl_alternate",
+    "divzero",
+    "duplicate_catch",
+    "incompatible",
+    "init_declaration",
+    "invalid_va",
+    "loop_try",
+    "multidecl",
+    "return_try",
+    "switch",
+    "undeclared",
 ]
 
 class Module:
