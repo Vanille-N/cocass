@@ -299,9 +299,11 @@ def main():
     cc = "./mcc"
     args = sys.argv[1:]
 
-    nb_files = 0
-    nb_tests = 0
-    nb_error = 0
+    nb_files = nb_tests = nb_error = 0
+    nb_okC = nb_koC = 0
+    nb_okE = nb_koE = 0
+    nb_okW = nb_koW = 0
+    logs = []
 
     if len(args) >= 1:
         for fbase in args:
@@ -331,6 +333,23 @@ def main():
                     ok, ko = fulltest(cc, category + '/' + fbase, more=more)
                     nb_tests += ok
                     nb_error += ko
+    for res in logs:
+        if res[0] == 2:
+            _, wrn, err = res
+            okW, koW = wrn
+            okE, koE = err
+            nb_okE += okE
+            nb_okW += okW
+            nb_koE += koE
+            nb_koW += koW
+            nb_error += koE + koW
+        else:
+            _, ok, ko = res
+            nb_error += ko
+            nb_tests += ok
+            nb_okC += ok
+            nb_koC += ko
+
     print("\x1b[32m" if nb_error == 0 else "\x1b[31m")
     print("=====================================")
     print("Ran tests on {} files".format(nb_files))
