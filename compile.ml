@@ -86,21 +86,19 @@ let extract_switch_cases cases =
 (* detect useless catch *)
 let find_duplicate_catch catches =
     let rec dup = function
-        | [] -> None
-        | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
+        | [] -> []
+        | (_, a) :: (loc, b) :: tl when a = b -> (loc, b) :: (dup ((loc, b) :: tl))
         | _ :: tl -> dup tl
     in
     let rec wildcard_is_last = function
-        | [] -> None
-        | (_, "_") :: [] -> None
-        | (loc, "_") :: tl -> Some loc
+        | [] -> ()
+        | (loc, "_") :: tl -> List.iter (fun (loc, exc) -> Error.warning (Some loc) (sprintf "catch %s is unreachable after wildcard _" exc)) tl
         | _ :: tl -> wildcard_is_last tl
     in
     let tags = List.map (fun (loc, e, _, _) -> (loc, e)) catches in
     let sorted = List.stable_sort (fun (_, e1) (_, e2) -> compare e1 e2) tags in
-    match wildcard_is_last tags with
-        | None -> dup sorted
-        | Some loc -> Some (loc, "_")
+    wildcard_is_last tags;
+    dup sorted
 
 let reserved = ["va_start"; "va_arg"; "assert"]
 let predefs = ["SIG_IGN"]
@@ -108,8 +106,8 @@ let predefs = ["SIG_IGN"]
 (* detect conflicting declaration *)
 let find_duplicate_decl extractor decls =
     let rec dup = function
-        | [] -> None
-        | (_, a) :: (loc, b) :: _ when a = b -> Some (loc, b)
+        | [] -> []
+        | (_, a) :: (loc, b) :: tl when a = b -> (loc, b) :: (dup ((loc, b) :: tl))
         | _ :: tl -> dup tl
     in
     let names = List.map extractor decls in
@@ -151,7 +149,7 @@ let universal = [
     ("SEEK_END", Const 2); ("SEEK_CUR", Const 1); ("R_OK", Const 4);
     ("RAND_MAX", Const 2147483647);
     ("QSIZE", Const 8); ("DSIZE", Const 4); ("WSIZE", Const 2); ("BSIZE", Const 1);
-    ("LONG", Hexdc "ffffffff"); ("WORD", Hexdc "ffff"); ("BYTE", Const 255);
+    ("QUAD", Hexdc (String.make 16 'f')); ("DOUBLE", Hexdc (String.make 8 'f')); ("WORD", Hexdc (String.make 4 'f')); ("BYTE", Const 255);
 ]
 
 type arity =
@@ -371,15 +369,12 @@ let codegen decl_list =
             | _ -> ()
         ) vars;
         vars
-    and make_scope depth (decls:local_declaration list) =
+    and make_scope depth decls =
         (* allocate space for local variables and record their position *)
         let n = List.length decls in
         let pos = List.init n (fun i -> Stack (-i-depth)) in
         let names = List.map (fun x -> snd @@ fst @@ x) decls in
-        (match find_duplicate_decl fst decls with
-            | None -> ()
-            | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
-        );
+        List.iter (fun (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)) (find_duplicate_decl fst decls);
         let vars = zip names pos in
         List.iter (fun name -> Vb.detail (sprintf "local: %s" name)) names;
         vars
@@ -619,11 +614,7 @@ let codegen decl_list =
                  *          end
                  *
                  *)
-                (match find_duplicate_catch catches with
-                    | None -> ()
-                    | Some (loc, "_") -> Error.warning (Some loc) "all catch clauses after wildcard _ are unreachable."
-                    | Some (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch. %s is already handled by a previous clause." e)
-                );
+                List.iter (fun (loc, e) -> Error.warning (Some loc) (sprintf "duplicate catch: %s is already handled by a previous clause." e)) (find_duplicate_catch catches);
                 let tagbase = sprintf "%d_try" (label_id ()) in
                 (* INIT TRY *)
                 prog.asm NOP "# enter try block";
@@ -715,10 +706,7 @@ let codegen decl_list =
             Vb.info (Some loc) (sprintf "function declaration: %s" name);
             reset_label_cnt ();
             prog.asm (FUN name) "toplevel function";
-            (match find_duplicate_decl (fun x -> x) decs with
-                | None -> ()
-                | Some (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)
-            );
+            List.iter (fun (loc, d) -> Error.error (Some loc) (sprintf "argument %s appears twice in the function declaration" d)) (find_duplicate_decl (fun x -> x) decs);
             match decs with
                 | (_, "...") :: fixed -> (
                     Vb.detail "function is variadic";
@@ -1143,10 +1131,7 @@ let codegen decl_list =
             (name, (Globl name)) :: (get_global_vars tl)
         )
     in
-    (match find_duplicate_decl extract_decl_id decl_list with
-        | None -> ()
-        | Some (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)
-    );
+    List.iter (fun (loc, name) -> Error.error (Some loc) (sprintf "redefinition of %s" name)) (find_duplicate_decl extract_decl_id decl_list);
     let global = get_global_vars decl_list in
     let fmt_int = prog.exc "Unhandled exception %s(%d)\n" in
     let fmt_str = prog.exc "Unhandled exception %s(\"%s\")\n" in
