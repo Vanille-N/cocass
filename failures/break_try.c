@@ -2,7 +2,7 @@ int foo() {
     int i;
     for (i = 0; i < 10; i++) {
         try {
-            break;
+            break; //!
         } catch (Wrong _) {
             printf("Should not have caught.\n");
         }
