@@ -285,13 +285,15 @@ def main():
           check failures/undeclared
     """)
             return
-        elif sys.argv[1] == "categ":
-            for (category, *tests) in assets:
+        elif sys.argv[1] in ["--categ", "-c"]:
+            for (category, _) in assets:
                 print(category)
             return
-        elif sys.argv[1] == "list":
-            for (category, *tests) in assets:
-                print("{}: {}".format(category, ", ".join(tests)))
+        elif sys.argv[1] in ["--list", "-l"]:
+            categs = sys.argv[2:]
+            for (category, tests) in assets:
+                if categs == [] or category in categs:
+                    print("{}: {}".format(category, ", ".join(tests)))
             return
 
     cc = "./mcc"
