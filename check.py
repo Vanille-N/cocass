@@ -308,31 +308,43 @@ def main():
     if len(args) >= 1:
         for fbase in args:
             if len(fbase) >= 1 and fbase[-1] == "/":
-                for (category, more_args, *tests) in assets:
-                    if category == fbase[:-1]:
-                        for fbase in tests:
-                            nb_files += 1
-                            for more in more_args:
-                                ok, ko = fulltest(cc, category + '/' + fbase, more=more)
-                                nb_error += ko
-                                nb_tests += ok
+                if fbase[:-1] == "failures":
+                    for f in failures:
+                        nb_files += 1
+                        wrn, err = verify_failure(cc, "failures/" + f)
+                        logs.append((2, wrn, err))
+                else:
+                    for (category, tests) in assets:
+                        if category == fbase[:-1]:
+                            for fbase in tests:
+                                nb_files += 1
+                                for more in [["--no-reduce"], []]:
+                                    ok, ko = fulltest(cc, category + '/' + fbase, more=more)
+                                    logs.append((1, ok, ko))
             else:
-                nb_files += 1
-                ok, ko = fulltest(cc, fbase, more=['--no-reduce'])
-                nb_error += ko
-                nb_tests += ok
-                ok, ko = fulltest(cc, fbase)
-                nb_error += ko
-                nb_tests += ok
+                if "failures/" in fbase:
+                    nb_files += 1
+                    wrn, err = verify_failure(cc, fbase)
+                    logs.append((2, wrn, err))
+                else:
+                    for more in [["--no-reduce"], []]:
+                        nb_files += 1
+                        ok, ko = fulltest(cc, fbase, more=more)
+                        logs.append((1, ok, ko))
     else:
-        for (category, more_args, *tests) in assets:
+        for (category, tests) in assets:
             print("\n\n    <<< category: {} >>>\n".format(category))
             for fbase in tests:
                 nb_files += 1
-                for more in more_args:
+                for more in [["--no-reduce"], []]:
                     ok, ko = fulltest(cc, category + '/' + fbase, more=more)
-                    nb_tests += ok
-                    nb_error += ko
+                    logs.append((1, ok, ko))
+        print("\n\n    <<< fail >>>\n")
+        for f in failures:
+            nb_files += 1
+            wrn, err = verify_failure(cc, "failures/" + f)
+            logs.append((2, wrn, err))
+
     for res in logs:
         if res[0] == 2:
             _, wrn, err = res
