@@ -273,6 +273,21 @@ def verify_failure(cc, fbase):
                 fails[(line, "err")] = [msg, False]
             else:
                 fails[(line, "wrn")] = [msg, False]
+    with open(fname, 'r') as f:
+        for j,l in enumerate(f.readlines()):
+            i = j + 1
+            if '//!' in l:
+                if (i, "err") in fails:
+                    fails[(i, "err")][1] = True
+                else:
+                    print("    Expected an error at line {}".format(i))
+                    koE += 1
+            elif '//?' in l:
+                if (i, "wrn") in fails:
+                    fails[(i, "wrn")][1] = True
+                else:
+                    print("    Expected a warning at line {}".format(i))
+                    koW += 1
 def main():
     if len(sys.argv) >= 2:
         if sys.argv[1] in ["--help", "-h"]:
