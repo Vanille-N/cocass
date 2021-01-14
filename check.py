@@ -273,14 +273,26 @@ def verify_failure(cc, fbase):
         for j,l in enumerate(f.readlines()):
             i = j + 1
             if '//!' in l:
+                kws = l.split('//!')[-1].split('//')[0].split('|')
                 if (i, "err") in fails:
-                    fails[(i, "err")][1] = True
+                    for kw in kws:
+                        if kw in fails[(i, "err")][0]:
+                            fails[(i, "err")][1] = True
+                            break
+                    else:
+                        print("    Error at line {} does not have keyword '{}': '{}'".format(i, kw, fails[(i, "err")][0]))
                 else:
                     print("    Expected an error at line {}".format(i))
                     koE += 1
             elif '//?' in l:
+                kws = l.split('//?')[-1].split('//')[0].split('|')
                 if (i, "wrn") in fails:
-                    fails[(i, "wrn")][1] = True
+                    for kw in kws:
+                        if kw in fails[(i, "wrn")][0]:
+                            fails[(i, "wrn")][1] = True
+                            break
+                    else:
+                        print("    Warning at line {} does not have keyword '{}': '{}'".format(i, kw, fails[(i, "wrn")][0]))
                 else:
                     print("    Expected a warning at line {}".format(i))
                     koW += 1
