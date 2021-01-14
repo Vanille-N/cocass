@@ -27,7 +27,7 @@ SRC=clex.mll cAST.ml cAST.mli cparse.mly \
 	verbose.ml verbose.mli compile.ml compile.mli \
 	error.ml main.ml
 AUX=Makefile README.md test.py
-DOCS=docs report.pdf semantics.pdf
+DOCS=report.pdf semantics.pdf
 TESTS=tests failures verify
 
 # main build
