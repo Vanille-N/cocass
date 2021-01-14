@@ -1,12 +1,12 @@
 int main() {
     int i;
-    i = j; //!
-    j = 1; //!
+    i = j; //!undeclared//
+    j = 1; //!undeclared//
     { int k; }
-    i = k; //!
-    k = 1; //!
+    i = k; //!undeclared//
+    k = 1; //!undeclared//
 
-    arr[0] = 1; //!
-    i = arr[0]; //!
+    arr[0] = 1; //!undeclared//
+    i = arr[0]; //!undeclared//
     return 0;
 }

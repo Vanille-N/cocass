@@ -4,17 +4,17 @@ int baz(int a, int b) {}
 
 int main() {
     foo();
-    foo(1); //?
-    foo(1, 1); //?
-    bar(); //?
+    foo(1); //?arity//
+    foo(1, 1); //?arity//
+    bar(); //?arity//
     bar(1);
-    bar(1, 2); //?
-    baz(); //?
-    baz(1); //?
+    bar(1, 2); //?arity//
+    baz(); //?arity//
+    baz(1); //?arity//
     baz(1, 2);
-    malloc(); //?
-    malloc(0, 1, 2); //?
-    printf(); //?
-    fprintf(stdout); //?
-    quux(); //?
+    malloc(); //?arity//
+    malloc(0, 1, 2); //?arity//
+    printf(); //?arity//
+    fprintf(stdout); //?arity//
+    quux(); //?unknown//
 }

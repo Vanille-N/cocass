@@ -1,9 +1,9 @@
 int foo() {
-    break; //!
-    continue; //!
+    break; //!no loop//
+    continue; //!no loop//
 }
 
 int main() {
-    break; //!
-    continue; //!
+    break; //!no loop//
+    continue; //!no loop//
 }

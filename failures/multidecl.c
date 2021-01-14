@@ -1,18 +1,18 @@
-int main(int argc, char** argc) {} //!
+int main(int argc, char** argc) {} //!twice//
 
 int foo() {}
 int bar() {}
 int baz() {}
-int foo() {} //!
-int foo() {} //!
+int foo() {} //!redefinition//
+int foo() {} //!redefinition//
 
-int main() {} //!
+int main() {} //!redefinition//
 
 int x;
-int foo; //!
-int x; //!
-int main; //!
+int foo; //!redefinition//
+int x; //!redefinition//
+int main; //!redefinition//
 
-int va_arg; //!
-int assert; //!
-int va_start; //!
+int va_arg; //!reserved//
+int assert; //!reserved//
+int va_start; //!reserved//

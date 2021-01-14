@@ -4,7 +4,7 @@ int foo() {
         try {
             printf("i = %d\n", i);
             switch (i) {
-                case 7: continue; //!
+                case 7: continue; //!outside//
                 case 3: throw Three(NULL);
                 case 11: throw Eleven(NULL);
             }
