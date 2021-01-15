@@ -125,6 +125,7 @@ assets = [
         "execvp",
         "exec",
         "alarm",
+        "survive",
         "dup-redir",
         "pipe-simple",
         "read",
