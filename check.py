@@ -134,6 +134,7 @@ assets = [
         "mwc",
         "sieve",
         "sort",
+        "rsort",
         "sudoku_solver",
     ]),
 ]
@@ -389,8 +390,8 @@ def main():
                     wrn, err = verify_failure(cc, fbase)
                     logs.append((2, wrn, err))
                 else:
+                    nb_files += 1
                     for more in [["--no-reduce"], []]:
-                        nb_files += 1
                         ok, ko = fulltest(cc, fbase, more=more)
                         logs.append((1, ok, ko))
     else:
