@@ -18,7 +18,7 @@ CAMLOBJS=error.cmo cAST.cmo pigment.cmo reduce.cmo cprint.cmo \
 CAMLSRC=$(addsuffix .ml,$(basename $(CAMLOBJS)))
 
 # archive directory
-PJ=NVILLANI-COCass
+PJ=VILLANI_NEVEN-FULL
 
 # non-generated files
 SRC=clex.mll cAST.ml cAST.mli cparse.mly \
@@ -26,7 +26,7 @@ SRC=clex.mll cAST.ml cAST.mli cparse.mly \
 	generate.ml generate.mli reduce.ml reduce.mli \
 	verbose.ml verbose.mli compile.ml compile.mli \
 	error.ml main.ml
-AUX=Makefile README.md test.py
+AUX=Makefile README.md check.py
 DOCS=report.pdf semantics.pdf
 TESTS=tests failures verify
 
@@ -35,18 +35,18 @@ mcc: $(CAMLOBJS)
 	ocamlc -g -o mcc unix.cma $(CAMLOBJS)
 
 clean:
-	rm -f mcc *.cmi *.cmo
-	rm -f cparse.ml cparse.mli clex.ml
-	rm -f cparse.output
-	rm -f depend
-	rm -rf $(PJ).tar.gz $(PJ)
+	rm -f mcc *.cmi *.cmo || echo "Nothing to remove"
+	rm -f cparse.ml cparse.mli clex.ml || echo "Nothing to remove"
+	rm -f cparse.output || echo "Nothing to remove"
+	rm -f depend || echo "Nothing to remove"
+	rm -rf $(PJ).tar.gz $(PJ) || echo "Nothing to remove"
 	find . -name '*.s' -type f -exec rm {} +
 	find tests ! -name '*.*' -type f -exec rm {} +
 	find failures ! -name '*.*' -type f -exec rm {} +
-	rm docs/*.log docs/*.aux docs/*.out
+	rm docs/*.log docs/*.aux docs/*.out || echo "Nothing to remove"
 
 # create and compress final assignment
-projet:
+project:
 	make clean
 	mkdir $(PJ)
 	cp -r $(TESTS) $(PJ)/
