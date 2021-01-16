@@ -10,8 +10,8 @@ Some minor inconveniences were:
 
 More anecdotally:
 \begin{itemize}
-    \item more than 30min spent figuring out why \t{printf} segfaults when \t{rax} is not zeroed before the call
-    \item more than 1h spent identifying and fixing a stack alignment issue (\t{rsp} has to be a multiple of 16)
+    \item around 30min spent figuring out why \t{printf} segfaults when \t{rax} is not zeroed before the call
+    \item around 1h spent identifying and fixing a stack alignment issue (\t{rsp} has to be a multiple of 16)
 \end{itemize}
 
 Although I believe I succeeded in specifying the complete (apart from variadic arguments) semantics of extended C\textminus\textminus, I tried and failed to implement them in Coq. The main reason for that failure is the semantic abstraction of the memory: each value being spread over 8 bytes makes it very difficult to establish the required properties of the memory.

@@ -27,7 +27,7 @@ let rec truncate n lst =
     else (List.hd lst) :: (truncate (n-1) (List.tl lst))
 
 (* List.assoc_opt rewritten for ('a * 'b) list list *)
-let assoc x ll =
+let envt_assoc x ll =
     let rec aux = function
         | [] -> None
         | []::ll -> aux ll
@@ -773,7 +773,7 @@ let codegen decl_list =
         let (label, tagbrk, tagcont) = tags in
         let loc = fst expr in
         match snd expr with
-        | VAR name -> (match assoc name frame with
+        | VAR name -> (match envt_assoc name frame with
             | None -> Error.error (Some (fst expr)) (sprintf "cannot read from undeclared %s." name)
             | Some (Const k) -> (
                 if (needs_address target) then Error.error (Some (fst expr)) "constant value has no address."
@@ -919,7 +919,7 @@ let codegen decl_list =
              *                  ^ RBP                                    ^RSP
              *)
             let nb_args = List.length expr_lst in
-            (match assoc fname frame with
+            (match envt_assoc fname frame with
                 | None | Some (FnPtr _) -> (
                     match List.assoc_opt fname descriptors with
                         | Some (n, _) when not (satisfies n nb_args) -> Error.warning (Some (fst expr)) (sprintf "%s has the wrong arity: expected %s, got %d" fname (str_of_arity n) nb_args)
@@ -951,7 +951,7 @@ let codegen decl_list =
             (* update stack pointer then call *)
             prog.asm (SUB (Const (8*offset), Regst RSP)) (sprintf "%d locals" (depth+nb_args));
             prog.asm (XOR (Regst RAX, Regst RAX)) "";
-            (match assoc fname frame with
+            (match envt_assoc fname frame with
                 | None | Some (FnPtr _) -> prog.asm (CAL fname) " +" (* unknown or known by tag *)
                 | Some loc -> (
                     prog.asm (MOV (loc, Regst R10)) "function pointer"; (* known by address *)
