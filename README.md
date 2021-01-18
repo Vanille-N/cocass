@@ -8,8 +8,8 @@ Make targets:
 - `make` builds `mcc`
 - `make test` runs `mcc` on the tests: test files in `assets/`, verifiers in `verify/`. Each test is a `.c` file and a `.py` verifier, the output of the compiled executable is checked against the verifier for each set of command line arguments.
 
-Note: `make test` executes `./test.py`, which you can also invoke directly:
-`./test.py [TESTS]` where `TESTS` is a list of
+Note: `make test` executes `./check.py`, which you can also invoke directly:
+`./check.py [TESTS]` where `TESTS` is a list of
 - `category/` (e.g. `except/`) to run a full category of tests
 - `file` (e.g. `except/exc1`) to run a single test
 
