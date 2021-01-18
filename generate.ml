@@ -1,5 +1,13 @@
 open Printf
 
+(* ocaml version not up to date *)
+
+(* let rec list_assoc_opt value = function
+    | [] -> None
+    | (x, y) :: _ when x = value -> Some y
+    | _ :: tl -> list_assoc_opt value tl *)
+
+
 (* non-exhaustive list of registers *)
 type register =
     | RAX
