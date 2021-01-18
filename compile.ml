@@ -22,6 +22,14 @@ let list_filter_map fn lst =
             | Some y -> aux (y :: acc) tl
         )
     in List.rev (aux [] lst)
+
+let list_init n fn =
+    let rec aux acc = function
+        | i when i = n -> acc
+        | i -> aux ((fn i) :: acc) (i + 1)
+    in List.rev (aux [] 0) *)
+
+
 (* utils *)
 
 (* zip two lists together *)
