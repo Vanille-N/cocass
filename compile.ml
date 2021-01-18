@@ -13,6 +13,15 @@ module Vb = Verbose
     | _ :: tl -> list_assoc_opt value tl
 
 type ('a, 'b) error = Ok of 'a | Error of 'b
+
+let list_filter_map fn lst =
+    let rec aux acc = function
+        | [] -> acc
+        | x :: tl -> (match (fn x) with
+            | None -> aux acc tl
+            | Some y -> aux (y :: acc) tl
+        )
+    in List.rev (aux [] lst)
 (* utils *)
 
 (* zip two lists together *)
