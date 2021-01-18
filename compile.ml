@@ -11,6 +11,8 @@ module Vb = Verbose
     | [] -> None
     | (x, y) :: _ when x = value -> Some y
     | _ :: tl -> list_assoc_opt value tl
+
+type ('a, 'b) error = Ok of 'a | Error of 'b
 (* utils *)
 
 (* zip two lists together *)
