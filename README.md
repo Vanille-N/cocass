@@ -12,7 +12,6 @@ Note: `make test` executes `./check.py`, which you can also invoke directly:
 `./check.py [TESTS]` where `TESTS` is a list of
 - `category/` (e.g. `except/`) to run a full category of tests
 - `file` (e.g. `except/exc1`) to run a single test
-
 or is left empty to run all tests.
 
 
@@ -59,7 +58,6 @@ Where options are:
  ├─ cprint.ml        AST pretty-print
  ├─ error.ml         error reporting
  ├─ generate.ml      simplified assembler -> asm source code
- ├─ genlab.ml        (unused)
  ├─ main.ml          argument parsing
  ├─ pigment.ml       color abstraction
  ├─ reduce.ml        ASM simplifier
